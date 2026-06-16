@@ -1,0 +1,39 @@
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor and IDE settings
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Dependencies
+node_modules/
+vendor/
+
+# Build output
+dist/
+build/
+out/
+target/
+
+# Logs and caches
+*.log
+.cache/
+.pytest_cache/
+__pycache__/
+*.py[cod]
+
+# Temporary files
+tmp/
+temp/
+*.tmp
