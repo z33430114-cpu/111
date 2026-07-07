@@ -37,3 +37,9 @@ __pycache__/
 tmp/
 temp/
 *.tmp
+
+# Local runtime data
+.data/
+
+# Local worktrees
+.worktrees/
