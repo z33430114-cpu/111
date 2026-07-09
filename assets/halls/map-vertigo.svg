@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 224 56">
+  <defs><linearGradient id="sky" x1="0" x2="0" y1="0" y2="1"><stop stop-color="#9fb1bd"/><stop offset=".52" stop-color="#67747d"/><stop offset="1" stop-color="#1b2024"/></linearGradient><filter id="grain"><feTurbulence baseFrequency=".8" numOctaves="3" seed="66"/><feColorMatrix type="saturate" values=".1"/><feComponentTransfer><feFuncA type="table" tableValues="0 .15"/></feComponentTransfer></filter></defs>
+  <rect width="224" height="56" fill="url(#sky)"/>
+  <rect y="38" width="224" height="18" fill="#24292b"/>
+  <path d="M0 39h224" stroke="#9aa8ad" stroke-width="3" opacity=".5"/>
+  <rect x="16" y="24" width="48" height="17" fill="#c2c7c2"/>
+  <rect x="81" y="16" width="52" height="25" fill="#d9d7cf"/>
+  <rect x="151" y="22" width="56" height="19" fill="#b7c0be"/>
+  <path d="M22 25l-7-8M60 25l8-9M88 17l-8-10M128 17l8-9M155 23l-6-8M203 23l7-8" stroke="#d4d9d7" stroke-width="3"/>
+  <path d="M31 41v15M101 41v15M174 41v15" stroke="#111719" stroke-width="5"/>
+  <path d="M0 50c30-7 77-7 112-3 38 4 67-2 112-12v21H0z" fill="#131719" opacity=".78"/>
+  <rect width="224" height="56" filter="url(#grain)"/>
+  <rect width="224" height="56" fill="#001018" opacity=".12"/>
+</svg>

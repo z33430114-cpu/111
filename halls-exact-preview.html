@@ -1,0 +1,885 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Halls Exact Preview</title>
+  <style>
+    :root {
+      --bg: #020202;
+      --panel: #080808;
+      --panel-2: #0e0f11;
+      --line: rgba(255,255,255,.13);
+      --line-soft: rgba(255,255,255,.075);
+      --text: #f5f5f2;
+      --muted: rgba(245,245,242,.62);
+      --dim: rgba(245,245,242,.42);
+      --red: #d71920;
+      --red-soft: rgba(215,25,32,.34);
+      font-family: Bahnschrift, "Arial Narrow", "Microsoft YaHei", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: #020202;
+      color: var(--text);
+      overflow: hidden;
+    }
+
+    body[data-option="1"] .screen:not(.option-1),
+    body[data-option="2"] .screen:not(.option-2),
+    body[data-option="3"] .screen:not(.option-3) {
+      display: none;
+    }
+
+    .screen {
+      width: 1440px;
+      height: 1024px;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 72% 10%, rgba(255,255,255,.035), transparent 24%),
+        linear-gradient(180deg, #020202 0%, #070707 100%);
+    }
+
+    .topbar {
+      height: 74px;
+      display: grid;
+      grid-template-columns: 230px 1fr 112px;
+      align-items: center;
+      padding: 0 28px;
+      border-bottom: 1px solid rgba(255,255,255,.1);
+      background: rgba(2,2,2,.98);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: #fff;
+      font-size: 14px;
+      font-weight: 900;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+    }
+
+    .brand::before {
+      content: "";
+      width: 18px;
+      height: 34px;
+      background: var(--red);
+      clip-path: polygon(42% 0, 63% 4%, 58% 23%, 83% 25%, 78% 38%, 56% 36%, 64% 100%, 47% 100%, 40% 54%, 27% 100%, 12% 100%, 27% 37%, 12% 34%, 18% 20%, 37% 25%);
+    }
+
+    .nav {
+      display: flex;
+      justify-content: center;
+      gap: 26px;
+      color: rgba(255,255,255,.58);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .nav span {
+      position: relative;
+      height: 74px;
+      display: grid;
+      place-items: center;
+    }
+
+    .nav .active {
+      color: #fff;
+    }
+
+    .nav .active::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 20px;
+      height: 1px;
+      background: var(--red);
+    }
+
+    .lang {
+      justify-self: end;
+      min-width: 82px;
+      height: 40px;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--line);
+      border-radius: 0;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: .12em;
+    }
+
+    .eyebrow,
+    .meta {
+      margin: 0;
+      color: rgba(255,255,255,.58);
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin: 0;
+    }
+
+    button,
+    .button {
+      min-height: 44px;
+      padding: 0 18px;
+      border: 1px solid rgba(215,25,32,.58);
+      border-radius: 0;
+      background: rgba(215,25,32,.08);
+      color: #fff;
+      font: inherit;
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .ghost {
+      border-color: var(--line);
+      background: rgba(255,255,255,.025);
+    }
+
+    .stat-strip {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      border-top: 1px solid var(--line);
+      border-bottom: 1px solid var(--line-soft);
+    }
+
+    .stat {
+      display: grid;
+      gap: 8px;
+      min-height: 70px;
+      padding: 16px 20px;
+      border-right: 1px solid var(--line-soft);
+    }
+
+    .stat:last-child { border-right: 0; }
+
+    .stat strong {
+      color: #fff;
+      font-size: 21px;
+      letter-spacing: .08em;
+    }
+
+    .item-img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      filter: drop-shadow(0 28px 34px rgba(0,0,0,.72));
+    }
+
+    .option-1 main {
+      width: 1210px;
+      margin: 0 auto;
+      padding: 44px 0 0;
+    }
+
+    .hero-gallery {
+      position: relative;
+      height: 452px;
+      border: 1px solid rgba(255,255,255,.14);
+      background: #050505;
+      overflow: hidden;
+    }
+
+    .hero-gallery::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(90deg, #050505 0%, rgba(5,5,5,.88) 32%, rgba(5,5,5,.1) 58%, rgba(5,5,5,.28) 100%),
+        linear-gradient(180deg, transparent 68%, rgba(0,0,0,.76));
+      pointer-events: none;
+    }
+
+    .hero-copy {
+      position: absolute;
+      z-index: 3;
+      left: 46px;
+      top: 54px;
+      width: 430px;
+      display: grid;
+      gap: 22px;
+    }
+
+    .hero-copy h1 {
+      color: #fff;
+      font-size: 108px;
+      line-height: .82;
+      letter-spacing: .045em;
+      text-transform: uppercase;
+    }
+
+    .hero-copy p:not(.eyebrow) {
+      width: 310px;
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1.6;
+    }
+
+    .actions {
+      display: flex;
+      gap: 14px;
+    }
+
+    .hero-object {
+      position: absolute;
+      z-index: 1;
+      right: 18px;
+      top: 34px;
+      width: 690px;
+      height: 310px;
+      display: grid;
+      place-items: center;
+      border-left: 1px solid rgba(215,25,32,.36);
+      background:
+        linear-gradient(90deg, rgba(215,25,32,.1), transparent 32%),
+        radial-gradient(circle at 52% 44%, rgba(255,255,255,.13), transparent 42%);
+    }
+
+    .hero-object .item-img {
+      width: 86%;
+      height: 74%;
+    }
+
+    .plaque {
+      position: absolute;
+      z-index: 4;
+      right: 46px;
+      bottom: 34px;
+      width: 330px;
+      padding: 15px 0 15px 22px;
+      border-left: 1px solid rgba(255,255,255,.22);
+      background: linear-gradient(90deg, rgba(0,0,0,.68), rgba(0,0,0,.05));
+      text-transform: uppercase;
+    }
+
+    .plaque strong {
+      display: block;
+      margin-top: 6px;
+      color: #fff;
+      font-size: 27px;
+      letter-spacing: .14em;
+    }
+
+    .option-1 .stat-strip {
+      position: absolute;
+      z-index: 5;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(4,4,4,.9);
+    }
+
+    .gallery-grid {
+      display: grid;
+      grid-template-columns: 275px 1fr;
+      gap: 28px;
+      padding-top: 28px;
+    }
+
+    .group-copy {
+      display: grid;
+      align-content: start;
+      gap: 14px;
+      padding-top: 8px;
+    }
+
+    .group-copy h2 {
+      color: #fff;
+      font-size: 39px;
+      line-height: .96;
+      text-transform: uppercase;
+    }
+
+    .group-copy p {
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.65;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+
+    .hall-card {
+      min-height: 335px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.025);
+    }
+
+    .thumb {
+      height: 138px;
+      padding: 18px;
+      border-bottom: 1px solid var(--line-soft);
+      background:
+        radial-gradient(circle at 50% 15%, rgba(255,255,255,.08), transparent 36%),
+        #080808;
+    }
+
+    .card-copy {
+      display: grid;
+      gap: 10px;
+      padding: 18px;
+    }
+
+    .card-copy h3 {
+      color: #fff;
+      font-size: 22px;
+      line-height: 1;
+      text-transform: uppercase;
+    }
+
+    .card-copy p {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .card-foot {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 8px;
+    }
+
+    .option-2 main {
+      width: 1220px;
+      margin: 0 auto;
+      padding-top: 34px;
+    }
+
+    .directory-hero {
+      height: 230px;
+      display: grid;
+      grid-template-columns: 1fr 440px;
+      border-bottom: 1px solid var(--line);
+      background:
+        linear-gradient(90deg, #020202 0%, rgba(2,2,2,.94) 44%, rgba(2,2,2,.32) 100%),
+        radial-gradient(circle at 76% 20%, rgba(255,255,255,.08), transparent 20%);
+    }
+
+    .directory-title {
+      display: grid;
+      align-content: center;
+      gap: 16px;
+    }
+
+    .directory-title h1 {
+      color: #fff;
+      font-size: 104px;
+      line-height: .8;
+      letter-spacing: .045em;
+      text-transform: uppercase;
+    }
+
+    .directory-title p:not(.eyebrow) {
+      width: 680px;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.55;
+    }
+
+    .directory-object {
+      display: grid;
+      place-items: center;
+      opacity: .9;
+    }
+
+    .directory-object .item-img {
+      width: 90%;
+      height: 78%;
+    }
+
+    .cover-wall {
+      width: 360px;
+      height: 168px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      transform: skewX(-8deg) rotate(-2deg);
+    }
+
+    .cover-wall .map-render,
+    .cover-wall .case-render {
+      height: 100%;
+      border: 1px solid rgba(255,255,255,.12);
+      box-shadow: 0 20px 42px rgba(0,0,0,.45);
+    }
+
+    .toolbar {
+      height: 72px;
+      display: grid;
+      grid-template-columns: 1fr 160px 160px 148px;
+      gap: 10px;
+      align-items: center;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .control {
+      height: 42px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 14px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      background: rgba(255,255,255,.02);
+    }
+
+    .directory-body {
+      display: grid;
+      grid-template-columns: 230px 1fr;
+      gap: 26px;
+      padding-top: 24px;
+    }
+
+    .tabs {
+      display: grid;
+      align-content: start;
+      border-top: 1px solid var(--line);
+    }
+
+    .tab {
+      position: relative;
+      min-height: 58px;
+      display: flex;
+      align-items: center;
+      border-bottom: 1px solid var(--line-soft);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .tab.active {
+      color: #fff;
+      padding-left: 16px;
+    }
+
+    .tab.active::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 15px;
+      bottom: 15px;
+      width: 2px;
+      background: var(--red);
+    }
+
+    .rows {
+      border-top: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .row {
+      min-height: 94px;
+      display: grid;
+      grid-template-columns: 112px 1fr 130px 130px 142px;
+      align-items: center;
+      gap: 18px;
+      border-bottom: 1px solid var(--line-soft);
+    }
+
+    .row:last-child { border-bottom: 0; }
+
+    .row-thumb {
+      height: 68px;
+      padding: 10px;
+      background: #080808;
+    }
+
+    .row-thumb.map-slot,
+    .row-thumb.case-slot {
+      padding: 0;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,.1);
+    }
+
+    .map-render,
+    .case-render {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #080808;
+    }
+
+    .map-render::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(90deg, rgba(255,255,255,.08) 1px, transparent 1px) 0 0 / 18px 18px,
+        linear-gradient(180deg, rgba(255,255,255,.06) 1px, transparent 1px) 0 0 / 18px 18px,
+        radial-gradient(circle at 30% 34%, rgba(215,25,32,.26), transparent 26%),
+        radial-gradient(circle at 76% 72%, rgba(255,255,255,.11), transparent 28%),
+        #070707;
+      opacity: .95;
+    }
+
+    .map-render::after {
+      content: "";
+      position: absolute;
+      inset: 12px;
+      border: 1px solid rgba(255,255,255,.18);
+      background:
+        linear-gradient(28deg, transparent 0 38%, rgba(255,255,255,.2) 38% 41%, transparent 41%),
+        linear-gradient(128deg, transparent 0 46%, rgba(215,25,32,.55) 46% 49%, transparent 49%),
+        linear-gradient(90deg, transparent 0 18%, rgba(255,255,255,.16) 18% 21%, transparent 21% 57%, rgba(255,255,255,.12) 57% 60%, transparent 60%);
+      clip-path: polygon(7% 22%, 38% 8%, 67% 16%, 92% 42%, 78% 82%, 42% 92%, 14% 72%);
+    }
+
+    .map-render span,
+    .case-render span {
+      position: absolute;
+      left: 8px;
+      bottom: 7px;
+      z-index: 2;
+      color: rgba(255,255,255,.88);
+      font-size: 9px;
+      font-weight: 900;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    .map-render.mirage::after {
+      clip-path: polygon(5% 31%, 31% 14%, 57% 19%, 87% 9%, 95% 43%, 78% 83%, 43% 90%, 13% 70%);
+    }
+
+    .map-render.inferno::after {
+      clip-path: polygon(12% 16%, 47% 9%, 82% 27%, 91% 57%, 61% 88%, 26% 77%, 8% 48%);
+    }
+
+    .map-render.nuke::after {
+      clip-path: polygon(22% 10%, 70% 10%, 90% 31%, 82% 78%, 46% 92%, 12% 72%, 8% 29%);
+    }
+
+    .case-render {
+      display: grid;
+      place-items: center;
+      background:
+        radial-gradient(circle at 50% 20%, rgba(255,255,255,.11), transparent 34%),
+        linear-gradient(135deg, rgba(215,25,32,.16), transparent 42%),
+        #070707;
+    }
+
+    .case-render::before {
+      content: "";
+      width: 58px;
+      height: 42px;
+      border: 1px solid rgba(255,255,255,.18);
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.16), rgba(255,255,255,.04)),
+        linear-gradient(90deg, rgba(215,25,32,.75) 0 18%, rgba(255,255,255,.07) 18% 100%);
+      box-shadow:
+        inset 0 -10px 0 rgba(0,0,0,.2),
+        0 18px 32px rgba(0,0,0,.62);
+      transform: perspective(140px) rotateX(8deg) rotateZ(-4deg);
+    }
+
+    .case-render::after {
+      content: "";
+      position: absolute;
+      width: 34px;
+      height: 9px;
+      top: 17px;
+      left: calc(50% - 17px);
+      border: 1px solid rgba(255,255,255,.18);
+      border-bottom: 0;
+      background: rgba(0,0,0,.34);
+    }
+
+    .row h3 {
+      color: #fff;
+      font-size: 22px;
+      line-height: 1;
+      text-transform: uppercase;
+    }
+
+    .row small,
+    .row span {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: .09em;
+      text-transform: uppercase;
+    }
+
+    .option-3 main {
+      width: 1220px;
+      margin: 0 auto;
+      padding-top: 34px;
+    }
+
+    .map-header {
+      height: 176px;
+      display: grid;
+      grid-template-columns: 500px 1fr;
+      align-items: end;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .map-header h1 {
+      color: #fff;
+      font-size: 102px;
+      line-height: .8;
+      letter-spacing: .045em;
+      text-transform: uppercase;
+    }
+
+    .map-header p:not(.eyebrow) {
+      align-self: center;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.65;
+    }
+
+    .map-layout {
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      gap: 24px;
+      padding-top: 24px;
+    }
+
+    .map {
+      position: relative;
+      height: 690px;
+      border: 1px solid var(--line);
+      background:
+        linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px) 0 0 / 96px 96px,
+        linear-gradient(180deg, rgba(255,255,255,.03) 1px, transparent 1px) 0 0 / 96px 96px,
+        #050505;
+      overflow: hidden;
+    }
+
+    .corridor {
+      position: absolute;
+      left: 34px;
+      right: 34px;
+      height: 132px;
+      border-top: 1px solid rgba(255,255,255,.12);
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      background: linear-gradient(90deg, rgba(215,25,32,.08), transparent 28%, rgba(255,255,255,.025));
+    }
+
+    .corridor:nth-child(1) { top: 54px; }
+    .corridor:nth-child(2) { top: 278px; }
+    .corridor:nth-child(3) { top: 502px; }
+
+    .corridor-label {
+      position: absolute;
+      left: 22px;
+      top: 18px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .corridor-label strong {
+      color: #fff;
+      font-size: 24px;
+      text-transform: uppercase;
+    }
+
+    .node {
+      position: absolute;
+      top: 36px;
+      width: 156px;
+      height: 74px;
+      padding: 10px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(0,0,0,.54);
+    }
+
+    .node:nth-of-type(2) { left: 240px; }
+    .node:nth-of-type(3) { left: 430px; }
+    .node:nth-of-type(4) { left: 620px; }
+
+    .node.active {
+      border-color: rgba(215,25,32,.75);
+      background: rgba(215,25,32,.08);
+    }
+
+    .node strong {
+      display: block;
+      color: #fff;
+      font-size: 13px;
+      text-transform: uppercase;
+    }
+
+    .node span {
+      color: var(--dim);
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .detail {
+      height: 690px;
+      display: grid;
+      grid-template-rows: 248px auto;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.025);
+    }
+
+    .detail-image {
+      padding: 30px;
+      border-bottom: 1px solid var(--line-soft);
+      background:
+        radial-gradient(circle at 50% 20%, rgba(255,255,255,.1), transparent 35%),
+        #070707;
+    }
+
+    .detail-copy {
+      display: grid;
+      align-content: start;
+      gap: 16px;
+      padding: 26px;
+    }
+
+    .detail-copy h2 {
+      color: #fff;
+      font-size: 38px;
+      line-height: .95;
+      text-transform: uppercase;
+    }
+
+    .detail-copy p {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.65;
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .chip {
+      min-height: 30px;
+      display: inline-flex;
+      align-items: center;
+      padding: 0 10px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+  </style>
+</head>
+<body data-option="1">
+  <section class="screen option-1">
+    <header class="topbar">
+      <div class="brand">CS Exhibition</div>
+      <nav class="nav"><span>Archive</span><span class="active">Halls</span><span>Inspect</span><span>Saved</span><span>Trail</span><span>Drop Theatre</span><span>Pass</span><span>Vault</span><span>Curator</span></nav>
+      <div class="lang">ZH</div>
+    </header>
+    <main>
+      <section class="hero-gallery">
+        <div class="hero-copy">
+          <p class="eyebrow">Halls</p>
+          <h1>Halls</h1>
+          <p>Browse series, map collections, cases, capsules, and souvenir wings.</p>
+          <div class="actions"><span class="button">Enter Archive</span><span class="button ghost">View Featured Hall</span></div>
+        </div>
+        <div class="hero-object"><img class="item-img" src="https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLwiYbf_jdk4veqYaF7IfysCnWRxuF4j-B-Xxa_nBovp3Pdwtj9cC_GaAd0DZdwQu9fuhS4kNy0NePntVTbjYpCyyT_3CgY5i9j_a9cBkcCWUKV" alt=""></div>
+        <div class="plaque"><span class="meta">Now Highlighting</span><strong>Ancient Collection</strong><span class="meta">32 items</span></div>
+        <div class="stat-strip"><div class="stat"><span class="meta">Active Halls</span><strong>186</strong></div><div class="stat"><span class="meta">Grouped Wings</span><strong>5</strong></div><div class="stat"><span class="meta">Indexed Exhibits</span><strong>4,912</strong></div></div>
+      </section>
+      <section class="gallery-grid">
+        <div class="group-copy"><p class="eyebrow">Map Collections</p><h2>Field Wings</h2><p>Map-bound collections and long-form exhibit groups, reframed as browseable wings inside the exhibition.</p><span class="meta">24 Halls</span></div>
+        <div class="cards">
+          <article class="hall-card"><div class="thumb"><img class="item-img" src="https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLkjYbf7itX6vytbbZSI-WsG3SA_uV_vO1WTCa9kxQ1vjiBpYPwJiPTcFB2Xpp5TO5cskG9lYCxZu_jsVCL3o4Xnij23ClO5ik9tegFA_It8qHJz1aWe-uc160" alt=""></div><div class="card-copy"><span class="meta">Map Collections / 18 Items</span><h3>Mirage Collection</h3><p>Filtered archive entry with all original collection behavior preserved.</p><div class="card-foot"><span class="meta">Field Wing</span><span class="button">View Hall</span></div></div></article>
+          <article class="hall-card"><div class="thumb"><img class="item-img" src="https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8ypexwjFS4_ega6F_H_OGMWrEwL9lj_F7Rienhgk1tjyIpYPwJiPTcAAoCpsiEO5ZsUbpm9C2Zuni4VHW3o5EzSX62HxP7Sg96-hWVqYi_6TJz1aW0nxrkGs" alt=""></div><div class="card-copy"><span class="meta">Map Collections / 22 Items</span><h3>Inferno Collection</h3><p>Sharper gallery cards, still using real item images from the catalog.</p><div class="card-foot"><span class="meta">Field Wing</span><span class="button">View Hall</span></div></div></article>
+          <article class="hall-card"><div class="thumb"><img class="item-img" src="https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1Z-ua6bbZrLOmsD2qvw-J3s-p5SiihmSIqsi-HlorwOy7DAVRPVssnHaMUuhe9xIHlMuvqtgPf2IoTyC383Sod7CY-sr4DVfZ2qKPU3g-TNuE-545DeqjFvb87vg" alt=""></div><div class="card-copy"><span class="meta">Cases / 28 Items</span><h3>Spectrum Case</h3><p>Container entries can route to detail while collection entries route to Archive.</p><div class="card-foot"><span class="meta">Container Wing</span><span class="button">View Details</span></div></div></article>
+        </div>
+      </section>
+    </main>
+  </section>
+
+  <section class="screen option-2">
+    <header class="topbar">
+      <div class="brand">CS Exhibition</div>
+      <nav class="nav"><span>Archive</span><span class="active">Halls</span><span>Inspect</span><span>Saved</span><span>Trail</span><span>Drop Theatre</span><span>Pass</span><span>Vault</span><span>Curator</span></nav>
+      <div class="lang">ZH</div>
+    </header>
+    <main>
+      <section class="directory-hero">
+        <div class="directory-title"><p class="eyebrow">Halls</p><h1>Halls</h1><p>Find a collection wing fast, then jump directly into the filtered Archive view.</p></div>
+        <div class="directory-object">
+          <div class="cover-wall" aria-hidden="true">
+            <div class="map-render mirage"><span>Mirage</span></div>
+            <div class="map-render inferno"><span>Inferno</span></div>
+            <div class="case-render"><span>Case</span></div>
+          </div>
+        </div>
+      </section>
+      <section class="toolbar"><div class="control">Search halls</div><div class="control">Sort A-Z</div><div class="control">Filter Type</div><div class="control">186 Halls</div></section>
+      <section class="directory-body">
+        <aside class="tabs"><div class="tab active">Map Collections</div><div class="tab">Cases</div><div class="tab">Capsules</div><div class="tab">Souvenirs</div><div class="tab">Other</div></aside>
+        <div class="rows">
+          <div class="row"><div class="row-thumb map-slot"><div class="map-render mirage"><span>Mirage</span></div></div><div><h3>Mirage Collection</h3><small>Map cover render</small></div><span>18 items</span><span>Price 82%</span><button>View Hall</button></div>
+          <div class="row"><div class="row-thumb map-slot"><div class="map-render inferno"><span>Inferno</span></div></div><div><h3>Inferno Collection</h3><small>Map cover render</small></div><span>22 items</span><span>Price 76%</span><button>View Hall</button></div>
+          <div class="row"><div class="row-thumb map-slot"><div class="map-render nuke"><span>Nuke</span></div></div><div><h3>Nuke Collection</h3><small>Map cover render</small></div><span>17 items</span><span>Price 64%</span><button>View Hall</button></div>
+          <div class="row"><div class="row-thumb case-slot"><div class="case-render"><span>Spectrum</span></div></div><div><h3>Spectrum Case</h3><small>Container detail</small></div><span>28 items</span><span>Live</span><button>View Details</button></div>
+          <div class="row"><div class="row-thumb case-slot"><div class="case-render"><span>Glove</span></div></div><div><h3>Glove Case</h3><small>Container detail</small></div><span>24 items</span><span>Live</span><button>View Details</button></div>
+        </div>
+      </section>
+    </main>
+  </section>
+
+  <section class="screen option-3">
+    <header class="topbar">
+      <div class="brand">CS Exhibition</div>
+      <nav class="nav"><span>Archive</span><span class="active">Halls</span><span>Inspect</span><span>Saved</span><span>Trail</span><span>Drop Theatre</span><span>Pass</span><span>Vault</span><span>Curator</span></nav>
+      <div class="lang">ZH</div>
+    </header>
+    <main>
+      <section class="map-header"><div><p class="eyebrow">Halls</p><h1>Halls</h1></div><p>Browse the exhibition as a floor map of collection wings, with one selected hall expanded into a working entry panel.</p></section>
+      <section class="map-layout">
+        <div class="map">
+          <div class="corridor"><div class="corridor-label"><span class="meta">01</span><strong>Field Wings</strong></div><div class="node active"><strong>Ancient</strong><span>32 items</span></div><div class="node"><strong>Mirage</strong><span>18 items</span></div><div class="node"><strong>Inferno</strong><span>22 items</span></div></div>
+          <div class="corridor"><div class="corridor-label"><span class="meta">02</span><strong>Container Wing</strong></div><div class="node"><strong>Spectrum</strong><span>28 items</span></div><div class="node"><strong>Bravo</strong><span>20 items</span></div><div class="node"><strong>Glove</strong><span>24 items</span></div></div>
+          <div class="corridor"><div class="corridor-label"><span class="meta">03</span><strong>Souvenir Wing</strong></div><div class="node"><strong>Paris</strong><span>36 items</span></div><div class="node"><strong>Katowice</strong><span>31 items</span></div><div class="node"><strong>Antwerp</strong><span>26 items</span></div></div>
+        </div>
+        <aside class="detail">
+          <div class="detail-image"><img class="item-img" src="https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLwiYbf_jdk4veqYaF7IfysCnWRxuF4j-B-Xxa_nBovp3Pdwtj9cC_GaAd0DZdwQu9fuhS4kNy0NePntVTbjYpCyyT_3CgY5i9j_a9cBkcCWUKV" alt=""></div>
+          <div class="detail-copy"><p class="eyebrow">Selected Hall</p><h2>Ancient Collection</h2><p>One selected hall expands with preview image, item count, category metadata, and the same Archive handoff used by the real page.</p><div class="chips"><span class="chip">32 items</span><span class="chip">Map collection</span><span class="chip">Archive filter</span></div><button>View Hall</button><div class="stat-strip"><div class="stat"><span class="meta">Active</span><strong>186</strong></div><div class="stat"><span class="meta">Wings</span><strong>5</strong></div><div class="stat"><span class="meta">Items</span><strong>4,912</strong></div></div></div>
+        </aside>
+      </section>
+    </main>
+  </section>
+  <script>
+    const option = new URLSearchParams(location.search).get("option") || "1";
+    document.body.dataset.option = option;
+  </script>
+</body>
+</html>

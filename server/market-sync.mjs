@@ -206,23 +206,29 @@ export function shouldBlockPlatformRefresh({ cooldownUntilMs = 0, nowMs = Date.n
   return Number.isFinite(Number(cooldownUntilMs)) && Number(cooldownUntilMs) > nowMs;
 }
 
-export function buildMarketHashIndex(snapshot) {
+export function buildMarketHashIndex(snapshot, supplementalEntries = []) {
   const exactIndex = new Map();
   const normalizedIndex = new Map();
   let exactEntries = 0;
+  const appendIndexEntry = (itemId, rawWearId, marketHashName) => {
+    const name = String(marketHashName || "").trim();
+    if (!itemId || !name) return;
+    const match = buildIndexMatch(itemId, rawWearId);
+    exactIndex.set(name, match);
+    exactEntries += 1;
+    const normalized = normalizeMarketHashName(name);
+    if (!normalized) return;
+    const current = normalizedIndex.get(normalized) || [];
+    current.push(match);
+    normalizedIndex.set(normalized, current);
+  };
   for (const [itemId, record] of Object.entries(snapshot?.items || {})) {
     for (const [rawWearId, priceRecord] of Object.entries(record?.prices || {})) {
-      const marketHashName = String(priceRecord?.marketHashName || "").trim();
-      if (!marketHashName) continue;
-      const match = buildIndexMatch(itemId, rawWearId);
-      exactIndex.set(marketHashName, match);
-      exactEntries += 1;
-      const normalized = normalizeMarketHashName(marketHashName);
-      if (!normalized) continue;
-      const current = normalizedIndex.get(normalized) || [];
-      current.push(match);
-      normalizedIndex.set(normalized, current);
+      appendIndexEntry(itemId, rawWearId, priceRecord?.marketHashName);
     }
+  }
+  for (const entry of Array.isArray(supplementalEntries) ? supplementalEntries : []) {
+    appendIndexEntry(String(entry?.id || "").trim(), "default", entry?.marketHashName || entry?.market_hash_name || entry?.nameEn || entry?.name);
   }
   return {
     exactIndex,

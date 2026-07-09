@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 180" role="img" aria-label="Lake map collection cover">
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#050606"/>
+      <stop offset=".55" stop-color="#111315"/>
+      <stop offset="1" stop-color="#254b62"/>
+    </linearGradient>
+    <radialGradient id="pulse" cx=".18" cy=".25" r=".85">
+      <stop offset="0" stop-color="#5299b5" stop-opacity=".42"/>
+      <stop offset="1" stop-color="#5299b5" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="soft">
+      <feGaussianBlur stdDeviation="7"/>
+    </filter>
+  </defs>
+  <rect width="640" height="180" fill="url(#bg)"/>
+  <rect width="640" height="180" fill="url(#pulse)"/>
+  <path d="M-20 145 C 110 98, 166 170, 294 124 S 500 70, 668 106" fill="none" stroke="#5299b5" stroke-width="38" stroke-opacity=".08" filter="url(#soft)"/>
+  <g opacity=".95">
+    <polygon points="62,38 136,20 195,55 168,104 83,98" fill="#5299b5" opacity=".20" stroke="#5299b5" stroke-opacity=".46"/>
+    <polygon points="398,42 520,28 572,72 510,125 406,110" fill="#8fbd72" opacity=".18" stroke="#8fbd72" stroke-opacity=".42"/>
+    <path d="M413 69 C 459 69, 459 125, 506 125" fill="none" stroke="#5299b5" stroke-width="8" stroke-linecap="round" opacity=".38"/><path d="M358 61 C 393 61, 393 63, 429 63" fill="none" stroke="#5299b5" stroke-width="8" stroke-linecap="round" opacity=".38"/><path d="M189 74 C 168 74, 168 113, 147 113" fill="none" stroke="#5299b5" stroke-width="7" stroke-linecap="round" opacity=".38"/><path d="M204 42 C 338 42, 338 37, 472 37" fill="none" stroke="#5299b5" stroke-width="8" stroke-linecap="round" opacity=".38"/><path d="M403 51 C 385 51, 385 58, 367 58" fill="none" stroke="#5299b5" stroke-width="6" stroke-linecap="round" opacity=".38"/>
+    <rect x="408" y="104" width="76" height="53" rx="5" transform="rotate(3.02 446 130.5)" fill="#5299b5" opacity="0.3669662956893444" stroke="#5299b5" stroke-opacity=".24"/><rect x="121" y="31" width="105" height="52" rx="5" transform="rotate(-1.97 173.5 57)" fill="#254b62" opacity="0.24491587478667498" stroke="#5299b5" stroke-opacity=".24"/><rect x="123" y="67" width="83" height="44" rx="5" transform="rotate(-3.34 164.5 89)" fill="#8fbd72" opacity="0.26625965762883425" stroke="#5299b5" stroke-opacity=".24"/><rect x="292" y="111" width="50" height="40" rx="5" transform="rotate(-2.44 317 131)" fill="#5299b5" opacity="0.22984778136014938" stroke="#5299b5" stroke-opacity=".24"/><rect x="217" y="87" width="79" height="28" rx="5" transform="rotate(-1.00 256.5 101)" fill="#254b62" opacity="0.2267750049754977" stroke="#5299b5" stroke-opacity=".24"/><rect x="324" y="35" width="52" height="51" rx="5" transform="rotate(3.87 350 60.5)" fill="#8fbd72" opacity="0.3190690527111292" stroke="#5299b5" stroke-opacity=".24"/><rect x="398" y="22" width="65" height="37" rx="5" transform="rotate(3.62 430.5 40.5)" fill="#5299b5" opacity="0.37268740333616734" stroke="#5299b5" stroke-opacity=".24"/>
+  </g>
+  <g font-family="Rajdhani, Teko, Arial, sans-serif" text-anchor="start">
+    <text x="35" y="151" fill="#f7efe4" font-size="44" font-weight="800" letter-spacing="4">LAKE</text>
+    <text x="38" y="166" fill="#5299b5" font-size="13" font-weight="700" letter-spacing="3">TACTICAL MAP COLLECTION</text>
+  </g>
+  <circle cx="45" cy="88" r="2" fill="#f4efe4" opacity="0.17150535048916937"/><circle cx="225" cy="116" r="1" fill="#f4efe4" opacity="0.1725845623202622"/><circle cx="220" cy="81" r="1" fill="#f4efe4" opacity="0.26398047832772137"/><circle cx="531" cy="61" r="1" fill="#f4efe4" opacity="0.3299144066125155"/><circle cx="504" cy="138" r="1" fill="#f4efe4" opacity="0.3974231003783643"/><circle cx="400" cy="30" r="2" fill="#f4efe4" opacity="0.19578431868925691"/><circle cx="95" cy="115" r="2" fill="#f4efe4" opacity="0.3770393119379878"/><circle cx="460" cy="29" r="1" fill="#f4efe4" opacity="0.3053462168201804"/><circle cx="434" cy="96" r="1" fill="#f4efe4" opacity="0.17508791107684374"/><circle cx="571" cy="78" r="2" fill="#f4efe4" opacity="0.34636110840365286"/><circle cx="172" cy="90" r="1" fill="#f4efe4" opacity="0.24259603543207048"/><circle cx="82" cy="53" r="2" fill="#f4efe4" opacity="0.3543141311593354"/><circle cx="499" cy="125" r="1" fill="#f4efe4" opacity="0.24182321870699525"/><circle cx="82" cy="144" r="2" fill="#f4efe4" opacity="0.24970336489379408"/><circle cx="489" cy="111" r="1" fill="#f4efe4" opacity="0.1995099622756243"/><circle cx="381" cy="45" r="2" fill="#f4efe4" opacity="0.3966107610799372"/><circle cx="100" cy="24" r="1" fill="#f4efe4" opacity="0.16255569206550718"/><circle cx="519" cy="114" r="2" fill="#f4efe4" opacity="0.2299457927979529"/>
+  <rect x="1" y="1" width="638" height="178" fill="none" stroke="#5299b5" stroke-opacity=".25"/>
+</svg>

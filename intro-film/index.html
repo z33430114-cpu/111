@@ -1,0 +1,497 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700&family=IBM+Plex+Mono:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      :root {
+        --black: #050505;
+        --carbon: #141414;
+        --white: #f3efe7;
+        --red: #b5121b;
+        --ivory: #d8cfc1;
+        --champagne: #d6b98a;
+        --gold: #9d7a48;
+        --line: rgba(243, 239, 231, 0.14);
+      }
+
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+
+      html, body, #root {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: var(--black);
+      }
+
+      body {
+        font-family: "IBM Plex Mono", monospace;
+      }
+
+      #root {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        background:
+          radial-gradient(circle at 50% 10%, rgba(243,239,231,0.12), transparent 13%),
+          radial-gradient(circle at 50% 23%, rgba(214,185,138,0.1), transparent 18%),
+          radial-gradient(circle at 50% 34%, rgba(181,18,27,0.22), transparent 28%),
+          radial-gradient(circle at 72% 64%, rgba(181,18,27,0.14), transparent 32%),
+          linear-gradient(180deg, rgba(255,255,255,0.035), transparent 20%),
+          linear-gradient(135deg, #060606 0%, #0b0b0b 58%, #040404 100%);
+      }
+
+      .grid-overlay,
+      .grid-overlay::before,
+      .grid-overlay::after,
+      .scan-beam,
+      .vault-arch,
+      .vault-arch::before,
+      .vault-arch::after,
+      .hero-wrap,
+      .hero-frame,
+      .hero-frame::before,
+      .hero-frame::after,
+      .artifact,
+      .artifact::before,
+      .artifact::after,
+      .artifact-core,
+      .artifact-core::before,
+      .artifact-core::after,
+      .artifact-ridge,
+      .artifact-tag,
+      .label,
+      .meta-top,
+      .meta-bottom,
+      .side-panel,
+      .hero-caption {
+        position: absolute;
+      }
+
+      .grid-overlay {
+        inset: 0;
+        opacity: 0.18;
+        background:
+          repeating-linear-gradient(0deg, rgba(255,255,255,0.035) 0 1px, transparent 1px 52px),
+          repeating-linear-gradient(90deg, rgba(255,255,255,0.03) 0 1px, transparent 1px 84px);
+      }
+
+      .grid-overlay::before,
+      .grid-overlay::after {
+        content: "";
+        left: 4.5%;
+        right: 4.5%;
+        height: 1px;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(243,239,231,0.18),
+          rgba(181,18,27,0.48),
+          rgba(243,239,231,0.18),
+          transparent
+        );
+      }
+
+      .grid-overlay::before { top: 10%; }
+      .grid-overlay::after { bottom: 10%; }
+
+      .vault-arch {
+        inset: 4.8% 11% auto;
+        height: 38%;
+        border: 1px solid rgba(243,239,231,0.08);
+        border-bottom: 0;
+        border-radius: 32px 32px 0 0;
+        opacity: 1;
+        z-index: 2;
+        background:
+          linear-gradient(180deg, rgba(255,255,255,0.03), transparent 30%),
+          radial-gradient(circle at 50% 34%, rgba(214,185,138,0.08), transparent 28%),
+          radial-gradient(circle at 50% 38%, rgba(181,18,27,0.12), transparent 34%);
+      }
+
+      .vault-arch::before,
+      .vault-arch::after {
+        content: "";
+        top: 13%;
+        bottom: 0;
+        width: 1px;
+        background: linear-gradient(180deg, rgba(243,239,231,0.12), transparent 85%);
+      }
+
+      .vault-arch::before { left: 18%; }
+      .vault-arch::after { right: 18%; }
+
+      .side-panel {
+        top: 20%;
+        width: min(260px, 18vw);
+        height: 30%;
+        border: 1px solid rgba(243,239,231,0.1);
+        background:
+          linear-gradient(180deg, rgba(255,255,255,0.03), rgba(214,185,138,0.02) 30%, rgba(181,18,27,0.08)),
+          linear-gradient(90deg, rgba(255,255,255,0.015), transparent);
+        opacity: 1;
+      }
+
+      .side-panel.left { left: 5%; }
+      .side-panel.right { right: 5%; }
+
+      .meta-top {
+        top: 0.8%;
+        left: 50%;
+        transform: translateX(-50%);
+        text-align: center;
+        color: rgba(243,239,231,0.76);
+        font-size: clamp(12px, 1vw, 16px);
+        letter-spacing: 0.34em;
+        text-transform: uppercase;
+        opacity: 1;
+        z-index: 12;
+      }
+
+      .hero-wrap {
+        left: 50%;
+        top: 21%;
+        width: min(900px, 78vw);
+        height: min(300px, 31vh);
+        transform: translate(-50%, -50%);
+        opacity: 1;
+        z-index: 6;
+      }
+
+      .hero-frame {
+        inset: 0;
+        border: 1px solid rgba(243,239,231,0.13);
+        background:
+          linear-gradient(180deg, rgba(214,185,138,0.06), transparent 22%),
+          radial-gradient(circle at 50% 50%, rgba(181,18,27,0.2), transparent 50%),
+          linear-gradient(180deg, rgba(255,255,255,0.03), transparent 24%),
+          linear-gradient(90deg, rgba(255,255,255,0.02), transparent 24%, transparent 76%, rgba(255,255,255,0.02));
+        overflow: hidden;
+      }
+
+      .hero-frame::before,
+      .hero-frame::after {
+        content: "";
+        inset: 18px;
+        border: 1px solid rgba(243,239,231,0.07);
+      }
+
+      .hero-frame::after {
+        inset: 0;
+        border: 0;
+        background:
+          linear-gradient(90deg, transparent 0 14%, rgba(243,239,231,0.05) 14% 14.2%, transparent 14.2% 85.8%, rgba(243,239,231,0.05) 85.8% 86%, transparent 86%),
+          linear-gradient(180deg, transparent 0 20%, rgba(243,239,231,0.045) 20% 20.25%, transparent 20.25% 79.75%, rgba(243,239,231,0.045) 79.75% 80%, transparent 80%);
+      }
+
+      .artifact {
+        left: 50%;
+        top: 50%;
+        width: min(240px, 20vw);
+        aspect-ratio: 1;
+        transform: translate(-50%, -50%);
+        border-radius: 50%;
+        background:
+          linear-gradient(145deg, rgba(255,250,244,0.96), rgba(214,185,138,0.88) 16%, rgba(44,35,28,0.98) 42%, rgba(118,18,24,0.76) 70%, rgba(248,240,229,0.82) 100%);
+        box-shadow:
+          0 0 0 1px rgba(243,239,231,0.24),
+          0 24px 54px rgba(0, 0, 0, 0.42),
+          0 0 60px rgba(181,18,27,0.18),
+          0 0 40px rgba(214,185,138,0.12);
+      }
+
+      .artifact::before,
+      .artifact::after {
+        content: "";
+        border-radius: 50%;
+        inset: 9%;
+        border: 1px solid rgba(243,239,231,0.22);
+      }
+
+      .artifact::after {
+        inset: 19%;
+        border-color: rgba(214,185,138,0.22);
+        box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03);
+      }
+
+      .artifact-core {
+        left: 50%;
+        top: 50%;
+        width: 43%;
+        aspect-ratio: 1;
+        transform: translate(-50%, -50%) rotate(45deg);
+        border-radius: 18%;
+        background:
+          linear-gradient(145deg, rgba(250,245,238,0.42), rgba(39,30,22,0.98) 34%, rgba(108,18,24,0.74) 100%);
+        box-shadow:
+          inset 0 0 0 1px rgba(243,239,231,0.14),
+          0 0 20px rgba(214,185,138,0.08);
+      }
+
+      .artifact-core::before,
+      .artifact-core::after {
+        content: "";
+        inset: 18%;
+        border-radius: 14%;
+        border: 1px solid rgba(243,239,231,0.18);
+      }
+
+      .artifact-core::after {
+        inset: 44% 12%;
+        border: 0;
+        border-top: 1px solid rgba(243,239,231,0.38);
+        border-bottom: 1px solid rgba(243,239,231,0.14);
+      }
+
+      .artifact-ridge {
+        left: 50%;
+        top: 50%;
+        width: 67%;
+        height: 1px;
+        transform: translate(-50%, -50%);
+        background: linear-gradient(90deg, transparent, rgba(255,242,214,0.86), transparent);
+        box-shadow: 0 0 14px rgba(214,185,138,0.3);
+      }
+
+      .artifact-tag {
+        left: 50%;
+        bottom: 14%;
+        transform: translateX(-50%);
+        color: rgba(214,185,138,0.82);
+        font-size: clamp(11px, 0.82vw, 14px);
+        letter-spacing: 0.3em;
+        text-transform: uppercase;
+        white-space: nowrap;
+      }
+
+      .hero-caption {
+        left: 50%;
+        top: 4%;
+        transform: translateX(-50%);
+        color: rgba(214,185,138,0.92);
+        font-size: clamp(12px, 0.94vw, 15px);
+        letter-spacing: 0.34em;
+        text-transform: uppercase;
+      }
+
+      .scan-beam {
+        top: 6%;
+        bottom: 6%;
+        left: -10%;
+        width: 10%;
+        background: linear-gradient(90deg, transparent, rgba(243,239,231,0.65), rgba(181,18,27,0.75), transparent);
+        box-shadow: 0 0 30px rgba(181, 18, 27, 0.38);
+        mix-blend-mode: screen;
+        opacity: 0;
+        z-index: 7;
+      }
+
+      .label {
+        left: 50%;
+        top: 58%;
+        transform: translate(-50%, -50%);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+        width: min(76vw, 980px);
+        color: var(--white);
+        text-align: center;
+        text-transform: uppercase;
+        opacity: 1;
+        z-index: 12;
+      }
+
+      .label .eyebrow {
+        color: rgba(214,185,138,0.76);
+        font-size: clamp(12px, 0.96vw, 16px);
+        letter-spacing: 0.28em;
+      }
+
+      .label .title {
+        font-family: "Fraunces", serif;
+        font-size: clamp(46px, 5.1vw, 88px);
+        line-height: 0.86;
+        letter-spacing: -0.04em;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-shadow: 0 8px 32px rgba(0, 0, 0, 0.26);
+      }
+
+      .label .title span {
+        display: block;
+      }
+
+      .label .sub {
+        max-width: 38rem;
+        color: rgba(243,239,231,0.8);
+        font-size: clamp(13px, 0.9vw, 16px);
+        line-height: 1.32;
+        letter-spacing: 0.06em;
+        text-transform: none;
+      }
+
+      .meta-bottom {
+        left: 50%;
+        top: 76%;
+        transform: translate(-50%, -50%);
+        display: flex;
+        gap: 28px;
+        color: rgba(214,185,138,0.74);
+        font-size: clamp(11px, 0.82vw, 13px);
+        letter-spacing: 0.13em;
+        text-transform: uppercase;
+        opacity: 1;
+        z-index: 12;
+      }
+
+      .meta-bottom span {
+        padding: 0 14px;
+        border-left: 1px solid var(--line);
+      }
+
+      .meta-bottom span:first-child {
+        border-left: 0;
+      }
+
+      @media (max-width: 900px) {
+        .vault-arch {
+          inset: 5.5% 5.5% auto;
+          height: 34%;
+        }
+
+        .hero-wrap {
+          top: 20%;
+          width: 90vw;
+          height: min(240px, 27vh);
+        }
+
+        .hero-caption {
+          letter-spacing: 0.2em;
+          top: 7%;
+        }
+
+        .artifact {
+          width: min(180px, 36vw);
+        }
+
+        .artifact-tag {
+          letter-spacing: 0.16em;
+        }
+
+        .label {
+          top: 56%;
+          width: 92vw;
+        }
+
+        .label .title {
+          font-size: clamp(34px, 9vw, 56px);
+        }
+
+        .label .sub {
+          font-size: clamp(13px, 3.2vw, 16px);
+          letter-spacing: 0.02em;
+        }
+
+        .meta-bottom {
+          width: 94vw;
+          justify-content: center;
+          gap: 0;
+          flex-wrap: wrap;
+          row-gap: 8px;
+          top: 76%;
+          letter-spacing: 0.12em;
+        }
+
+        .side-panel {
+          width: 20vw;
+          top: 21%;
+          height: 24%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="4.6"
+      data-width="1920"
+      data-height="1080"
+    >
+      <div id="grid-overlay" class="clip grid-overlay" data-start="0" data-duration="4.6" data-track-index="1"></div>
+      <div id="vault-arch" class="clip vault-arch" data-start="0" data-duration="4.6" data-track-index="2"></div>
+      <div id="panel-left" class="clip side-panel left" data-start="0" data-duration="4.6" data-track-index="3"></div>
+      <div id="panel-right" class="clip side-panel right" data-start="0" data-duration="4.6" data-track-index="4"></div>
+      <div id="meta-top" class="clip meta-top" data-start="0" data-duration="4.6" data-track-index="5">Counter-Strike Digital Exhibition</div>
+      <div id="hero-wrap" class="clip hero-wrap" data-start="0" data-duration="4.6" data-track-index="6">
+        <div class="hero-frame"></div>
+        <div class="hero-caption">Private archive object / entry chamber</div>
+        <div id="artifact" class="artifact">
+          <div class="artifact-core"></div>
+          <div class="artifact-ridge"></div>
+          <div class="artifact-tag">Collector Vault Seal / Archive 01</div>
+        </div>
+      </div>
+      <div id="scan-beam" class="clip scan-beam" data-start="0" data-duration="4.6" data-track-index="7"></div>
+      <div id="hero-label" class="clip label" data-start="0" data-duration="4.6" data-track-index="8">
+        <div class="eyebrow">Museum-grade navigation object</div>
+        <div class="title">
+          <span>Collector's</span>
+          <span>Vault Seal</span>
+        </div>
+        <div class="sub">A ceremonial access marker for the full archive of skins, gloves, knives, stickers, and souvenir pieces. Less storefront, more private exhibition vault.</div>
+      </div>
+      <div id="meta-bottom" class="clip meta-bottom" data-start="0" data-duration="4.6" data-track-index="9">
+        <span>Skins / Cases / Stickers</span>
+        <span>Inspection-first Archive</span>
+        <span>Private Collection Index</span>
+      </div>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      tl.set("#panel-left", { x: -160 }, 0);
+      tl.set("#panel-right", { x: 160 }, 0);
+      tl.set("#meta-top", { y: -18 }, 0);
+      tl.set("#vault-arch", { y: -18 }, 0);
+
+      tl.to("#grid-overlay", { opacity: 0.18, duration: 0.7, ease: "power2.out" }, 0.12);
+      tl.to("#vault-arch", { y: 0, opacity: 1, duration: 1.05, ease: "power3.out" }, 0.22);
+      tl.to("#panel-left", { x: 0, opacity: 1, duration: 0.95, ease: "expo.out" }, 0.28);
+      tl.to("#panel-right", { x: 0, opacity: 1, duration: 0.95, ease: "expo.out" }, 0.28);
+      tl.to("#meta-top", { y: 0, opacity: 1, duration: 0.72, ease: "expo.out" }, 0.34);
+      tl.to("#hero-wrap", { opacity: 1, duration: 1.05, ease: "power4.out" }, 0.48);
+      tl.from(".hero-frame", { scale: 0.97, y: 18, duration: 1.1, ease: "power3.out" }, 0.48);
+      tl.from("#artifact", { scale: 0.86, rotation: -14, y: 18, duration: 1.18, ease: "expo.out" }, 0.58);
+      tl.from(".artifact-core", { scale: 0.76, rotation: 18, duration: 1.06, ease: "power2.out" }, 0.7);
+      tl.from(".artifact-tag", { y: 12, duration: 0.54, ease: "power2.out" }, 1.08);
+      tl.to("#hero-label", { opacity: 1, duration: 0.56, ease: "power2.out" }, 0.98);
+      tl.from(".label .eyebrow", { y: 18, duration: 0.48, ease: "circ.out" }, 1.02);
+      tl.from(".label .title", { y: 36, duration: 0.82, ease: "back.out(1.08)" }, 1.1);
+      tl.from(".label .sub", { y: 18, duration: 0.6, ease: "power2.out" }, 1.28);
+      tl.to("#meta-bottom", { opacity: 1, duration: 0.48, ease: "circ.out" }, 1.38);
+      tl.from(".meta-bottom span", { y: 12, stagger: 0.08, duration: 0.46, ease: "circ.out" }, 1.42);
+      tl.fromTo(
+        ".scan-beam",
+        { xPercent: 0, opacity: 0 },
+        { xPercent: 1120, opacity: 1, duration: 1.4, ease: "sine.inOut" },
+        0.92
+      );
+
+      window.__timelines["main"] = tl;
+      tl.play(0);
+    </script>
+  </body>
+</html>

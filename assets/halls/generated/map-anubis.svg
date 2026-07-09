@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 180" role="img" aria-label="Anubis map collection cover">
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#050606"/>
+      <stop offset=".55" stop-color="#111315"/>
+      <stop offset="1" stop-color="#8c5b2f"/>
+    </linearGradient>
+    <radialGradient id="pulse" cx=".18" cy=".25" r=".85">
+      <stop offset="0" stop-color="#d7a14b" stop-opacity=".42"/>
+      <stop offset="1" stop-color="#d7a14b" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="soft">
+      <feGaussianBlur stdDeviation="7"/>
+    </filter>
+  </defs>
+  <rect width="640" height="180" fill="url(#bg)"/>
+  <rect width="640" height="180" fill="url(#pulse)"/>
+  <path d="M-20 145 C 110 98, 166 170, 294 124 S 500 70, 668 106" fill="none" stroke="#d7a14b" stroke-width="38" stroke-opacity=".08" filter="url(#soft)"/>
+  <g opacity=".95">
+    <polygon points="62,38 136,20 195,55 168,104 83,98" fill="#d7a14b" opacity=".20" stroke="#d7a14b" stroke-opacity=".46"/>
+    <polygon points="398,42 520,28 572,72 510,125 406,110" fill="#2b6f74" opacity=".18" stroke="#2b6f74" stroke-opacity=".42"/>
+    <path d="M458 115 C 309 115, 309 94, 161 94" fill="none" stroke="#d7a14b" stroke-width="7" stroke-linecap="round" opacity=".38"/><path d="M373 30 C 392 30, 392 58, 412 58" fill="none" stroke="#d7a14b" stroke-width="6" stroke-linecap="round" opacity=".38"/><path d="M356 94 C 248 94, 248 79, 141 79" fill="none" stroke="#d7a14b" stroke-width="7" stroke-linecap="round" opacity=".38"/><path d="M219 30 C 374 30, 374 110, 530 110" fill="none" stroke="#d7a14b" stroke-width="7" stroke-linecap="round" opacity=".38"/><path d="M211 107 C 183 107, 183 128, 156 128" fill="none" stroke="#d7a14b" stroke-width="7" stroke-linecap="round" opacity=".38"/>
+    <rect x="169" y="23" width="68" height="18" rx="5" transform="rotate(0.74 203 32)" fill="#d7a14b" opacity="0.35129893708974125" stroke="#d7a14b" stroke-opacity=".24"/><rect x="247" y="90" width="64" height="43" rx="5" transform="rotate(-2.23 279 111.5)" fill="#8c5b2f" opacity="0.30448605671525003" stroke="#d7a14b" stroke-opacity=".24"/><rect x="446" y="35" width="100" height="57" rx="5" transform="rotate(-0.95 496 63.5)" fill="#2b6f74" opacity="0.2617443301901221" stroke="#d7a14b" stroke-opacity=".24"/><rect x="119" y="123" width="65" height="41" rx="5" transform="rotate(0.46 151.5 143.5)" fill="#d7a14b" opacity="0.3700977241620421" stroke="#d7a14b" stroke-opacity=".24"/><rect x="115" y="26" width="123" height="31" rx="5" transform="rotate(0.23 176.5 41.5)" fill="#8c5b2f" opacity="0.3538792202249169" stroke="#d7a14b" stroke-opacity=".24"/><rect x="232" y="31" width="60" height="27" rx="5" transform="rotate(-1.60 262 44.5)" fill="#2b6f74" opacity="0.2458265971019864" stroke="#d7a14b" stroke-opacity=".24"/><rect x="198" y="104" width="48" height="49" rx="5" transform="rotate(3.09 222 128.5)" fill="#d7a14b" opacity="0.27464541256427766" stroke="#d7a14b" stroke-opacity=".24"/>
+  </g>
+  <g font-family="Rajdhani, Teko, Arial, sans-serif" text-anchor="start">
+    <text x="35" y="151" fill="#f7efe4" font-size="44" font-weight="800" letter-spacing="4">ANUBIS</text>
+    <text x="38" y="166" fill="#d7a14b" font-size="13" font-weight="700" letter-spacing="3">TACTICAL MAP COLLECTION</text>
+  </g>
+  <circle cx="229" cy="65" r="1" fill="#f4efe4" opacity="0.3742955201305449"/><circle cx="260" cy="34" r="2" fill="#f4efe4" opacity="0.20710188146680594"/><circle cx="165" cy="40" r="1" fill="#f4efe4" opacity="0.16568386789411307"/><circle cx="200" cy="48" r="2" fill="#f4efe4" opacity="0.24918541284278034"/><circle cx="548" cy="25" r="1" fill="#f4efe4" opacity="0.36019725270569325"/><circle cx="407" cy="33" r="1" fill="#f4efe4" opacity="0.34766244592145085"/><circle cx="114" cy="141" r="1" fill="#f4efe4" opacity="0.20688261998817326"/><circle cx="486" cy="66" r="1" fill="#f4efe4" opacity="0.19791847148910166"/><circle cx="199" cy="108" r="2" fill="#f4efe4" opacity="0.3876866400241852"/><circle cx="184" cy="36" r="1" fill="#f4efe4" opacity="0.28898598793894054"/><circle cx="75" cy="26" r="2" fill="#f4efe4" opacity="0.2519658763706684"/><circle cx="559" cy="35" r="1" fill="#f4efe4" opacity="0.3218725227192044"/><circle cx="261" cy="40" r="1" fill="#f4efe4" opacity="0.37694152345880866"/><circle cx="223" cy="126" r="2" fill="#f4efe4" opacity="0.2540444460883737"/><circle cx="69" cy="90" r="1" fill="#f4efe4" opacity="0.3172099297121167"/><circle cx="265" cy="108" r="1" fill="#f4efe4" opacity="0.3367165439389646"/><circle cx="499" cy="23" r="2" fill="#f4efe4" opacity="0.34051669146865604"/><circle cx="376" cy="44" r="1" fill="#f4efe4" opacity="0.1976835970953107"/>
+  <rect x="1" y="1" width="638" height="178" fill="none" stroke="#d7a14b" stroke-opacity=".25"/>
+</svg>

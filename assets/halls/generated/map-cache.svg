@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 180" role="img" aria-label="Cache map collection cover">
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#050606"/>
+      <stop offset=".55" stop-color="#111315"/>
+      <stop offset="1" stop-color="#3f5f37"/>
+    </linearGradient>
+    <radialGradient id="pulse" cx=".18" cy=".25" r=".85">
+      <stop offset="0" stop-color="#89b151" stop-opacity=".42"/>
+      <stop offset="1" stop-color="#89b151" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="soft">
+      <feGaussianBlur stdDeviation="7"/>
+    </filter>
+  </defs>
+  <rect width="640" height="180" fill="url(#bg)"/>
+  <rect width="640" height="180" fill="url(#pulse)"/>
+  <path d="M-20 145 C 110 98, 166 170, 294 124 S 500 70, 668 106" fill="none" stroke="#89b151" stroke-width="38" stroke-opacity=".08" filter="url(#soft)"/>
+  <g opacity=".95">
+    <polygon points="62,38 136,20 195,55 168,104 83,98" fill="#89b151" opacity=".20" stroke="#89b151" stroke-opacity=".46"/>
+    <polygon points="398,42 520,28 572,72 510,125 406,110" fill="#d5b443" opacity=".18" stroke="#d5b443" stroke-opacity=".42"/>
+    <path d="M341 47 C 313 47, 313 83, 286 83" fill="none" stroke="#89b151" stroke-width="7" stroke-linecap="round" opacity=".38"/><path d="M138 69 C 303 69, 303 77, 469 77" fill="none" stroke="#89b151" stroke-width="6" stroke-linecap="round" opacity=".38"/><path d="M491 47 C 385 47, 385 60, 279 60" fill="none" stroke="#89b151" stroke-width="7" stroke-linecap="round" opacity=".38"/><path d="M97 56 C 172 56, 172 67, 247 67" fill="none" stroke="#89b151" stroke-width="6" stroke-linecap="round" opacity=".38"/><path d="M396 53 C 458 53, 458 129, 521 129" fill="none" stroke="#89b151" stroke-width="8" stroke-linecap="round" opacity=".38"/>
+    <rect x="58" y="99" width="50" height="38" rx="5" transform="rotate(0.65 83 118)" fill="#89b151" opacity="0.3697480484843254" stroke="#89b151" stroke-opacity=".24"/><rect x="311" y="82" width="104" height="34" rx="5" transform="rotate(0.45 363 99)" fill="#3f5f37" opacity="0.23181906715035439" stroke="#89b151" stroke-opacity=".24"/><rect x="356" y="108" width="96" height="53" rx="5" transform="rotate(-3.30 404 134.5)" fill="#d5b443" opacity="0.29026954915374514" stroke="#89b151" stroke-opacity=".24"/><rect x="389" y="124" width="79" height="49" rx="5" transform="rotate(1.08 428.5 148.5)" fill="#89b151" opacity="0.2270479566976428" stroke="#89b151" stroke-opacity=".24"/><rect x="239" y="73" width="50" height="29" rx="5" transform="rotate(-0.46 264 87.5)" fill="#3f5f37" opacity="0.242110144123435" stroke="#89b151" stroke-opacity=".24"/><rect x="376" y="106" width="130" height="53" rx="5" transform="rotate(-1.38 441 132.5)" fill="#d5b443" opacity="0.35359306570142507" stroke="#89b151" stroke-opacity=".24"/><rect x="161" y="31" width="99" height="47" rx="5" transform="rotate(-3.58 210.5 54.5)" fill="#89b151" opacity="0.22970775086432696" stroke="#89b151" stroke-opacity=".24"/>
+  </g>
+  <g font-family="Rajdhani, Teko, Arial, sans-serif" text-anchor="start">
+    <text x="35" y="151" fill="#f7efe4" font-size="44" font-weight="800" letter-spacing="4">CACHE</text>
+    <text x="38" y="166" fill="#89b151" font-size="13" font-weight="700" letter-spacing="3">TACTICAL MAP COLLECTION</text>
+  </g>
+  <circle cx="529" cy="85" r="1" fill="#f4efe4" opacity="0.27779176184907556"/><circle cx="276" cy="74" r="1" fill="#f4efe4" opacity="0.1845033366046846"/><circle cx="530" cy="62" r="2" fill="#f4efe4" opacity="0.3003087174333632"/><circle cx="204" cy="133" r="2" fill="#f4efe4" opacity="0.36134370734915133"/><circle cx="222" cy="78" r="1" fill="#f4efe4" opacity="0.2731761066615581"/><circle cx="429" cy="37" r="2" fill="#f4efe4" opacity="0.18154211482033134"/><circle cx="372" cy="72" r="1" fill="#f4efe4" opacity="0.3536107835918665"/><circle cx="451" cy="47" r="2" fill="#f4efe4" opacity="0.17502929899841546"/><circle cx="427" cy="27" r="1" fill="#f4efe4" opacity="0.253726659193635"/><circle cx="146" cy="36" r="1" fill="#f4efe4" opacity="0.2790698118135333"/><circle cx="402" cy="90" r="1" fill="#f4efe4" opacity="0.28599936021491884"/><circle cx="327" cy="41" r="2" fill="#f4efe4" opacity="0.29987462548539046"/><circle cx="434" cy="78" r="2" fill="#f4efe4" opacity="0.16115619894117117"/><circle cx="424" cy="105" r="1" fill="#f4efe4" opacity="0.30232647761702536"/><circle cx="259" cy="43" r="1" fill="#f4efe4" opacity="0.3746132311969995"/><circle cx="483" cy="100" r="1" fill="#f4efe4" opacity="0.21236295772716401"/><circle cx="589" cy="113" r="2" fill="#f4efe4" opacity="0.3587713746353984"/><circle cx="449" cy="114" r="1" fill="#f4efe4" opacity="0.2383300725184381"/>
+  <rect x="1" y="1" width="638" height="178" fill="none" stroke="#89b151" stroke-opacity=".25"/>
+</svg>

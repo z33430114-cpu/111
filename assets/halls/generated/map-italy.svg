@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 180" role="img" aria-label="Italy map collection cover">
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#050606"/>
+      <stop offset=".55" stop-color="#111315"/>
+      <stop offset="1" stop-color="#6f7c4b"/>
+    </linearGradient>
+    <radialGradient id="pulse" cx=".18" cy=".25" r=".85">
+      <stop offset="0" stop-color="#d7ba73" stop-opacity=".42"/>
+      <stop offset="1" stop-color="#d7ba73" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="soft">
+      <feGaussianBlur stdDeviation="7"/>
+    </filter>
+  </defs>
+  <rect width="640" height="180" fill="url(#bg)"/>
+  <rect width="640" height="180" fill="url(#pulse)"/>
+  <path d="M-20 145 C 110 98, 166 170, 294 124 S 500 70, 668 106" fill="none" stroke="#d7ba73" stroke-width="38" stroke-opacity=".08" filter="url(#soft)"/>
+  <g opacity=".95">
+    <polygon points="62,38 136,20 195,55 168,104 83,98" fill="#d7ba73" opacity=".20" stroke="#d7ba73" stroke-opacity=".46"/>
+    <polygon points="398,42 520,28 572,72 510,125 406,110" fill="#b7513e" opacity=".18" stroke="#b7513e" stroke-opacity=".42"/>
+    <path d="M210 46 C 365 46, 365 128, 520 128" fill="none" stroke="#d7ba73" stroke-width="7" stroke-linecap="round" opacity=".38"/><path d="M255 41 C 257 41, 257 54, 260 54" fill="none" stroke="#d7ba73" stroke-width="7" stroke-linecap="round" opacity=".38"/><path d="M138 107 C 110 107, 110 125, 83 125" fill="none" stroke="#d7ba73" stroke-width="7" stroke-linecap="round" opacity=".38"/><path d="M515 127 C 357 127, 357 103, 200 103" fill="none" stroke="#d7ba73" stroke-width="5" stroke-linecap="round" opacity=".38"/><path d="M426 103 C 248 103, 248 66, 71 66" fill="none" stroke="#d7ba73" stroke-width="7" stroke-linecap="round" opacity=".38"/>
+    <rect x="327" y="112" width="136" height="57" rx="5" transform="rotate(1.54 395 140.5)" fill="#d7ba73" opacity="0.254585385620594" stroke="#d7ba73" stroke-opacity=".24"/><rect x="81" y="62" width="106" height="30" rx="5" transform="rotate(-0.30 134 77)" fill="#6f7c4b" opacity="0.255111314766109" stroke="#d7ba73" stroke-opacity=".24"/><rect x="361" y="97" width="65" height="18" rx="5" transform="rotate(3.40 393.5 106)" fill="#b7513e" opacity="0.3097053438425064" stroke="#d7ba73" stroke-opacity=".24"/><rect x="412" y="51" width="119" height="59" rx="5" transform="rotate(-1.05 471.5 80.5)" fill="#d7ba73" opacity="0.2694376923516393" stroke="#d7ba73" stroke-opacity=".24"/><rect x="419" y="106" width="87" height="41" rx="5" transform="rotate(-3.73 462.5 126.5)" fill="#6f7c4b" opacity="0.37027737531811" stroke="#d7ba73" stroke-opacity=".24"/><rect x="477" y="102" width="87" height="49" rx="5" transform="rotate(3.22 520.5 126.5)" fill="#b7513e" opacity="0.35259604785591364" stroke="#d7ba73" stroke-opacity=".24"/><rect x="308" y="64" width="71" height="26" rx="5" transform="rotate(3.53 343.5 77)" fill="#d7ba73" opacity="0.25781752560287713" stroke="#d7ba73" stroke-opacity=".24"/>
+  </g>
+  <g font-family="Rajdhani, Teko, Arial, sans-serif" text-anchor="start">
+    <text x="35" y="151" fill="#f7efe4" font-size="44" font-weight="800" letter-spacing="4">ITALY</text>
+    <text x="38" y="166" fill="#d7ba73" font-size="13" font-weight="700" letter-spacing="3">TACTICAL MAP COLLECTION</text>
+  </g>
+  <circle cx="172" cy="98" r="1" fill="#f4efe4" opacity="0.18482740132138134"/><circle cx="228" cy="131" r="1" fill="#f4efe4" opacity="0.29569865074008705"/><circle cx="383" cy="53" r="2" fill="#f4efe4" opacity="0.3493575794994831"/><circle cx="357" cy="112" r="2" fill="#f4efe4" opacity="0.32044896800071"/><circle cx="560" cy="147" r="2" fill="#f4efe4" opacity="0.3129360755160451"/><circle cx="476" cy="85" r="1" fill="#f4efe4" opacity="0.29984242092818025"/><circle cx="227" cy="123" r="1" fill="#f4efe4" opacity="0.2491508745402098"/><circle cx="376" cy="136" r="2" fill="#f4efe4" opacity="0.16642946109175683"/><circle cx="399" cy="24" r="2" fill="#f4efe4" opacity="0.3300924106314778"/><circle cx="294" cy="88" r="2" fill="#f4efe4" opacity="0.2105882043391466"/><circle cx="412" cy="144" r="2" fill="#f4efe4" opacity="0.3529047556594014"/><circle cx="296" cy="112" r="2" fill="#f4efe4" opacity="0.19354751758277416"/><circle cx="331" cy="43" r="2" fill="#f4efe4" opacity="0.24175415551289917"/><circle cx="241" cy="84" r="2" fill="#f4efe4" opacity="0.2867575747705996"/><circle cx="571" cy="75" r="1" fill="#f4efe4" opacity="0.20671670289710165"/><circle cx="512" cy="34" r="1" fill="#f4efe4" opacity="0.37269567264243963"/><circle cx="216" cy="54" r="2" fill="#f4efe4" opacity="0.3884608465246856"/><circle cx="333" cy="137" r="1" fill="#f4efe4" opacity="0.2527312143146992"/>
+  <rect x="1" y="1" width="638" height="178" fill="none" stroke="#d7ba73" stroke-opacity=".25"/>
+</svg>

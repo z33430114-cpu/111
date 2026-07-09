@@ -63,7 +63,13 @@ const mimeTypes = {
   ".html": "text/html; charset=utf-8",
   ".js": "text/javascript; charset=utf-8",
   ".json": "application/json; charset=utf-8",
-  ".wav": "audio/wav"
+  ".wav": "audio/wav",
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".webp": "image/webp",
+  ".gif": "image/gif",
+  ".svg": "image/svg+xml"
 };
 const platformLoginUrls = {
   buff: process.env.BUFF_LOGIN_URL || "https://buff.163.com/",
@@ -1098,7 +1104,8 @@ async function fetchYoupinSingleRecordForUser(userId, { itemId = "", variantId =
   const auth = buildYoupinAuth(sessionRow);
   if (!auth) return null;
   const marketSnapshot = await loadMarketPricesSnapshot();
-  const marketIndex = buildMarketHashIndex(marketSnapshot);
+  const { catalog = [], openings = [] } = await loadCatalogRuntimeData();
+  const marketIndex = buildMarketHashIndex(marketSnapshot, [...catalog, ...openings]);
   const normalizedVariantId = String(variantId || "standard").trim() || "standard";
   const normalizedWearId = String(wearId || "").trim();
   const existingSnapshot = await loadPlatformLinksSnapshot("youpin");
@@ -1107,8 +1114,7 @@ async function fetchYoupinSingleRecordForUser(userId, { itemId = "", variantId =
   const snapshotRecord = marketSnapshot.items?.[itemId] || null;
   let fallbackMarketHashName = String(marketHashName || "").trim();
   if (!fallbackMarketHashName && !snapshotRecord) {
-    const { catalog } = await loadCatalogRuntimeData();
-    const catalogItem = catalog.find((item) => String(item?.id || "") === itemId);
+    const catalogItem = [...catalog, ...openings].find((item) => String(item?.id || "") === itemId);
     fallbackMarketHashName = catalogYoupinMarketHashName(catalogItem, normalizedWearId);
   }
   const jobs = buildYoupinWearSearchJobs({
@@ -1216,7 +1222,8 @@ async function syncYoupinLinksForUser(userId, { force = false } = {}) {
     const auth = buildYoupinAuth(sessionRow);
     if (!auth) throw new Error("YouPin live price auth is missing. Please validate the YouPin login again.");
     const marketSnapshot = await loadMarketPricesSnapshot();
-    const marketIndex = buildMarketHashIndex(marketSnapshot);
+    const { catalog = [], openings = [] } = await loadCatalogRuntimeData();
+    const marketIndex = buildMarketHashIndex(marketSnapshot, [...catalog, ...openings]);
     const mergedItems = { ...(existingSnapshot.items || {}) };
     let pageNum = 1;
     let totalPages = 1;
@@ -1397,12 +1404,15 @@ function lookupPlatformLinkRecord(snapshot, itemId, variantId = "standard", wear
   const items = snapshot?.items && typeof snapshot.items === "object" ? snapshot.items : {};
   const normalizedVariantId = String(variantId || "standard").trim() || "standard";
   const normalizedWearId = String(wearId || "").trim();
-  const keys = [
-    `${itemId}:${normalizedVariantId}:${normalizedWearId || "default"}`,
-    `${itemId}:${normalizedVariantId}:default`,
-    `${itemId}:standard:${normalizedWearId || "default"}`,
-    `${itemId}:standard:default`
-  ];
+  const keys = normalizedVariantId === "standard"
+    ? [
+      `${itemId}:standard:${normalizedWearId || "default"}`,
+      `${itemId}:standard:default`
+    ]
+    : [
+      `${itemId}:${normalizedVariantId}:${normalizedWearId || "default"}`,
+      `${itemId}:${normalizedVariantId}:default`
+    ];
   for (const key of keys) {
     if (items[key]) return items[key];
   }
@@ -1496,13 +1506,14 @@ function minimalBatchPriceRecord(itemId, override) {
 }
 
 function preferredReferencePayload({ itemId, wearId = "", variantId = "standard", buffRecord = null, youpinRecord = null, snapshotEntry = null, snapshotUpdatedAt = null }) {
-  const normalizedWearId = String(wearId || snapshotEntry?.wearId || "").trim();
+  const requestedWearId = String(wearId || snapshotEntry?.wearId || "").trim();
   const normalizedVariantId = String(variantId || "standard").trim() || "standard";
   const preferredPlatform = pickPreferredPlatformRecord({ buffRecord, youpinRecord });
   if (preferredPlatform?.sourceKey === "buff") {
+    const matchedWearId = String(preferredPlatform.record?.wearId || requestedWearId).trim();
     return {
       itemId,
-      wearId: normalizedWearId,
+      wearId: matchedWearId,
       variantId: normalizedVariantId,
       effectivePrice: Number(preferredPlatform.record.price),
       effectiveSource: "buff",
@@ -1511,9 +1522,10 @@ function preferredReferencePayload({ itemId, wearId = "", variantId = "standard"
     };
   }
   if (preferredPlatform?.sourceKey === "youpin") {
+    const matchedWearId = String(preferredPlatform.record?.wearId || requestedWearId).trim();
     return {
       itemId,
-      wearId: normalizedWearId,
+      wearId: matchedWearId,
       variantId: normalizedVariantId,
       effectivePrice: Number(preferredPlatform.record.price),
       effectiveSource: "youpin",
@@ -1521,7 +1533,7 @@ function preferredReferencePayload({ itemId, wearId = "", variantId = "standard"
       marketHashName: String(preferredPlatform.record?.marketHashName || snapshotEntry?.record?.marketHashName || "")
     };
   }
-  return priceOverridePayload(itemId, normalizedWearId, normalizedVariantId, snapshotEntry, snapshotUpdatedAt);
+  return priceOverridePayload(itemId, requestedWearId, normalizedVariantId, snapshotEntry, snapshotUpdatedAt);
 }
 
 function buildPersistentReferenceRecord({ syncedOverride = null, buffRecord = null, youpinRecord = null, snapshotEntry = null } = {}) {
@@ -1552,7 +1564,7 @@ function buildPersistentReferenceRecord({ syncedOverride = null, buffRecord = nu
     source,
     record: {
       itemId: String(syncedOverride.itemId || "").trim(),
-      wearId: String(syncedOverride.wearId || "").trim(),
+      wearId: String(platformRecord?.wearId || syncedOverride.wearId || "").trim(),
       price,
       marketHashName: String(platformRecord?.marketHashName || syncedOverride?.marketHashName || snapshotEntry?.record?.marketHashName || ""),
       sellNum: Number(platformRecord?.sellNum) || 0,
@@ -1603,12 +1615,13 @@ async function handlePlatformPrices(request, response, pathname) {
     loadPlatformLinksSnapshot("youpin")
   ]);
   const priceEntry = snapshotPriceFromRecord(snapshot.items?.[itemId], wearId);
+  const requestedWearId = wearId || priceEntry?.wearId || "";
   const buffSessionRow = user ? selectPlatformSession.buff.get(user.id) : null;
   const youpinSessionRow = user ? selectPlatformSession.youpin.get(user.id) : null;
   let youpinSnapshot = initialYoupinSnapshot;
   let youpinLookupError = "";
-  const buffRecord = lookupPlatformLinkRecord(buffSnapshot, itemId, variantId, wearId || priceEntry?.wearId || "");
-  let youpinRecord = lookupPlatformLinkRecord(youpinSnapshot, itemId, variantId, wearId || priceEntry?.wearId || "");
+  const buffRecord = lookupPlatformLinkRecord(buffSnapshot, itemId, variantId, requestedWearId);
+  let youpinRecord = lookupPlatformLinkRecord(youpinSnapshot, itemId, variantId, requestedWearId);
   const shouldRefreshYoupin = shouldRefreshPlatformRecord({
     record: youpinRecord,
     connected: !!(user && youpinSessionRow?.status === "connected"),
@@ -1624,12 +1637,16 @@ async function handlePlatformPrices(request, response, pathname) {
       const liveRecord = await fetchYoupinSingleRecordForUserOnce(user.id, {
         itemId,
         variantId,
-        wearId: wearId || priceEntry?.wearId || "",
+        wearId: requestedWearId,
         marketHashName: priceEntry?.record?.marketHashName || ""
       });
       if (liveRecord) {
-        youpinRecord = liveRecord;
         youpinSnapshot = await loadPlatformLinksSnapshot("youpin");
+        if (String(liveRecord?.wearId || "").trim() === String(requestedWearId || "").trim()) {
+          youpinRecord = liveRecord;
+        } else {
+          youpinRecord = lookupPlatformLinkRecord(youpinSnapshot, itemId, variantId, requestedWearId);
+        }
       }
     } catch (error) {
       if (error?.code === "youpin_rate_limited") markYoupinRateLimit(error.message);
@@ -1638,7 +1655,7 @@ async function handlePlatformPrices(request, response, pathname) {
   }
   const syncedOverride = preferredReferencePayload({
     itemId,
-    wearId: wearId || priceEntry?.wearId || "",
+    wearId: requestedWearId,
     variantId,
     buffRecord,
     youpinRecord,
@@ -1952,6 +1969,50 @@ async function handleProLoadouts(_request, response) {
   json(response, 200, { ok: true, teams }, corsHeaders());
 }
 
+async function handleAssetProxy(request, response) {
+  const requestUrl = new URL(request.url || "/api/asset-proxy", "http://127.0.0.1");
+  const targetUrl = String(requestUrl.searchParams.get("url") || "").trim();
+  if (!targetUrl) {
+    json(response, 400, { ok: false, error: "Missing url parameter." }, corsHeaders());
+    return;
+  }
+  let parsedTarget;
+  try {
+    parsedTarget = new URL(targetUrl);
+  } catch {
+    json(response, 400, { ok: false, error: "Invalid target url." }, corsHeaders());
+    return;
+  }
+  if (!/^https?:$/i.test(parsedTarget.protocol) || !/(\.|^)img-cdn\.hltv\.org$/i.test(parsedTarget.hostname)) {
+    json(response, 403, { ok: false, error: "Unsupported asset host." }, corsHeaders());
+    return;
+  }
+  try {
+    const upstream = await fetch(parsedTarget, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36",
+        Referer: "https://www.hltv.org/",
+        Accept: "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8"
+      }
+    });
+    if (!upstream.ok) {
+      json(response, upstream.status || 502, { ok: false, error: `Upstream returned ${upstream.status || 502}.` }, corsHeaders());
+      return;
+    }
+    const contentType = upstream.headers.get("content-type") || "application/octet-stream";
+    const arrayBuffer = await upstream.arrayBuffer();
+    response.writeHead(200, {
+      ...corsHeaders(),
+      "Cache-Control": "public, max-age=86400",
+      "Content-Type": contentType
+    });
+    response.end(Buffer.from(arrayBuffer));
+  } catch (error) {
+    console.error("Failed to proxy asset:", error);
+    json(response, 502, { ok: false, error: "Failed to fetch remote asset." }, corsHeaders());
+  }
+}
+
 async function routeApi(request, response, pathname) {
   const { user } = readAuthenticatedUser(request);
   if (pathname === "/api/recommendations/compose" && request.method === "POST") {
@@ -1964,6 +2025,10 @@ async function routeApi(request, response, pathname) {
   }
   if (pathname === "/api/ai/pro-loadouts" && request.method === "GET") {
     await handleProLoadouts(request, response);
+    return true;
+  }
+  if (pathname === "/api/asset-proxy" && request.method === "GET") {
+    await handleAssetProxy(request, response);
     return true;
   }
   if (pathname === "/api/prices/batch" && request.method === "POST") {

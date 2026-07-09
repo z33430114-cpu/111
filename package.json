@@ -1,0 +1,17 @@
+{
+	"scripts": {
+		"start": "node scripts/serve.mjs",
+		"reset:accounts": "node scripts/reset-account-data.mjs",
+		"recommend:test": "node --input-type=module -e \"import('./server/recommendation-engine.mjs').then(async (m) => { const result = await m.generateLoadoutCandidates(process.cwd(), { budget: 20000, color: 'white', style: 'white clean' }); console.log(JSON.stringify(result.loadouts[0], null, 2)); })\"",
+		"colors:classify": "py scripts/classify-skin-colors.py",
+		"test:navigation-motion": "node scripts/check-navigation-motion.mjs",
+		"test:catalog-picker-clear": "node scripts/run-check-catalog-picker-clear.mjs",
+		"test:shared-navigation-language": "node scripts/check-shared-navigation-language.mjs",
+		"test:nav-runtime-localization": "node scripts/check-nav-runtime-localization.mjs",
+		"test:openings-async-refresh": "node scripts/check-openings-async-refresh.mjs",
+		"test:openings-copy-audio": "node scripts/check-openings-copy-and-audio.mjs"
+	},
+	"devDependencies": {
+		"ssh2": "^1.17.0"
+	}
+}

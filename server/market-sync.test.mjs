@@ -46,6 +46,20 @@ test("buildMarketHashIndex keeps exact and normalized lookups", () => {
   assert.equal(index.stats.exactEntries, 1);
 });
 
+test("buildMarketHashIndex includes supplemental opening entries that are missing from the snapshot", () => {
+  const snapshot = { items: {} };
+  const index = buildMarketHashIndex(snapshot, [
+    {
+      id: "crate-4001",
+      marketHashName: "CS:GO Weapon Case"
+    }
+  ]);
+
+  assert.equal(index.exactIndex.get("CS:GO Weapon Case")?.itemId, "crate-4001");
+  assert.equal(index.normalizedIndex.get("cs:go weapon case")?.[0]?.itemId, "crate-4001");
+  assert.equal(index.stats.exactEntries, 1);
+});
+
 test("findBestSellingWear prefers the lowest priced active wear when volume is missing", () => {
   const best = findBestSellingWear({
     prices: {

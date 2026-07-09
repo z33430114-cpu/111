@@ -164,3 +164,114 @@ test("fetchYoupinSingleRecordForUser returns null after at most three candidates
   assert.equal(result, null);
   assert.deepEqual(calls, ["ft", "mw", "ww"]);
 });
+
+test("handlePlatformPrices does not reuse a fallback wear hit as the current wear price", async () => {
+  let responseBody = null;
+  const context = {
+    URL,
+    Promise,
+    readAuthenticatedUser: () => ({ user: { id: "user-1" } }),
+    loadMarketPricesSnapshot: async () => ({
+      updatedAt: "2026-07-08T03:00:00.000Z",
+      items: {
+        "skin-a": {
+          lastUpdated: "2026-07-08T03:00:00.000Z",
+          prices: {
+            "field-tested": {
+              price: 480,
+              marketHashName: "AK-47 | Redline (Field-Tested)"
+            }
+          }
+        }
+      }
+    }),
+    loadPlatformLinksSnapshot: async () => ({ updatedAt: "2026-07-08T03:00:00.000Z", items: {} }),
+    snapshotPriceFromRecord: (record, wearId) => ({
+      wearId,
+      price: Number(record?.prices?.[wearId]?.price) || 0,
+      record: record?.prices?.[wearId] || null
+    }),
+    selectPlatformSession: {
+      buff: { get: () => null },
+      youpin: { get: () => ({ status: "connected" }) }
+    },
+    lookupPlatformLinkRecord: (_snapshot, _itemId, _variantId, wearId) => (
+      wearId === "field-tested"
+        ? null
+        : {
+          itemId: "skin-a",
+          variantId: "standard",
+          wearId: "minimal-wear",
+          price: 405,
+          marketHashName: "AK-47 | Redline (Minimal Wear)",
+          updatedAt: "2026-07-08T03:00:00.000Z"
+        }
+    ),
+    shouldRefreshPlatformRecord: () => true,
+    shouldBlockPlatformRefresh: () => false,
+    fetchYoupinSingleRecordForUserOnce: async () => ({
+      itemId: "skin-a",
+      variantId: "standard",
+      wearId: "minimal-wear",
+      price: 405,
+      marketHashName: "AK-47 | Redline (Minimal Wear)",
+      updatedAt: "2026-07-08T03:05:00.000Z"
+    }),
+    preferredReferencePayload: ({ itemId, wearId, snapshotEntry, youpinRecord }) => ({
+      itemId,
+      wearId: String(youpinRecord?.wearId || wearId || "").trim(),
+      variantId: "standard",
+      effectivePrice: Number(youpinRecord?.price || snapshotEntry?.price) || null,
+      effectiveSource: youpinRecord ? "youpin" : "snapshot",
+      updatedAt: youpinRecord?.updatedAt || "2026-07-08T03:00:00.000Z",
+      marketHashName: String(youpinRecord?.marketHashName || snapshotEntry?.record?.marketHashName || "")
+    }),
+    buildPersistentReferenceRecord: () => null,
+    persistPlatformRecordsToMarketPrices: async () => {},
+    buildPlatformPricePayload: (_kind, _sessionRow, record) => ({
+      price: Number(record?.price) || null,
+      status: record ? "ok" : "unavailable"
+    }),
+    json: (_response, _status, payload) => {
+      responseBody = payload;
+    },
+    markYoupinRateLimit: () => {},
+    nowIso: () => "2026-07-08T03:05:00.000Z",
+    youpinSingleLookupState: { cooldownUntilMs: 0, lastRateLimitMessage: "" },
+    youpinSinglePriceCacheFreshMs: 300000
+  };
+  vm.createContext(context);
+  vm.runInContext(`${extractFunctionSource(serveSource, "handlePlatformPrices")};`, context);
+
+  await context.handlePlatformPrices(
+    { url: "http://127.0.0.1/api/platform-prices/skin-a?wear=field-tested&variant=standard" },
+    {},
+    "/api/platform-prices/skin-a"
+  );
+
+  assert.equal(responseBody?.wearId, "field-tested");
+  assert.equal(responseBody?.referenceSourceKey, "snapshot");
+  assert.equal(responseBody?.referencePrice, 480);
+  assert.equal(responseBody?.platforms?.youpin?.status, "unavailable");
+});
+
+test("lookupPlatformLinkRecord does not fall back to standard variant when a non-standard variant is requested", () => {
+  const context = {};
+  vm.createContext(context);
+  vm.runInContext(`${extractFunctionSource(serveSource, "lookupPlatformLinkRecord")};`, context);
+
+  const snapshot = {
+    items: {
+      "skin-a:standard:field-tested": {
+        itemId: "skin-a",
+        variantId: "standard",
+        wearId: "field-tested",
+        price: 405
+      }
+    }
+  };
+
+  const result = context.lookupPlatformLinkRecord(snapshot, "skin-a", "stattrak", "field-tested");
+
+  assert.equal(result, null);
+});

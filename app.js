@@ -1,4 +1,4 @@
-  const STATE_KEY = "cs2-relic-hall:state";
+﻿  const STATE_KEY = "cs2-relic-hall:state";
   const DIY_KEY = "cs2-relic-hall:diy-designs";
   const OPENING_STATE_KEY = "cs2-relic-hall:openings";
   const INSPECTOR_STATE_KEY = "cs2-relic-hall:inspector";
@@ -4077,82 +4077,110 @@
   }
 
   function buildHomeMarkup() {
-    const featuredAliases = Object.keys(globalThis.CS2_FEATURED_ASSETS || {});
-    const featuredItems = featuredAliases.map((alias) => resolveDisplayItemById(alias)).filter(Boolean);
-    const heroItem = featuredItems.find((entry) => entry.image) || items.find((entry) => entry.image) || items[0] || null;
-    const featuredLimit = 8;
-    const featured = (featuredItems.length ? featuredItems : items.filter((entry) => entry.image)).slice(0, featuredLimit);
-    const inspectHref = heroItem ? itemHref(heroItem) : "catalog.html";
-    const showIntro = shouldShowHomeIntro();
-    const entries = [
-      ["Archive", uiText("Search every exhibit", "检索全部展品"), "catalog.html"],
-      ["Halls", uiText("Browse collection wings", "浏览系列展区"), "collections.html"],
-      ["Inspect", uiText("Examine one object", "检视单件展品"), inspectHref],
-      ["Saved", uiText("Open your private case", "打开私人展柜"), "favorites.html"],
-      ["Trail", uiText("Return to recent exhibits", "回到最近展品"), "recent.html"],
-      ["Drop Theatre", uiText("Simulate openings", "模拟开箱掉落"), "openings.html"],
-      ["Pass", uiText("Manage access and sync", "管理账号与同步"), "account.html"],
-      ["Vault", uiText("Review Steam inventory", "查看 Steam 藏库"), "inventory.html"],
-      ["Curator", uiText("Generate AI loadouts", "生成 AI 搭配"), "loadout.html"]
+    const heroAsset = "assets/home-awp-exhibit-render.webp";
+    const heroItem = items.find((entry) => /asiimov/i.test(entry?.nameEn || entry?.name || "") && entry.image) || items.find((entry) => entry.image) || items[0] || null;
+    const inspectHref = heroItem ? itemHref(heroItem) : "item.html?id=ak-inheritance";
+    const featured = (typeof featuredHomeItems === "function" ? featuredHomeItems() : items.filter((entry) => entry.image)).slice(0, 4);
+    const marketRows = featured.slice(0, 4);
+    const commandCards = [
+      ["archive", "Archive", uiText("Search every exhibit", "??????"), "catalog.html"],
+      ["halls", "Halls", uiText("Browse collection wings", "??????"), "collections.html"],
+      ["inspect", "Inspect", uiText("Open one object in the ledger", "????????"), inspectHref],
+      ["saved", "Saved", uiText("Return to your private case", "??????"), "favorites.html"],
+      ["trail", "Trail", uiText("Pick up recent inspection trails", "????????"), "recent.html"],
+      ["drop", "Drop Theatre", uiText("Simulate openings and ROI", "???????"), "openings.html"],
+      ["pass", "Pass", uiText("Manage access and sync", "???????"), "account.html"],
+      ["vault", "Vault", uiText("Review synced inventory", "??????"), "inventory.html"],
+      ["curator", "Curator", uiText("Generate AI loadouts", "?? AI ??"), "loadout.html"]
     ];
 
     return `
-      ${showIntro ? `<section class="site-intro-film" aria-label="${escapeHtml(uiText("Exhibition opening film", "展馆开场影片"))}">
-        <div class="intro-frame">
-          <iframe
-            class="site-intro-embed"
-            src="intro-film/index.html?v=20260708fit"
-            title="${escapeHtml(uiText("Exhibition opening film", "展馆开场影片"))}"
-            loading="eager"
-            referrerpolicy="no-referrer"
-          ></iframe>
-        </div>
-      </section>` : ""}
-      <section class="hero exhibition-hero" data-motion-intro>
-        <div class="hero-copy">
-          <p class="eyebrow" data-motion-part="eyebrow">${escapeHtml(uiText("Counter-Strike Digital Exhibition", "Counter-Strike 数字展馆"))}</p>
+      <section class="hero home-hero" aria-label="${escapeHtml(uiText("CS Exhibition home", "CS Exhibition ??"))}">
+        <div class="home-hero-copy">
+          <p class="eyebrow home-console-kicker">${escapeHtml(uiText("Counter-Strike Digital Exhibition", "Counter-Strike ????"))}</p>
           <h1 data-motion-part="title">${escapeHtml(uiText("CS Exhibition", "CS Exhibition"))}</h1>
-          <p data-motion-part="copy">${escapeHtml(uiText("Enter a black-box archive for CS skins, live market prices, Steam inventory, drop simulation, and AI-curated loadouts.", "进入一座黑色数字展馆，检索 CS 饰品、查看实时价格、同步 Steam 库存、模拟开箱，并让 AI 策展搭配方案。"))}</p>
-          <div class="hero-actions" data-motion-part="actions">
-            <a class="primary-link" href="catalog.html">${escapeHtml(uiText("Enter Archive", "进入馆藏"))}</a>
-            <a class="secondary-link" href="openings.html">${escapeHtml(uiText("Open Drop Theatre", "打开掉落剧场"))}</a>
-            <a class="secondary-link" href="loadout.html">${escapeHtml(uiText("Ask Curator", "询问策展室"))}</a>
-          </div>
-          <div class="exhibition-status-strip" aria-label="${escapeHtml(uiText("Exhibition status", "展馆状态"))}">
-            <span>${escapeHtml(uiText("Archive online", "馆藏在线"))}</span>
-            <span>${escapeHtml(uiText("Market plates ready", "价格牌就绪"))}</span>
-            <span>${escapeHtml(uiText("Vault sync available", "藏库可同步"))}</span>
+          <p class="home-subtitle">${escapeHtml(uiText("Preserve. Inspect. Understand.", "?????????"))}</p>
+          <p data-motion-part="copy">${escapeHtml(uiText("A black-box exhibition shell for skins, prices, collections, inventory sync, and curator-grade recommendations.", "????????????????????????????????"))}</p>
+          <div class="hero-actions">
+            <a class="primary-link" href="catalog.html">${escapeHtml(uiText("Enter Archive", "????"))}</a>
+            <a class="secondary-link" href="openings.html">${escapeHtml(uiText("Open Drop Theatre", "??????"))}</a>
+            <a class="secondary-link" href="loadout.html">${escapeHtml(uiText("Ask Curator", "????"))}</a>
           </div>
         </div>
-        <div class="exhibition-hero-media exhibition-kinetic-media" aria-label="${escapeHtml(uiText("Black archive scanner", "黑盒馆藏扫描装置"))}">
-          <div class="kinetic-aperture" aria-hidden="true">
-            <span class="aperture-ring"></span>
-            <span class="aperture-ring aperture-ring-offset"></span>
-            <span class="aperture-core"></span>
-            <span class="aperture-scan"></span>
+        <div class="home-hero-stage" aria-hidden="true">
+          <div class="home-stage-frame">
+            <div class="home-stage-noise"></div>
+            <div class="home-museum-backdrop"></div>
+            <div class="home-display-case"></div>
+            <img class="home-rendered-exhibit" src="${heroAsset}" alt="AWP | Asiimov" loading="eager" decoding="async" />
+            <img class="home-hero-object" src="${heroAsset}" alt="" loading="eager" decoding="async" />
+            <span class="home-stage-line"></span>
+            <div class="home-stage-caption"><strong>AWP | Asiimov</strong><span>Featured Exhibit Render</span></div>
+            <div class="home-exhibit-plaque"><strong>AWP | Asiimov</strong><span>Archive Render</span><small>North Wing Object Plate</small></div>
           </div>
-          <div class="kinetic-caption">
-            <span>OBJECT INDEX</span>
-            <strong>BLACK ARCHIVE</strong>
-            <small>${escapeHtml(uiText("Live archive scan", "实时馆藏扫描"))}</small>
-          </div>
+        </div>
+        <div class="home-live-rail">
+          <article class="home-live-cell"><span>${escapeHtml(uiText("Status", "??"))}</span><strong>Archive Online</strong><small>${escapeHtml(uiText("Full exhibit graph ready", "???????"))}</small></article>
+          <article class="home-live-cell"><span>${escapeHtml(uiText("Price Plates", "????"))}</span><strong>BUFF + YouPin</strong><small>${escapeHtml(uiText("Reference sync active", "??????"))}</small></article>
+          <article class="home-live-cell home-live-latest"><img src="${heroAsset}" alt="AWP | Asiimov" loading="lazy" decoding="async" /><span>${escapeHtml(uiText("Latest Focus", "????"))}</span><strong>AWP | Asiimov</strong><small>${escapeHtml(uiText("Immersive exhibit render", "???????"))}</small></article>
+          <article class="home-live-cell"><span>${escapeHtml(uiText("Curator", "??"))}</span><strong>${escapeHtml(uiText("Loadout Studio", "?????"))}</strong><small>${escapeHtml(uiText("AI routes standing by", "AI ?????"))}</small></article>
         </div>
       </section>
-      <section class="exhibition-entry-grid" aria-label="${escapeHtml(uiText("Exhibition entrances", "展馆入口"))}">
-        ${entries.map(([title, copy, href]) => `
-          <a class="entry-panel" href="${escapeHtml(href)}">
-            <span>${escapeHtml(title)}</span>
-            <strong>${escapeHtml(copy)}</strong>
-          </a>
-        `).join("")}
-      </section>
-      ${featured.length ? `<section class="featured-section">
-        <div class="section-heading">
-          <p class="eyebrow">${escapeHtml(uiText("Objects in view", "当前展品"))}</p>
-          <h2>${escapeHtml(uiText("Selected Exhibits", "精选展品"))}</h2>
+      <section class="home-command-section">
+        <div class="home-command-grid" aria-label="${escapeHtml(uiText("Primary entrances", "????"))}">
+          ${commandCards.map(([tone, title, copy, href]) => `
+            <a class="home-command-card is-${tone}" href="${href}">
+              <i aria-hidden="true"></i>
+              <span>${escapeHtml(title)}</span>
+              <strong>${escapeHtml(copy)}</strong>
+              <em>${escapeHtml(uiText("Enter", "??"))}</em>
+            </a>
+          `).join("")}
         </div>
-        <div class="item-grid">${featured.map(cardMarkup).join("")}</div>
-      </section>` : ""}
+      </section>
+      <section class="home-operations-grid">
+        <article class="home-market-panel">
+          <div class="home-panel-heading"><h2>${escapeHtml(uiText("Market Index", "????"))}</h2><a href="catalog.html">${escapeHtml(uiText("Open Archive", "????"))}</a></div>
+          <div class="home-market-tabs"><span>${escapeHtml(uiText("Reference", "???"))}</span><span>BUFF</span><span>YouPin</span></div>
+          <div class="home-market-table">
+            ${marketRows.map((item, index) => `
+              <a href="${itemHref(item)}">
+                ${item.image ? `<img src="${escapeHtml(item.image)}" alt="${escapeHtml(itemTitle(item))}" loading="lazy" decoding="async" />` : `<div class="home-market-fallback-thumb"></div>`}
+                <strong>${escapeHtml(itemTitle(item))}</strong>
+                <span>${escapeHtml(collectionLabel(item))}</span>
+                <span>${escapeHtml(categoryLabel(item.type))}</span>
+                <span>${escapeHtml(formatPrice(effectiveCatalogPriceRecord(item).price))}</span>
+                <em>${String(index + 1).padStart(2, "0")}</em>
+              </a>
+            `).join("")}
+          </div>
+          <footer><span>${escapeHtml(uiText("Live prices remain linked to the existing price system.", "??????????????"))}</span><span>AWP | Asiimov</span></footer>
+        </article>
+        <article class="home-ai-panel">
+          <div class="home-panel-heading"><h2>${escapeHtml(uiText("Curator Feed", "????"))}</h2><a href="loadout.html">${escapeHtml(uiText("Open Curator", "????"))}</a></div>
+          <div class="home-ai-body">
+            <div class="home-agent-figure"></div>
+            <div class="home-ai-list">
+              <h3>${escapeHtml(uiText("Curator Routes", "????"))}</h3>
+              <p>${escapeHtml(uiText("Budget-aware pairings, inventory upgrades, and pro reference boards stay on the same rail.", "???????????????????????????"))}</p>
+              <span><b>${escapeHtml(uiText("Budget Pairing", "????"))}</b><small>${escapeHtml(uiText("AI-curated loadouts", "AI ????"))}</small></span>
+              <span><b>${escapeHtml(uiText("Same-Color Upgrade", "????"))}</b><small>${escapeHtml(uiText("Inventory-aware suggestions", "???????"))}</small></span>
+              <span><b>${escapeHtml(uiText("Pro References", "????"))}</b><small>${escapeHtml(uiText("Team and player samples", "???????"))}</small></span>
+            </div>
+          </div>
+          <footer><span>${escapeHtml(uiText("Curator line warm", "???????"))}</span><i aria-hidden="true"></i></footer>
+        </article>
+      </section>
+      <section class="home-subscribe-strip">
+        <h2>${escapeHtml(uiText("Keep The Exhibition Rail In Reach", "???????????"))}</h2>
+        <p>${escapeHtml(uiText("Jump back into archive review, inspection, and synchronized inventory work without losing context.", "???????????????????????????"))}</p>
+        <form>
+          <input type="email" value="curator@cs-exhibition.local" aria-label="${escapeHtml(uiText("Subscription email", "????"))}" />
+          <button type="button">${escapeHtml(uiText("Pin Access", "????"))}</button>
+        </form>
+        <a href="account.html">${escapeHtml(uiText("Manage Pass", "????"))}</a>
+      </section>
+      ${featured.length ? `<section class="featured-section"><div class="section-heading"><p class="eyebrow">${escapeHtml(uiText("Objects in View", "????"))}</p><h2>${escapeHtml(uiText("Selected Exhibits", "????"))}</h2></div><div class="item-grid">${featured.map(cardMarkup).join("")}</div></section>` : ""}
     `;
   }
 
@@ -4341,6 +4369,8 @@
   function renderHome() {
     if (pageName() !== "index.html") return;
     const main = document.querySelector("main");
+    document.body.classList.add("home-exhibition-page");
+    document.body.classList.remove("halls-directory-page", "is-inspector-page");
     if (main) main.innerHTML = buildHomeMarkup();
   }
 
@@ -5169,6 +5199,9 @@
   function renderItemDetail() {
     const root = document.getElementById("itemDetailRoot") || document.getElementById("detailRoot");
     if (!root) return;
+    document.body.classList.add("is-inspector-page");
+    document.body.classList.remove("home-exhibition-page", "halls-directory-page");
+    root.classList.add("obsidian-inspector");
     const inspectorState = getInspectorState();
     const detailParams = new URLSearchParams(location.search);
     const id = detailParams.get("id") || inspectorState.itemId || DEFAULT_DETAIL_ALIAS;
@@ -5239,8 +5272,8 @@
     rememberRecentId(resolvedItem.id);
     const related = items.filter((entry) => entry.id !== resolvedItem.id && entry.type === resolvedItem.type).slice(0, 4);
     root.innerHTML = `
-      <section class="detail-main">
-        <section class="viewer-panel">
+      <section class="detail-main obsidian-main">
+        <section class="viewer-panel obsidian-stage-shell">
           <div class="viewer-toolbar">
             <span>${escapeHtml(itemTitle(resolvedItem))}</span>
             <button class="favorite-button" type="button" data-favorite-id="${escapeHtml(resolvedItem.id)}" aria-pressed="${isFavorite(resolvedItem.id)}">${escapeHtml(isFavorite(resolvedItem.id) ? uiText("Saved", "已收藏") : uiText("Save", "收藏"))}</button>
@@ -5256,7 +5289,7 @@
               <div class="inspect-reflection"></div>
             </div>
           </div>
-          <div class="inspect-controls">
+          <div class="inspect-controls obsidian-control-deck">
             ${itemWearOptions.length ? `<label class="wear-choice-field">
               <span>${escapeHtml(uiText("Wear Tier", "磨损档位"))}</span>
               <select id="wearSelect">
@@ -5282,7 +5315,7 @@
             ${canStickerDiy ? `<button class="secondary-action" id="toggleDiyButton" type="button" aria-pressed="false">${escapeHtml(uiText("Sticker DIY", "贴纸 DIY"))}</button>` : ""}
           </div>
         </section>
-        <section class="collection-card detail-info inspect-plate">
+        <section class="collection-card detail-info inspect-plate obsidian-ledger-panel">
           <p class="eyebrow">${escapeHtml(categoryLabel(resolvedItem.type))}</p>
           <h1>${escapeHtml(itemTitle(resolvedItem))}</h1>
           <p>${escapeHtml(itemDescription(resolvedItem))}</p>
@@ -5297,7 +5330,7 @@
             <p class="eyebrow">${escapeHtml(uiText("Market Plates", "\u5e02\u573a\u94ed\u724c"))}</p>
             <span>${escapeHtml(uiText("Reference, BUFF, and YouPin prices remain synced through the existing price system.", "参考价、BUFF 与悠悠有品价格继续通过现有价格系统同步。"))}</span>
           </div>
-          <div class="platform-price-grid" id="detailPlatformPriceGrid">
+          <div class="platform-price-grid obsidian-price-ledger" id="detailPlatformPriceGrid">
             <article class="platform-price-card" data-platform="buff">
               <span class="platform-price-label">${escapeHtml(platformPriceLabel("buff"))}</span>
               <strong class="platform-price-value" id="detailBuffPriceValue">${escapeHtml(formatPrice(buffDisplayPrice))}</strong>
@@ -5328,7 +5361,7 @@
           </div>` : ""}
         </section>
       </section>
-      <section class="detail-related">
+      <section class="detail-related obsidian-related-rail">
         <div class="section-heading">
           <p class="eyebrow">${escapeHtml(uiText("Recommended", "相关推荐"))}</p>
           <h2>${escapeHtml(uiText("Related Items", "相关物品"))}</h2>

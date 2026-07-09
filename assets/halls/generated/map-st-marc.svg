@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 180" role="img" aria-label="St. Marc map collection cover">
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#050606"/>
+      <stop offset=".55" stop-color="#111315"/>
+      <stop offset="1" stop-color="#214d43"/>
+    </linearGradient>
+    <radialGradient id="pulse" cx=".18" cy=".25" r=".85">
+      <stop offset="0" stop-color="#4ea47d" stop-opacity=".42"/>
+      <stop offset="1" stop-color="#4ea47d" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="soft">
+      <feGaussianBlur stdDeviation="7"/>
+    </filter>
+  </defs>
+  <rect width="640" height="180" fill="url(#bg)"/>
+  <rect width="640" height="180" fill="url(#pulse)"/>
+  <path d="M-20 145 C 110 98, 166 170, 294 124 S 500 70, 668 106" fill="none" stroke="#4ea47d" stroke-width="38" stroke-opacity=".08" filter="url(#soft)"/>
+  <g opacity=".95">
+    <polygon points="62,38 136,20 195,55 168,104 83,98" fill="#4ea47d" opacity=".20" stroke="#4ea47d" stroke-opacity=".46"/>
+    <polygon points="398,42 520,28 572,72 510,125 406,110" fill="#e2b35f" opacity=".18" stroke="#e2b35f" stroke-opacity=".42"/>
+    <path d="M436 64 C 316 64, 316 79, 196 79" fill="none" stroke="#4ea47d" stroke-width="5" stroke-linecap="round" opacity=".38"/><path d="M393 41 C 333 41, 333 38, 274 38" fill="none" stroke="#4ea47d" stroke-width="8" stroke-linecap="round" opacity=".38"/><path d="M460 88 C 265 88, 265 109, 71 109" fill="none" stroke="#4ea47d" stroke-width="6" stroke-linecap="round" opacity=".38"/><path d="M358 107 C 255 107, 255 63, 152 63" fill="none" stroke="#4ea47d" stroke-width="6" stroke-linecap="round" opacity=".38"/><path d="M460 123 C 411 123, 411 117, 362 117" fill="none" stroke="#4ea47d" stroke-width="8" stroke-linecap="round" opacity=".38"/>
+    <rect x="455" y="77" width="119" height="32" rx="5" transform="rotate(2.01 514.5 93)" fill="#4ea47d" opacity="0.36926667854189876" stroke="#4ea47d" stroke-opacity=".24"/><rect x="301" y="81" width="74" height="42" rx="5" transform="rotate(-2.92 338 102)" fill="#214d43" opacity="0.3705034765228629" stroke="#4ea47d" stroke-opacity=".24"/><rect x="376" y="77" width="72" height="41" rx="5" transform="rotate(-2.06 412 97.5)" fill="#e2b35f" opacity="0.36048094898462296" stroke="#4ea47d" stroke-opacity=".24"/><rect x="116" y="104" width="118" height="24" rx="5" transform="rotate(1.35 175 116)" fill="#4ea47d" opacity="0.33171261284500364" stroke="#4ea47d" stroke-opacity=".24"/><rect x="231" y="24" width="101" height="32" rx="5" transform="rotate(-2.01 281.5 40)" fill="#214d43" opacity="0.33507729168981315" stroke="#4ea47d" stroke-opacity=".24"/><rect x="217" y="35" width="77" height="29" rx="5" transform="rotate(-0.84 255.5 49.5)" fill="#e2b35f" opacity="0.23384604793041944" stroke="#4ea47d" stroke-opacity=".24"/><rect x="133" y="101" width="95" height="39" rx="5" transform="rotate(0.15 180.5 120.5)" fill="#4ea47d" opacity="0.32291334982961417" stroke="#4ea47d" stroke-opacity=".24"/>
+  </g>
+  <g font-family="Rajdhani, Teko, Arial, sans-serif" text-anchor="start">
+    <text x="35" y="151" fill="#f7efe4" font-size="44" font-weight="800" letter-spacing="4">ST. MARC</text>
+    <text x="38" y="166" fill="#4ea47d" font-size="13" font-weight="700" letter-spacing="3">TACTICAL MAP COLLECTION</text>
+  </g>
+  <circle cx="395" cy="132" r="1" fill="#f4efe4" opacity="0.37010253246873615"/><circle cx="574" cy="93" r="2" fill="#f4efe4" opacity="0.32113077100366355"/><circle cx="233" cy="27" r="1" fill="#f4efe4" opacity="0.2928323230519891"/><circle cx="414" cy="132" r="1" fill="#f4efe4" opacity="0.277649306319654"/><circle cx="200" cy="140" r="2" fill="#f4efe4" opacity="0.3229423377662897"/><circle cx="341" cy="139" r="2" fill="#f4efe4" opacity="0.35235862800851464"/><circle cx="497" cy="149" r="1" fill="#f4efe4" opacity="0.2975815860554576"/><circle cx="139" cy="50" r="2" fill="#f4efe4" opacity="0.35274887807667255"/><circle cx="98" cy="81" r="2" fill="#f4efe4" opacity="0.28858414240181446"/><circle cx="502" cy="100" r="2" fill="#f4efe4" opacity="0.1679160049185157"/><circle cx="220" cy="30" r="1" fill="#f4efe4" opacity="0.24096149457618593"/><circle cx="235" cy="38" r="2" fill="#f4efe4" opacity="0.19602236457169056"/><circle cx="199" cy="40" r="1" fill="#f4efe4" opacity="0.3137172692269087"/><circle cx="108" cy="36" r="1" fill="#f4efe4" opacity="0.22770119316875936"/><circle cx="398" cy="35" r="2" fill="#f4efe4" opacity="0.23960898330435157"/><circle cx="252" cy="139" r="2" fill="#f4efe4" opacity="0.2520504983328283"/><circle cx="585" cy="45" r="1" fill="#f4efe4" opacity="0.3467879005521536"/><circle cx="117" cy="48" r="2" fill="#f4efe4" opacity="0.22379408596083522"/>
+  <rect x="1" y="1" width="638" height="178" fill="none" stroke="#4ea47d" stroke-opacity=".25"/>
+</svg>

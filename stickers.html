@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="zh-CN" data-ui-ready="true" data-nav-ready="true">
+<head>
+  <script src="site-guard.js"></script>
+  <script>
+    (() => {
+      try {
+        const lang = localStorage.getItem("cs2-relic-hall:language") || "zh-CN";
+        document.documentElement.lang = lang === "en" ? "en" : lang;
+        document.documentElement.dataset.uiLang = document.documentElement.lang;
+      } catch {
+        document.documentElement.lang = "zh-CN";
+        document.documentElement.dataset.uiLang = "zh-CN";
+      }
+    })();
+  </script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sticker Picker | CS Exhibition</title>
+  <link rel="stylesheet" href="styles.css?v=20260708immersive27" />
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="index.html">CS Exhibition</a>
+    <nav class="top-nav" id="primaryNav" aria-label="Primary Navigation">
+      <a href="catalog.html">Catalog</a>
+      <a href="collections.html">Collections</a>
+      <a href="item.html?id=ak-inheritance">Inspector</a>
+      <a href="favorites.html">Favorites</a>
+      <a href="recent.html">Recent</a>
+      <a href="openings.html">Unbox</a>
+      <a href="account.html">Account</a>
+      <a href="inventory.html">Inventory</a>
+      <a href="loadout.html">Loadout</a>
+    </nav>
+    <select class="secondary-action lang-switch" aria-label="Language">
+      <option value="zh-CN">简体中文</option>
+      <option value="en">English</option>
+    </select>
+    <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="primaryNav">MENU +</button>
+  </header>
+  <button class="nav-scrim" type="button" aria-label="Close menu" hidden></button>
+
+  <main class="stickers-page" id="stickersPageRoot"></main>
+
+  <script src="stickers-data.js?v=20260708immersive27"></script>
+  <script>
+    (() => {
+      const PAGE_SIZE = 120;
+      const SEARCH_PAGE_SIZE = 180;
+      const state = {
+        query: "",
+        limit: PAGE_SIZE,
+        stickers: []
+      };
+
+      function currentLanguage() {
+        return document.documentElement.lang === "en" ? "en" : "zh-CN";
+      }
+
+      function uiText(en, zh) {
+        return currentLanguage() === "zh-CN" ? zh : en;
+      }
+
+      function escapeHtml(value) {
+        return String(value ?? "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#39;");
+      }
+
+      function stickerReturnHref() {
+        return String(new URLSearchParams(location.search).get("stickerReturn") || "").trim();
+      }
+
+      function stickerSelectionHref(stickerId) {
+        const target = stickerReturnHref();
+        if (!target) return "item.html";
+        const url = new URL(target, "https://cs-exhibition.local/");
+        url.searchParams.set("stickerPick", stickerId);
+        return url.pathname.replace(/^\//, "") + url.search + url.hash;
+      }
+
+      function displayName(item) {
+        return currentLanguage() === "zh-CN"
+          ? String(item.nameZh || item.name || item.nameEn || "").trim()
+          : String(item.nameEn || item.name || item.nameZh || "").trim();
+      }
+
+      function displayCollection(item) {
+        return currentLanguage() === "zh-CN"
+          ? String(item.collectionZh || item.collection || item.collectionEn || "").trim()
+          : String(item.collectionEn || item.collection || item.collectionZh || "").trim();
+      }
+
+      function normalizedStickerDataset() {
+        const source = Array.isArray(globalThis.CS2_STICKERS) ? globalThis.CS2_STICKERS : [];
+        return source.map((item) => ({
+          ...item,
+          searchText: [
+            item.id,
+            item.name,
+            item.nameEn,
+            item.nameZh,
+            item.collection,
+            item.collectionEn,
+            item.collectionZh
+          ].map((value) => String(value || "").toLowerCase()).join(" ")
+        }));
+      }
+
+      function renderShell() {
+        const root = document.getElementById("stickersPageRoot");
+        if (!root) return;
+        root.innerHTML = `
+          <section class="page-intro archive-intro sticker-picker-intro">
+            <p class="eyebrow">${escapeHtml(uiText("Sticker Desk", "贴纸台"))}</p>
+            <h1>${escapeHtml(uiText("Pick stickers fast, then jump straight back into inspection.", "快速挑贴纸，然后直接回到检视页。"))}</h1>
+            <p>${escapeHtml(uiText("This page is now sticker-only and loads a much lighter dataset to keep search and scrolling responsive.", "这个页面现在只加载贴纸专用轻量数据，搜索和滚动都会顺很多。"))}</p>
+          </section>
+          <section class="catalog-shell sticker-picker-shell">
+            <aside class="filter-panel sticker-picker-panel">
+              <div class="filter-group">
+                <label for="stickerPickerSearchInput">${escapeHtml(uiText("Sticker Search", "贴纸搜索"))}</label>
+                <input id="stickerPickerSearchInput" type="search" placeholder="${escapeHtml(uiText("Search sticker names or collections", "搜索贴纸名或所属系列"))}" />
+              </div>
+              <div class="active-sticker-status">${escapeHtml(uiText("Choose a sticker and the page will return to the current inspector layout.", "选择贴纸后会直接回到当前检视页。"))}</div>
+              ${stickerReturnHref() ? `<a class="secondary-link" href="${escapeHtml(stickerReturnHref())}">${escapeHtml(uiText("Back to Inspector", "返回检视页"))}</a>` : ""}
+            </aside>
+            <section class="catalog-results sticker-picker-results">
+              <div class="archive-results-head sticker-picker-head">
+                <div class="archive-results-copy">
+                  <p class="eyebrow">${escapeHtml(uiText("Sticker Archive", "贴纸档案"))}</p>
+                  <h2>${escapeHtml(uiText("Only sticker items are listed here.", "这里只展示贴纸物品。"))}</h2>
+                </div>
+                <div class="archive-results-rail">
+                  <div class="archive-results-pill">
+                    <span>${escapeHtml(uiText("Results", "结果"))}</span>
+                    <strong id="stickerPickerSummary">0</strong>
+                  </div>
+                </div>
+              </div>
+              <div class="item-grid sticker-picker-grid" id="stickerPickerGrid"></div>
+              <button class="load-more-button" id="stickerPickerLoadMore" type="button" hidden>${escapeHtml(uiText("Load More Stickers", "加载更多贴纸"))}</button>
+            </section>
+          </section>
+        `;
+      }
+
+      function filteredStickers() {
+        const query = state.query.trim().toLowerCase();
+        if (!query) return state.stickers;
+        return state.stickers.filter((item) => item.searchText.includes(query));
+      }
+
+      function stickerCardMarkup(item) {
+        const title = displayName(item);
+        const collection = displayCollection(item);
+        return `
+          <article class="item-card sticker-picker-card">
+            <a class="item-card-link" href="${escapeHtml(stickerSelectionHref(item.id))}">
+              <div class="mini-stage">
+                <img class="skin-image" src="${escapeHtml(item.image)}" alt="${escapeHtml(title)}" loading="lazy" decoding="async" />
+              </div>
+              <div class="card-meta">
+                <strong>${escapeHtml(title)}</strong>
+                <small>${escapeHtml(collection || uiText("Sticker", "贴纸"))}</small>
+              </div>
+              <div class="item-card-actions sticker-picker-actions">
+                <span class="secondary-action compact-action">${escapeHtml(uiText("Select Sticker", "选中贴纸"))}</span>
+              </div>
+            </a>
+          </article>
+        `;
+      }
+
+      function renderResults() {
+        const matches = filteredStickers();
+        const visible = matches.slice(0, state.limit);
+        const grid = document.getElementById("stickerPickerGrid");
+        const summary = document.getElementById("stickerPickerSummary");
+        const loadMore = document.getElementById("stickerPickerLoadMore");
+        if (!grid || !summary || !loadMore) return;
+        summary.textContent = String(matches.length);
+        grid.innerHTML = visible.length
+          ? visible.map(stickerCardMarkup).join("")
+          : `<div class="archive-empty-state">${escapeHtml(uiText("No stickers match this search yet.", "当前搜索下没有匹配的贴纸。"))}</div>`;
+        loadMore.hidden = visible.length >= matches.length;
+      }
+
+      function applyLanguage() {
+        const lang = currentLanguage();
+        const select = document.querySelector(".lang-switch");
+        if (select instanceof HTMLSelectElement) select.value = lang;
+        const navLabels = lang === "zh-CN"
+          ? ["目录", "收藏品", "检视器", "收藏夹", "最近浏览", "开箱", "账号", "库存", "饰品搭配"]
+          : ["Catalog", "Collections", "Inspector", "Favorites", "Recent", "Unbox", "Account", "Inventory", "Loadout"];
+        document.querySelectorAll(".top-nav a").forEach((link, index) => {
+          if (navLabels[index]) link.textContent = navLabels[index];
+        });
+        const menuToggle = document.querySelector(".menu-toggle");
+        if (menuToggle) menuToggle.textContent = "MENU +";
+        renderShell();
+        renderResults();
+      }
+
+      function bindEvents() {
+        document.addEventListener("input", (event) => {
+          const target = event.target;
+          if (!(target instanceof HTMLInputElement)) return;
+          if (target.id === "stickerPickerSearchInput") {
+            state.query = target.value || "";
+            state.limit = state.query.trim() ? SEARCH_PAGE_SIZE : PAGE_SIZE;
+            renderResults();
+          }
+        });
+        document.addEventListener("click", (event) => {
+          const target = event.target instanceof HTMLElement ? event.target : null;
+          if (!target) return;
+          if (target.id === "stickerPickerLoadMore") {
+            state.limit += state.query.trim() ? SEARCH_PAGE_SIZE : PAGE_SIZE;
+            renderResults();
+            return;
+          }
+          if (target.closest(".menu-toggle")) {
+            const body = document.body;
+            const nav = document.getElementById("primaryNav");
+            const scrim = document.querySelector(".nav-scrim");
+            const isOpen = body.classList.toggle("nav-open");
+            if (target instanceof HTMLButtonElement) target.setAttribute("aria-expanded", String(isOpen));
+            if (nav) nav.setAttribute("aria-hidden", String(!isOpen));
+            if (scrim instanceof HTMLElement) scrim.hidden = !isOpen;
+            return;
+          }
+          if (target.closest(".nav-scrim")) {
+            document.body.classList.remove("nav-open");
+            const menuToggle = document.querySelector(".menu-toggle");
+            if (menuToggle instanceof HTMLButtonElement) menuToggle.setAttribute("aria-expanded", "false");
+            const scrim = document.querySelector(".nav-scrim");
+            if (scrim instanceof HTMLElement) scrim.hidden = true;
+          }
+        });
+        document.addEventListener("change", (event) => {
+          const target = event.target;
+          if (!(target instanceof HTMLSelectElement)) return;
+          if (target.classList.contains("lang-switch")) {
+            const nextLang = target.value === "en" ? "en" : "zh-CN";
+            document.documentElement.lang = nextLang;
+            document.documentElement.dataset.uiLang = nextLang;
+            try {
+              localStorage.setItem("cs2-relic-hall:language", nextLang);
+            } catch {}
+            applyLanguage();
+          }
+        });
+      }
+
+      function boot() {
+        state.stickers = normalizedStickerDataset();
+        renderShell();
+        bindEvents();
+        applyLanguage();
+      }
+
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", boot, { once: true });
+      } else {
+        boot();
+      }
+    })();
+  </script>
+</body>
+</html>
