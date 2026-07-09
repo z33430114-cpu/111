@@ -748,7 +748,9 @@
   ];
   const OPENING_SFX = {
     spin: localPageUrl("assets/opening-spin.wav"),
-    land: localPageUrl("assets/opening-land.wav")
+    land: localPageUrl("assets/opening-land.wav"),
+    unlock: localPageUrl("assets/cs2-case-unlock.wav"),
+    scroll: localPageUrl("assets/cs2-case-scroll.wav")
   };
   const LAZY_IMAGE_PLACEHOLDER = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4 3'%3E%3Crect width='4' height='3' fill='%23131a27'/%3E%3C/svg%3E";
 
@@ -3277,7 +3279,10 @@
     return sequence;
   }
 
-  function openingInspectLinkMarkup(href, compact = false) {
+  function openingInspectLinkMarkup(entryOrHref, compact = false) {
+    const href = typeof entryOrHref === "string"
+      ? entryOrHref
+      : String(entryOrHref?.href || entryOrHref?.inspectHref || "");
     if (!href) return "";
     return `<div class="unbox-loot-actions"><a class="secondary-link unbox-loot-inspect${compact ? " is-compact" : ""}" data-opening-inspect-link href="${escapeHtml(href)}">${escapeHtml(uiText("Inspect Item", "检视物品"))}</a></div>`;
   }
@@ -3318,7 +3323,7 @@
     const sections = [
       {
         key: "regular",
-        title: uiText("Standard Drops", "普通掉落"),
+        title: uiText("Standard Drops", "常规掉落"),
         description: uiText("These are the listed core drops in this container.", "这些是该容器列出的主要掉落。"),
         entries: regular
       },
@@ -3676,7 +3681,7 @@
           <h2>${escapeHtml(openingTitle(item))}</h2>
           <p>${escapeHtml(openingDescription(item) || uiText("Spin through the real loot pool and simulate what this container could reveal.", "滚动真实掉落池，模拟这个容器可能开出的物品。"))}</p>
           <p class="unbox-odds-note">${escapeHtml(uiText("Case rarity odds follow Valve's published case model, and wear is generated as a specific float within each skin's real float range.", "武器箱稀有度概率遵循 Valve 公布的模型，磨损度会在每个皮肤真实的浮点范围内生成具体数值。"))}</p>
-          <div class="collection-tags">
+          <div class="collection-tags" id="openingMetaTags">
             <span>${escapeHtml(openingKindLabel(item.kind))}</span>
             ${openingPriceTagMarkup(item, containerPrice)}
             ${buffPrice ? `<span>${escapeHtml(`BUFF 路 ${formatPrice(buffPrice)}`)}</span>` : ""}
@@ -3690,7 +3695,7 @@
               <span>${escapeHtml(uiText("Multi-open", "连开"))}</span>
               <input id="openingBatchCount" type="number" min="1" max="50" step="1" value="${escapeHtml(String(batchCount))}" />
             </label>
-            <button class="secondary-action unbox-batch-trigger" id="runOpeningBatchButton" type="button"${lootEntries.length ? "" : " disabled"}>${escapeHtml(uiText("Run Multi-open", "连开"))}</button>
+            <button class="secondary-action unbox-batch-trigger" id="runOpeningBatchButton" type="button"${lootEntries.length ? "" : " disabled"}>${escapeHtml(uiText("Run Multi-open", "执行连开"))}</button>
           </div>
         </div>
         <div class="unbox-machine${appState.openingSpinning ? " is-spinning" : ""}" id="unboxMachine">
@@ -3723,11 +3728,43 @@
             <h3>${escapeHtml(uiText("Full Loot Pool", "完整掉落池"))}</h3>
             <span>${escapeHtml(uiText("Browse the exact listed contents of this container below.", "在下方查看该容器列出的完整掉落内容。"))}</span>
           </div>
-          ${aiOpeningAnalysisMarkup(item.id)}
+          <div id="openingAiPanel">${aiOpeningAnalysisMarkup(item.id)}</div>
           ${openingLootPoolMarkup(item, { compact: true, detailLink: `item.html?id=${encodeURIComponent(item.id)}` })}
         </div>
       </section>
     `;
+  }
+
+  function refreshOpeningAsyncPanels(opening) {
+    if (!opening || pageName() !== "openings.html") return false;
+    const metaTags = document.getElementById("openingMetaTags");
+    const analyticsPanel = document.getElementById("openingAnalyticsPanel");
+    const aiPanel = document.getElementById("openingAiPanel");
+    const historyPanel = document.getElementById("openingHistoryPanel");
+    if (!metaTags || !analyticsPanel || !aiPanel || !historyPanel) return false;
+    const cachedPlatformPrices = appState.livePrices[livePriceKey(opening.id, "", "standard")] || null;
+    const containerPrice = Number.isFinite(Number(cachedPlatformPrices?.referencePrice)) && Number(cachedPlatformPrices.referencePrice) > 0
+      ? Number(cachedPlatformPrices.referencePrice)
+      : openingContainerPrice(opening);
+    const buffPrice = Number.isFinite(Number(cachedPlatformPrices?.platforms?.buff?.price)) && Number(cachedPlatformPrices.platforms.buff.price) > 0
+      ? Number(cachedPlatformPrices.platforms.buff.price)
+      : null;
+    const youpinPrice = Number.isFinite(Number(cachedPlatformPrices?.platforms?.youpin?.price)) && Number(cachedPlatformPrices.platforms.youpin.price) > 0
+      ? Number(cachedPlatformPrices.platforms.youpin.price)
+      : null;
+    const lootSummary = openingDropsSummary(opening.containsCount || 0, opening.containsRareCount || 0, "standard");
+    metaTags.innerHTML = `
+            <span>${escapeHtml(openingKindLabel(opening.kind))}</span>
+            ${openingPriceTagMarkup(opening, containerPrice)}
+            ${buffPrice ? `<span>${escapeHtml(`BUFF 路 ${formatPrice(buffPrice)}`)}</span>` : ""}
+            ${youpinPrice ? `<span>${escapeHtml(`${uiText("YouPin", "悠悠有品")} 路 ${formatPrice(youpinPrice)}`)}</span>` : ""}
+            <span>${escapeHtml(lootSummary)}</span>
+            ${opening.firstSaleDate ? `<span>${escapeHtml(firstSaleLabel(opening.firstSaleDate))}</span>` : ""}
+    `;
+    analyticsPanel.innerHTML = openingFinanceAnalyticsMarkup(opening);
+    aiPanel.innerHTML = aiOpeningAnalysisMarkup(opening.id);
+    historyPanel.innerHTML = appState.openingHistory.length ? openingHistoryMarkup(appState.openingHistory) : "";
+    return true;
   }
 
   function setActiveOpening(id) {
@@ -3817,6 +3854,8 @@
   }
 
   function playOpeningSfx(winner = {}, { simplified = false } = {}) {
+    playOpeningSample(OPENING_SFX.unlock, 0, 0.62);
+    playOpeningLoopedSample(OPENING_SFX.scroll, { startDelayMs: 120, durationMs: 5400, intervalMs: 520, volume: 0.48 });
     playOpeningSample(OPENING_SFX.spin, 0, 0.5);
     playOpeningSample(OPENING_SFX.land, 5400, winner?.isRareSpecial ? 0.86 : 0.68);
     if (simplified) return;
@@ -3897,6 +3936,16 @@
         audio.play().catch(() => {});
       } catch {}
     }, Math.max(0, Number(delayMs) || 0));
+  }
+
+  function playOpeningLoopedSample(src, { startDelayMs = 0, durationMs = 0, intervalMs = 500, volume = 0.5 } = {}) {
+    if (!src) return;
+    const safeDuration = Math.max(0, Number(durationMs) || 0);
+    const safeInterval = Math.max(60, Number(intervalMs) || 500);
+    const iterations = safeDuration > 0 ? Math.max(1, Math.ceil(safeDuration / safeInterval)) : 1;
+    for (let index = 0; index < iterations; index += 1) {
+      playOpeningSample(src, (Math.max(0, Number(startDelayMs) || 0)) + (index * safeInterval), volume);
+    }
   }
 
   function unlockOpeningAudio() {
@@ -4979,6 +5028,9 @@
         <p class="eyebrow" data-motion-part="eyebrow">${escapeHtml(uiText("Drop Theatre", "掉落剧场"))}</p>
         <h1 data-motion-part="title">${escapeHtml(uiText("Drop Theatre", "掉落剧场"))}</h1>
         <p data-motion-part="copy">${escapeHtml(uiText("Select a case or capsule, open single or batch drops, inspect the pool, and track ROI from the existing simulator.", "\u9009\u62e9\u7bb1\u5b50\u6216\u80f6\u56ca\uff0c\u8fdb\u884c\u5355\u5f00\u6216\u8fde\u5f00\uff0c\u68c0\u89c6\u6389\u843d\u6c60\uff0c\u5e76\u7528\u73b0\u6709\u6a21\u62df\u5668\u8ffd\u8e2a\u6295\u5165\u4ea7\u51fa\u3002"))}</p>
+        <div class="page-intro-actions" data-motion-part="actions">
+          <button class="secondary-action compact-action" id="openCasePickerButton" type="button">${escapeHtml(uiText("Choose Container", "选择容器"))}</button>
+        </div>
       </section>
       ${activeOpening ? openingSimulatorMarkup(activeOpening) : ""}
       <div class="collection-index" id="openingIndexRoot">
@@ -5002,7 +5054,7 @@
           appState.openingDeferredRender = true;
           return;
         }
-        renderOpenings();
+        if (!refreshOpeningAsyncPanels(activeOpening)) renderOpenings();
       }).catch(() => {});
     }
     if (activeOpening?.id && !appState.aiOpeningAnalyses[activeOpening.id] && !appState.aiOpeningAnalysisRequests[activeOpening.id]) {
@@ -5012,7 +5064,7 @@
           appState.openingDeferredRender = true;
           return;
         }
-        renderOpenings();
+        if (!refreshOpeningAsyncPanels(activeOpening)) renderOpenings();
       }).catch(() => {});
     }
   }
