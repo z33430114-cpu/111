@@ -1,4 +1,5 @@
 ﻿  const STATE_KEY = "cs2-relic-hall:state";
+  const PAGE_MEMORY_KEY = "cs2-relic-hall:page-memory";
   const DIY_KEY = "cs2-relic-hall:diy-designs";
   const OPENING_STATE_KEY = "cs2-relic-hall:openings";
   const INSPECTOR_STATE_KEY = "cs2-relic-hall:inspector";
@@ -10,39 +11,39 @@
   const PRO_LOADOUT_CACHE_MAX_AGE_MS = 30 * 60 * 1000;
   const AI_LOADOUT_SCHEMA_VERSION = 20260708;
   const LOADOUT_ZH = {
-    curator: "????",
-    introReady: "?????????????????????????????",
-    introLoading: "??????????????????????????",
-    preparing: "????????...",
-    proLoading: "??????????...",
-    inventoryLoading: "??????????...",
-    inventoryEmpty: "?????????????????????????",
-    inventoryTitle: "????",
-    inventoryHeading: "???????????",
-    inventoryCopy: "????????????????????????????????????",
-    priceData: "????",
-    priceLoading: "???????",
-    anotherSet: "???",
-    refresh: "????",
-    refreshing: "???...",
-    combo: "?????????",
-    premium: "????",
-    noSnapshot: "????????????????",
-    chatTitle: "AI ????",
-    chatHeading: "???????????",
-    chatCopy: "???????????????????????????????",
-    askWhat: "??????????",
-    askAi: "? AI ??",
-    clearChat: "????",
-    thinking: "???...",
-    aiRecommendation: "AI ????",
-    updating: "????????...",
-    chatEmpty: "?????????????????????????",
-    proTitle: "??????",
-    byTeam: "???",
-    source: "??",
-    loadMoreTeams: "??????",
-    proUnavailable: "????????????"
+    curator: "策展室",
+    introReady: "AI 搭配工作室已就绪，可基于库存、预算和职业参考生成方案。",
+    introLoading: "AI 搭配工作室正在载入库存与市场上下文。",
+    preparing: "正在准备...",
+    proLoading: "正在读取职业搭配...",
+    inventoryLoading: "正在读取库存饰品...",
+    inventoryEmpty: "同步库存后即可生成更贴合的搭配建议。",
+    inventoryTitle: "库存",
+    inventoryHeading: "库存驱动的搭配建议",
+    inventoryCopy: "根据已有库存、价格参考和颜色倾向生成升级路线。",
+    priceData: "价格数据",
+    priceLoading: "价格读取中",
+    anotherSet: "换一组",
+    refresh: "刷新",
+    refreshing: "刷新中...",
+    combo: "搭配组合",
+    premium: "溢价",
+    noSnapshot: "暂无可用的价格快照",
+    chatTitle: "AI 对话",
+    chatHeading: "描述你理想的搭配",
+    chatCopy: "告诉策展助手你的预算、颜色和武器偏好，它会给出可执行方案。",
+    askWhat: "想让 AI 搭配什么？",
+    askAi: "询问 AI",
+    clearChat: "清空对话",
+    thinking: "思考中...",
+    aiRecommendation: "AI 建议",
+    updating: "正在更新建议...",
+    chatEmpty: "输入需求后，这里会显示 AI 搭配建议。",
+    proTitle: "职业参考",
+    byTeam: "按战队",
+    source: "来源",
+    loadMoreTeams: "加载更多战队",
+    proUnavailable: "职业搭配数据暂时不可用"
   };
   const CATEGORY_ORDER = ["rifle", "pistol", "smg", "shotgun", "machinegun", "knife", "glove", "sticker", "agent", "music-box"];
   const OPENING_KIND_ORDER = ["weapon-case", "souvenir-package", "capsule", "music-kit-box", "package", "container"];
@@ -119,6 +120,7 @@
     "battle-scarred": 0.16
   };
   const OPENING_KEY_PRICE_CNY = 18;
+  const OPENING_REEL_DURATION_MS = 6800;
   const UI_META_SEPARATOR = " · ";
   const WEAPON_CASE_RARITY_PROBABILITIES = {
     "mil-spec": 0.7992327,
@@ -191,18 +193,18 @@
     }
   };
   const RARITY_FALLBACK = {
-    "Consumer Grade": { en: "Consumer Grade", zh: "娑堣垂绾?" },
+    "Consumer Grade": { en: "Consumer Grade", zh: "消费级" },
     "Mil-Spec Grade": { en: "Mil-Spec Grade", zh: "军规级" },
     "Mil-Spec Grade": { en: "Mil-Spec Grade", zh: "\u519b\u89c4\u7ea7" },
     Restricted: { en: "Restricted", zh: "受限" },
     Classified: { en: "Classified", zh: "保密" },
     Covert: { en: "Covert", zh: "隐秘" },
-    Remarkable: { en: "Remarkable", zh: "鍗撹秺" },
+    Remarkable: { en: "Remarkable", zh: "卓越" },
     Extraordinary: { en: "Extraordinary", zh: "非凡" },
-    Exotic: { en: "Exotic", zh: "濂囧紓" },
+    Exotic: { en: "Exotic", zh: "奇异" },
     Contraband: { en: "Contraband", zh: "违禁" },
-    "High Grade": { en: "High Grade", zh: "楂樼骇" },
-    Standard: { en: "Standard", zh: "鏍囧噯" }
+    "High Grade": { en: "High Grade", zh: "高级" },
+    Standard: { en: "Standard", zh: "标准" }
   };
   const appState = {
     catalogRenderedCount: PAGE_SIZE,
@@ -270,6 +272,7 @@
     aiLoadoutCategory: "all",
     loadoutHydrationStarted: false,
     loadoutFrameReady: false,
+    loadoutInventoryOverviewCache: { source: null, value: null },
     aiProTeamsRenderedCount: PRO_LOADOUT_TEAM_PAGE_SIZE,
     activeProPlayerKey: "",
     inventoryMarketPricesRequested: false,
@@ -286,6 +289,7 @@
   const openingLootCache = new Map();
   let catalogDataPromise = null;
   let catalogAssetsPromise = null;
+  let loadoutProHydrationObserver = null;
   const relatedDataPromises = new Map();
   let openingDataPromise = null;
   let accountOverviewUnavailableUntil = 0;
@@ -721,6 +725,7 @@
   const AUTH_SESSION_TOKEN_KEY = "cs2-relic-hall:session-token";
   const AUTH_SESSION_COOKIE_KEY = "cs2_relic_hall_session_token";
   const AUTH_OVERVIEW_SNAPSHOT_KEY = "cs2-relic-hall:auth-overview";
+  const DEFAULT_ACCOUNT_AVATAR_URL = localPageUrl("assets/account-profile-preview-portrait.png");
   const LIVE_PRICE_CACHE_KEY = "cs2-relic-hall:live-prices";
   const PRICE_OVERRIDE_CACHE_KEY = "cs2-relic-hall:price-overrides";
   const LOADOUT_CACHE_MAX_TEAMS = 18;
@@ -747,10 +752,15 @@
     }
   ];
   const OPENING_SFX = {
-    spin: localPageUrl("assets/opening-spin.wav"),
-    land: localPageUrl("assets/opening-land.wav"),
     unlock: localPageUrl("assets/cs2-case-unlock.wav"),
-    scroll: localPageUrl("assets/cs2-case-scroll.wav")
+    scroll: localPageUrl("assets/cs2-case-scroll.wav"),
+    awardCommon: localPageUrl("assets/cs2-case-award-common.wav"),
+    awardUncommon: localPageUrl("assets/cs2-case-award-uncommon.wav"),
+    awardRare: localPageUrl("assets/cs2-case-award-rare.wav"),
+    awardMythical: localPageUrl("assets/cs2-case-award-mythical.wav"),
+    awardLegendary: localPageUrl("assets/cs2-case-award-legendary.wav"),
+    awardAncient: localPageUrl("assets/cs2-case-award-ancient.wav"),
+    awardShowcaseKnife: localPageUrl("assets/cs2-case-showcase-knife.wav")
   };
   const LAZY_IMAGE_PLACEHOLDER = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4 3'%3E%3Crect width='4' height='3' fill='%23131a27'/%3E%3C/svg%3E";
 
@@ -1106,6 +1116,14 @@
     }
   }
 
+  function resolveAccountAvatarUrl(user, profile, steamId) {
+    const uploadedAvatar = String(user?.avatarUrl || "").trim();
+    if (uploadedAvatar) return uploadedAvatar;
+    const steamAvatar = steamAvatarUrl(profile, steamId);
+    if (steamAvatar) return steamAvatar;
+    return DEFAULT_ACCOUNT_AVATAR_URL;
+  }
+
   function applyAccountOverview(overview, options = {}) {
     const keepFeedback = Boolean(options.keepFeedback);
     const user = overview?.authenticated ? (overview.user || null) : null;
@@ -1136,6 +1154,7 @@
     if (!keepFeedback) appState.accountError = "";
     resetInventorySortCache();
     resetInventoryRenderCount();
+    renderNavAccountIdentity();
   }
 
   function applyAuthenticatedUser(user, options = {}) {
@@ -1155,6 +1174,7 @@
       youpinStatus: appState.youpinStatus
     });
     if (!keepFeedback) appState.accountError = "";
+    renderNavAccountIdentity();
   }
 
   function applyLoggedOutState(options = {}) {
@@ -1172,6 +1192,7 @@
       appState.accountError = "";
       appState.accountMessage = "";
     }
+    renderNavAccountIdentity();
   }
 
   async function refreshAccountSurfaces(options = {}) {
@@ -1200,6 +1221,17 @@
 
   function setAccountBusyAction(action = "") {
     appState.accountBusyAction = action;
+  }
+
+  function currentAccountIdentity() {
+    const user = appState.session;
+    const profile = pickSteamProfileForUser(user, appState.steamProfile, user?.steamProfile);
+    const name = profile?.personaName || user?.username || uiText("Guest", "访客");
+    return {
+      user,
+      name,
+      avatar: resolveAccountAvatarUrl(user, profile, user?.steamId)
+    };
   }
 
   function pageName() {
@@ -1239,8 +1271,26 @@
   }
 
   function looksLikeMojibake(value) {
+    const text = String(value || "");
+    if (/\?{3,}/.test(text)) return true;
     const mojibakeCodePoints = new Set([0x20ac, 0xfffd, 0xe749, 0xe100, 0xe1c0, 0xe21a, 0xe21b, 0xe21c, 0xfe40]);
-    return Array.from(String(value || "")).some((char) => mojibakeCodePoints.has(char.codePointAt(0)));
+    return Array.from(text).some((char) => mojibakeCodePoints.has(char.codePointAt(0)));
+  }
+
+  function cleanVisibleText(...candidates) {
+    for (const candidate of candidates) {
+      const text = String(candidate || "").trim();
+      if (!text) continue;
+      if (currentLanguage() === "zh-CN" && looksLikeMojibake(text)) continue;
+      return text;
+    }
+    return "";
+  }
+
+  function cleanVisibleList(values = []) {
+    return (Array.isArray(values) ? values : [])
+      .map((value) => cleanVisibleText(value))
+      .filter(Boolean);
   }
 
   function uiTemplate(en, values) {
@@ -1457,8 +1507,8 @@
     if (/Mil-Spec|\u519b\u89c4/i.test(text)) return 70;
     if (/Mil-Spec|\u519b\u89c4/i.test(text)) return 70;
     if (/Industrial|宸ヤ笟/i.test(text)) return 60;
-    if (/Consumer|娑堣垂/i.test(text)) return 50;
-    if (/Remarkable|鍗撹秺/i.test(text)) return 40;
+    if (/Consumer|消费/i.test(text)) return 50;
+    if (/Remarkable|卓越/i.test(text)) return 40;
     if (/Base Grade|\u666e\u901a\u7ea7|Standard/i.test(text)) return 20;
     if (/Base Grade|\u666e\u901a\u7ea7|Standard/i.test(text)) return 20;
     return 0;
@@ -1665,6 +1715,98 @@
 
   function writeLocalJson(key, value) {
     localStorage.setItem(key, JSON.stringify(value));
+  }
+
+  function getPageMemoryStore() {
+    const parsed = readLocalJson(PAGE_MEMORY_KEY, {});
+    return parsed && typeof parsed === "object" ? parsed : {};
+  }
+
+  function readPageMemory(page = pageName()) {
+    const entry = getPageMemoryStore()[page];
+    return entry && typeof entry === "object" ? entry : null;
+  }
+
+  function writePageMemory(page, memory) {
+    if (!page) return;
+    const store = getPageMemoryStore();
+    if (!memory || typeof memory !== "object") delete store[page];
+    else store[page] = memory;
+    writeLocalJson(PAGE_MEMORY_KEY, store);
+  }
+
+  function relativePageHref() {
+    const fileName = location.pathname.split("/").pop() || "index.html";
+    return `${fileName}${location.search || ""}${location.hash || ""}`;
+  }
+
+  function captureCurrentPageMemory() {
+    const page = pageName();
+    const memory = {
+      href: relativePageHref(),
+      scrollX: Number(window.scrollX || window.pageXOffset || 0),
+      scrollY: Number(window.scrollY || window.pageYOffset || 0),
+      capturedAt: Date.now()
+    };
+    if (page === "catalog.html") {
+      const filters = getCatalogFilters();
+      memory.catalogRenderedCount = Math.max(PAGE_SIZE, Number(appState.catalogRenderedCount) || PAGE_SIZE);
+      memory.collectionPickerSuper = String(appState.collectionPickerSuper || "");
+      memory.collectionPickerQuery = String(appState.collectionPickerQuery || "");
+      memory.collectionPickerVisibleLimit = Math.max(60, Number(appState.collectionPickerVisibleLimit) || 60);
+      memory.sort = String(filters.sort || "featured");
+      memory.maxPrice = Number.isFinite(Number(filters.maxPrice)) ? Number(filters.maxPrice) : 5000;
+    }
+    if (page === "inventory.html") {
+      memory.inventoryRenderedCount = Math.max(INVENTORY_PAGE_SIZE, Number(appState.inventoryRenderedCount) || INVENTORY_PAGE_SIZE);
+    }
+    writePageMemory(page, memory);
+  }
+
+  function restoreCatalogPageMemory() {
+    if (pageName() !== "catalog.html") return false;
+    const memory = readPageMemory("catalog.html");
+    if (!memory) return false;
+    appState.catalogRenderedCount = Math.max(PAGE_SIZE, Number(memory.catalogRenderedCount) || PAGE_SIZE);
+    appState.collectionPickerSuper = String(memory.collectionPickerSuper || "");
+    appState.collectionPickerQuery = String(memory.collectionPickerQuery || "");
+    appState.collectionPickerVisibleLimit = Math.max(60, Number(memory.collectionPickerVisibleLimit) || 60);
+    appState.lastCatalogSort = String(memory.sort || "featured");
+    appState.lastCatalogMaxPrice = Number.isFinite(Number(memory.maxPrice)) ? Number(memory.maxPrice) : 5000;
+    const savedHref = String(memory.href || "").trim();
+    if (!String(location.search || "").trim() && /^catalog\.html(?:[?#]|$)/i.test(savedHref)) {
+      history.replaceState({}, "", savedHref);
+    }
+    return true;
+  }
+
+  function restoreInventoryPageMemory() {
+    if (pageName() !== "inventory.html") return false;
+    const memory = readPageMemory("inventory.html");
+    if (!memory) return false;
+    appState.inventoryRenderedCount = Math.max(INVENTORY_PAGE_SIZE, Number(memory.inventoryRenderedCount) || INVENTORY_PAGE_SIZE);
+    return true;
+  }
+
+  function restoreCurrentPageMemory() {
+    if (pageName() === "catalog.html") restoreCatalogPageMemory();
+    if (pageName() === "inventory.html") restoreInventoryPageMemory();
+  }
+
+  function restoreCurrentPageScroll() {
+    const memory = readPageMemory(pageName());
+    if (!memory) return;
+    const x = Number(memory.scrollX || 0);
+    const y = Number(memory.scrollY || 0);
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return;
+    const token = `${pageName()}|${String(memory.href || "")}|${x}|${y}|${Number(memory.capturedAt) || 0}`;
+    if (appState.lastPageMemoryRestoreToken === token) return;
+    appState.lastPageMemoryRestoreToken = token;
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        window.scrollTo(x, y);
+      });
+    });
   }
 
   function getUserState() {
@@ -2184,7 +2326,12 @@
 
   function localizeOpeningEntry(entry) {
     if (!entry || typeof entry !== "object") return null;
-    const catalogItem = itemMap.get(entry.id) || entry.catalogItem || null;
+    const catalogItem = itemMap.get(entry.id)
+      || entry.catalogItem
+      || resolveDisplayItemByName(entry.nameEn || "")
+      || resolveDisplayItemByName(entry.nameZh || "")
+      || resolveDisplayItemByName(entry.name || "")
+      || null;
     const wearId = String(entry.wearId || (catalogItem ? resolveWearIdByFloat(catalogItem, entry.floatValue) : "") || "");
     const floatValue = Number.isFinite(Number(entry.floatValue)) ? Number(entry.floatValue) : null;
     const detailQuality = openingResultQualityLabel(entry);
@@ -2192,10 +2339,10 @@
     const catalogPriceRecord = catalogItem ? effectiveCatalogPriceRecordForSelection(catalogItem, wearId, variantId) : null;
     const localizedName = catalogItem
       ? itemTitle(catalogItem)
-      : firstNonEmpty(currentLanguage() === "en" ? entry.nameEn : entry.nameZh, entry.nameZh, entry.nameEn, entry.name, entry.id);
+      : cleanVisibleText(currentLanguage() === "en" ? entry.nameEn : entry.nameZh, entry.nameZh, entry.nameEn, entry.name, entry.id);
     const localizedRarity = catalogItem
       ? rarityLabel(catalogItem)
-      : firstNonEmpty(currentLanguage() === "en" ? entry.rarityEn : entry.rarityZh, entry.rarityZh, entry.rarityEn, entry.rarity, uiText("Base Grade", "基础级"));
+      : cleanVisibleText(currentLanguage() === "en" ? entry.rarityEn : entry.rarityZh, entry.rarityZh, entry.rarityEn, entry.rarity, uiText("Base Grade", "基础级"));
     return {
       ...entry,
       catalogItem,
@@ -2204,7 +2351,15 @@
       displayPrice: Number.isFinite(Number(catalogPriceRecord?.price)) ? Number(catalogPriceRecord.price) : (Number.isFinite(Number(entry.displayPrice)) ? Number(entry.displayPrice) : null),
       wearId,
       floatValue,
-      href: catalogItem ? `${itemHref(catalogItem)}${wearId ? `&wear=${encodeURIComponent(wearId)}` : ""}` : String(entry.href || ""),
+      href: (() => {
+        if (!catalogItem) return String(entry.href || "");
+        const href = itemHref(catalogItem);
+        const detailParams = [];
+        if (wearId) detailParams.push(`wear=${encodeURIComponent(wearId)}`);
+        if (variantId && variantId !== "standard") detailParams.push(`variant=${encodeURIComponent(variantId)}`);
+        if (!detailParams.length) return href;
+        return `${href}${href.includes("?") ? "&" : "?"}${detailParams.join("&")}`;
+      })(),
       image: String(catalogItem?.image || entry.image || ""),
       detailWeapon: catalogItem ? itemWeapon(catalogItem) : "",
       detailCollection: catalogItem ? collectionLabel(catalogItem) : "",
@@ -3164,7 +3319,7 @@
       if (openingEntriesAreStickerLike(entries)) {
         return pickCapsuleEntry(entries);
       }
-      if (/autograph capsule|sticker capsule|patch pack|pin capsule|鑳跺泭|鍗拌姳|绛惧悕/u.test(openingName)) {
+      if (/autograph capsule|sticker capsule|patch pack|pin capsule|胶囊|印花|签名/u.test(openingName)) {
         return pickCapsuleEntry(entries);
       }
       if (/souvenir/i.test(openingName)) {
@@ -3283,8 +3438,17 @@
     const href = typeof entryOrHref === "string"
       ? entryOrHref
       : String(entryOrHref?.href || entryOrHref?.inspectHref || "");
-    if (!href) return "";
-    return `<div class="unbox-loot-actions"><a class="secondary-link unbox-loot-inspect${compact ? " is-compact" : ""}" data-opening-inspect-link href="${escapeHtml(href)}">${escapeHtml(uiText("Inspect Item", "检视物品"))}</a></div>`;
+    if (href) {
+      return `<div class="unbox-loot-actions"><a class="secondary-link unbox-loot-inspect${compact ? " is-compact" : ""}" data-opening-inspect-link="true" href="${escapeHtml(href)}">${escapeHtml(uiText("Inspect Item", "检视物品"))}</a></div>`;
+    }
+    const inspectId = typeof entryOrHref === "string" ? "" : String(entryOrHref?.id || "").trim();
+    const inspectNameEn = typeof entryOrHref === "string" ? "" : String(entryOrHref?.nameEn || "").trim();
+    const inspectNameZh = typeof entryOrHref === "string" ? "" : String(entryOrHref?.nameZh || "").trim();
+    const inspectName = typeof entryOrHref === "string"
+      ? ""
+      : String(entryOrHref?.displayName || entryOrHref?.nameZh || entryOrHref?.nameEn || entryOrHref?.name || "").trim();
+    if (!inspectId && !inspectName) return "";
+    return `<div class="unbox-loot-actions"><button class="secondary-link unbox-loot-inspect${compact ? " is-compact" : ""}" type="button" data-opening-inspect-link="true"${inspectId ? ` data-opening-inspect-id="${escapeHtml(inspectId)}"` : ""}${inspectName ? ` data-opening-inspect-name="${escapeHtml(inspectName)}"` : ""}${inspectNameEn ? ` data-opening-inspect-name-en="${escapeHtml(inspectNameEn)}"` : ""}${inspectNameZh ? ` data-opening-inspect-name-zh="${escapeHtml(inspectNameZh)}"` : ""}>${escapeHtml(uiText("Inspect Item", "检视物品"))}</button></div>`;
   }
 
   function openingLootCardMarkup(entry, { compact = false, landed = false, attributes = "", inspectable = false } = {}) {
@@ -3302,7 +3466,7 @@
           <span>${escapeHtml(localizedEntry.displayRarity)}</span>
           <small>${qualityMarkup}${qualityMarkup && wearMeta ? UI_META_SEPARATOR : ""}${escapeHtml([wearMeta, formatPrice(localizedEntry.displayPrice)].filter(Boolean).join(UI_META_SEPARATOR))}</small>
         </div>
-        ${inspectable ? openingInspectLinkMarkup(localizedEntry.href, compact) : ""}
+        ${inspectable ? openingInspectLinkMarkup(localizedEntry, compact) : ""}
       </article>
     `;
   }
@@ -3649,7 +3813,7 @@
                 <span>${escapeHtml(openingTitle(openingById(entry.openingId) || { id: entry.openingId, name: entry.openingName, nameZh: entry.openingName, nameEn: entry.openingName }) || entry.openingName || uiText("Unknown case", "未知箱子"))}</span>
                 <small>${escapeHtml(localizedEntry?.displayRarity || uiText("Standard", "普通"))}${localizedEntry?.detailQuality ? `${UI_META_SEPARATOR}${openingQualityMarkup(localizedEntry, localizedEntry.detailQuality)}` : ""}${[localizedEntry?.detailWear || "", localizedEntry?.detailFloat ? `${uiText("Float", "磨损值")} ${localizedEntry.detailFloat}` : "", formatPrice(localizedEntry?.displayPrice)].filter(Boolean).length ? `${UI_META_SEPARATOR}${escapeHtml([localizedEntry?.detailWear || "", localizedEntry?.detailFloat ? `${uiText("Float", "磨损值")} ${localizedEntry.detailFloat}` : "", formatPrice(localizedEntry?.displayPrice)].filter(Boolean).join(UI_META_SEPARATOR))}` : ""}</small>
               </div>
-              ${openingInspectLinkMarkup(localizedEntry?.href || "", true)}
+              ${openingInspectLinkMarkup(localizedEntry || "", true)}
             </article>`;
             })()}
           `).join("")}
@@ -3853,76 +4017,23 @@
     document.getElementById("unboxResultPanel")?.scrollIntoView({ behavior: "smooth", block: "center" });
   }
 
-  function playOpeningSfx(winner = {}, { simplified = false } = {}) {
+  function playOpeningSfx(winner = {}, { simplified = false, scrollCueTimings = [] } = {}) {
+    function openingAwardSampleForEntry(entry = {}) {
+      if (entry?.isRareSpecial) return OPENING_SFX.awardShowcaseKnife;
+      const rarity = String(entry?.rarityEn || entry?.displayRarity || "").toLowerCase();
+      if (rarity.includes("consumer")) return OPENING_SFX.awardCommon;
+      if (rarity.includes("industrial")) return OPENING_SFX.awardUncommon;
+      if (rarity.includes("mil-spec")) return OPENING_SFX.awardRare;
+      if (rarity.includes("restricted")) return OPENING_SFX.awardMythical;
+      if (rarity.includes("classified")) return OPENING_SFX.awardLegendary;
+      if (rarity.includes("covert") || rarity.includes("extraordinary")) return OPENING_SFX.awardAncient;
+      return OPENING_SFX.awardRare;
+    }
+
     playOpeningSample(OPENING_SFX.unlock, 0, 0.62);
-    playOpeningLoopedSample(OPENING_SFX.scroll, { startDelayMs: 120, durationMs: 5400, intervalMs: 520, volume: 0.48 });
-    playOpeningSample(OPENING_SFX.spin, 0, 0.5);
-    playOpeningSample(OPENING_SFX.land, 5400, winner?.isRareSpecial ? 0.86 : 0.68);
+    playOpeningScrollTrack(OPENING_SFX.scroll, scrollCueTimings, 0.48);
+    playOpeningSample(openingAwardSampleForEntry(winner), OPENING_REEL_DURATION_MS, winner?.isRareSpecial ? 0.9 : 0.76);
     if (simplified) return;
-    const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
-    if (!AudioContextCtor) return;
-    try {
-      const context = globalThis.__cs2OpeningAudioContext || new AudioContextCtor();
-      globalThis.__cs2OpeningAudioContext = context;
-      context.resume?.().catch(() => {});
-      const now = context.currentTime;
-      const master = context.createGain();
-      master.gain.setValueAtTime(0.001, now);
-      master.gain.exponentialRampToValueAtTime(0.18, now + 0.03);
-      master.gain.exponentialRampToValueAtTime(0.001, now + 6.05);
-      master.connect(context.destination);
-
-      const latchOsc = context.createOscillator();
-      const latchGain = context.createGain();
-      latchOsc.type = "square";
-      latchOsc.frequency.setValueAtTime(180, now);
-      latchOsc.frequency.exponentialRampToValueAtTime(90, now + 0.055);
-      latchGain.gain.setValueAtTime(0.0001, now);
-      latchGain.gain.exponentialRampToValueAtTime(0.12, now + 0.004);
-      latchGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.07);
-      latchOsc.connect(latchGain).connect(master);
-      latchOsc.start(now);
-      latchOsc.stop(now + 0.08);
-
-      for (let index = 0; index < 38; index += 1) {
-        const tickAt = now + 0.07 + index * 0.088 + Math.min(index, 24) * 0.01;
-        const osc = context.createOscillator();
-        const gain = context.createGain();
-        osc.type = "triangle";
-        osc.frequency.setValueAtTime(1120 - Math.min(index, 28) * 22, tickAt);
-        gain.gain.setValueAtTime(0.0001, tickAt);
-        gain.gain.exponentialRampToValueAtTime(0.09, tickAt + 0.003);
-        gain.gain.exponentialRampToValueAtTime(0.0001, tickAt + 0.032);
-        osc.connect(gain).connect(master);
-        osc.start(tickAt);
-        osc.stop(tickAt + 0.05);
-      }
-
-      const landAt = now + 5.42;
-      const lowOsc = context.createOscillator();
-      const lowGain = context.createGain();
-      lowOsc.type = "triangle";
-      lowOsc.frequency.setValueAtTime(winner?.isRareSpecial ? 420 : 320, landAt);
-      lowOsc.frequency.exponentialRampToValueAtTime(winner?.isRareSpecial ? 700 : 520, landAt + 0.18);
-      lowGain.gain.setValueAtTime(0.0001, landAt);
-      lowGain.gain.exponentialRampToValueAtTime(winner?.isRareSpecial ? 0.24 : 0.16, landAt + 0.018);
-      lowGain.gain.exponentialRampToValueAtTime(0.0001, landAt + 0.42);
-      lowOsc.connect(lowGain).connect(master);
-      lowOsc.start(landAt);
-      lowOsc.stop(landAt + 0.46);
-
-      const highOsc = context.createOscillator();
-      const highGain = context.createGain();
-      highOsc.type = winner?.isRareSpecial ? "sawtooth" : "sine";
-      highOsc.frequency.setValueAtTime(winner?.isRareSpecial ? 840 : 620, landAt + 0.02);
-      highOsc.frequency.exponentialRampToValueAtTime(winner?.isRareSpecial ? 1420 : 860, landAt + 0.22);
-      highGain.gain.setValueAtTime(0.0001, landAt + 0.02);
-      highGain.gain.exponentialRampToValueAtTime(winner?.isRareSpecial ? 0.18 : 0.11, landAt + 0.04);
-      highGain.gain.exponentialRampToValueAtTime(0.0001, landAt + 0.5);
-      highOsc.connect(highGain).connect(master);
-      highOsc.start(landAt + 0.02);
-      highOsc.stop(landAt + 0.54);
-    } catch {}
   }
 
   function playOpeningSample(src, delayMs = 0, volume = 0.5) {
@@ -3946,6 +4057,52 @@
     for (let index = 0; index < iterations; index += 1) {
       playOpeningSample(src, (Math.max(0, Number(startDelayMs) || 0)) + (index * safeInterval), volume);
     }
+  }
+
+  function openingScrollCueTimings(config = OPENING_REEL_DURATION_MS) {
+    const options = typeof config === "object" && config !== null
+      ? config
+      : { durationMs: config };
+    const safeDuration = Math.max(1800, Number(options.durationMs) || OPENING_REEL_DURATION_MS);
+    const startDelayMs = Math.max(0, Number(options.startDelayMs) || 120);
+    const targetDistancePx = Math.max(0, Number(options.targetDistancePx) || 0);
+    const stepDistancePx = Math.max(0, Number(options.stepDistancePx) || 0);
+    if (targetDistancePx > 0 && stepDistancePx > 0) {
+      const totalSteps = Math.max(0, Math.floor(targetDistancePx / stepDistancePx));
+      const cueStride = 2;
+      const activeDuration = Math.max(240, safeDuration - startDelayMs);
+      const cueTimings = [];
+      let lastTiming = startDelayMs - 1;
+      for (let step = cueStride; step <= totalSteps; step += cueStride) {
+        const progress = Math.min(0.9995, (step * stepDistancePx) / targetDistancePx);
+        const easedFraction = 1 - Math.pow(1 - progress, 1 / 2.45);
+        const timing = Math.min(
+          safeDuration - 1,
+          Math.max(startDelayMs, Math.round(startDelayMs + (activeDuration * easedFraction)))
+        );
+        const nextTiming = Math.max(lastTiming + 1, timing);
+        cueTimings.push(nextTiming);
+        lastTiming = nextTiming;
+      }
+      return cueTimings.slice(0, Math.max(0, cueTimings.length - 2));
+    }
+    const cueLimit = Math.max(480, safeDuration - 180);
+    const cueTimings = [startDelayMs];
+    const cueGaps = [160, 168, 176, 186, 198, 214, 232, 254, 280, 312, 350, 396, 452, 520, 602, 700, 816];
+    let cursor = cueTimings[0];
+    for (const gap of cueGaps) {
+      cursor += gap;
+      if (cursor >= cueLimit) break;
+      cueTimings.push(cursor);
+    }
+    return cueTimings;
+  }
+
+  function playOpeningScrollTrack(src, cueTimings = [], volume = 0.5) {
+    if (!src) return;
+    cueTimings.forEach((time) => {
+      playOpeningSample(src, time, volume);
+    });
   }
 
   function unlockOpeningAudio() {
@@ -3992,7 +4149,6 @@
     singleTrigger.setAttribute("disabled", "disabled");
     batchTrigger.setAttribute("disabled", "disabled");
     updateOpeningResultPanel(opening, null);
-    playOpeningSfx(winner, { simplified: simplifiedAudio });
 
     void track.offsetWidth;
     const firstCard = track.querySelector(".unbox-loot-card");
@@ -4006,6 +4162,12 @@
     const windowStyle = getComputedStyle(windowNode);
     const paddingLeft = Number.parseFloat(windowStyle.paddingLeft || "0") || 0;
     const target = Math.max(0, winnerCenter - (frameCenter - paddingLeft));
+    const scrollCueTimings = openingScrollCueTimings({
+      durationMs: OPENING_REEL_DURATION_MS,
+      targetDistancePx: target,
+      stepDistancePx: cardWidth + gap,
+      startDelayMs: 120
+    });
     const shellRect = shell?.getBoundingClientRect();
     const windowRect = windowNode.getBoundingClientRect();
     if (marker && shellRect) {
@@ -4013,9 +4175,10 @@
       marker.style.setProperty("--unbox-marker-left", `${markerCenter}px`);
       marker.style.setProperty("--unbox-marker-width", `${Math.round(cardWidth)}px`);
     }
+    playOpeningSfx(winner, { simplified: simplifiedAudio, scrollCueTimings });
 
     requestAnimationFrame(() => {
-      track.style.transition = "transform 5.4s cubic-bezier(0.08, 0.75, 0.08, 1)";
+      track.style.transition = `transform ${OPENING_REEL_DURATION_MS / 1000}s cubic-bezier(0.08, 0.75, 0.08, 1)`;
       track.style.transform = `translate3d(${-target}px, 0, 0)`;
       track.style.filter = "blur(0px)";
     });
@@ -4027,7 +4190,7 @@
       const winnerCard = cards[winnerIndex];
       if (winnerCard) winnerCard.classList.add("is-landed");
       onComplete?.();
-    }, 5600);
+    }, OPENING_REEL_DURATION_MS + 200);
   }
 
   function runOpeningSimulation() {
@@ -4129,31 +4292,31 @@
     const heroAsset = "assets/home-awp-exhibit-render.webp";
     const heroItem = items.find((entry) => /asiimov/i.test(entry?.nameEn || entry?.name || "") && entry.image) || items.find((entry) => entry.image) || items[0] || null;
     const inspectHref = heroItem ? itemHref(heroItem) : "item.html?id=ak-inheritance";
-    const featured = (typeof featuredHomeItems === "function" ? featuredHomeItems() : items.filter((entry) => entry.image)).slice(0, 4);
+    const featured = featuredHomeItems(HOME_FEATURED_LIMIT);
     const marketRows = featured.slice(0, 4);
     const commandCards = [
-      ["archive", "Archive", uiText("Search every exhibit", "??????"), "catalog.html"],
-      ["halls", "Halls", uiText("Browse collection wings", "??????"), "collections.html"],
-      ["inspect", "Inspect", uiText("Open one object in the ledger", "????????"), inspectHref],
-      ["saved", "Saved", uiText("Return to your private case", "??????"), "favorites.html"],
-      ["trail", "Trail", uiText("Pick up recent inspection trails", "????????"), "recent.html"],
-      ["drop", "Drop Theatre", uiText("Simulate openings and ROI", "???????"), "openings.html"],
-      ["pass", "Pass", uiText("Manage access and sync", "???????"), "account.html"],
-      ["vault", "Vault", uiText("Review synced inventory", "??????"), "inventory.html"],
-      ["curator", "Curator", uiText("Generate AI loadouts", "?? AI ??"), "loadout.html"]
+      ["archive", "Archive", uiText("Search every exhibit", "检索全部展品"), "catalog.html"],
+      ["halls", "Halls", uiText("Browse collection wings", "浏览收藏展翼"), "collections.html"],
+      ["inspect", "Inspect", uiText("Open one object in the ledger", "打开单件检视台"), inspectHref],
+      ["saved", "Saved", uiText("Return to your private case", "回到私人展柜"), "favorites.html"],
+      ["trail", "Trail", uiText("Pick up recent inspection trails", "继续最近检视轨迹"), "recent.html"],
+      ["drop", "Drop Theatre", uiText("Simulate openings and ROI", "模拟开箱与回报"), "openings.html"],
+      ["pass", "Pass", uiText("Manage access and sync", "管理账户与同步"), "account.html"],
+      ["vault", "Vault", uiText("Review synced inventory", "查看同步库存"), "inventory.html"],
+      ["curator", "Curator", uiText("Generate AI loadouts", "生成 AI 搭配"), "loadout.html"]
     ];
 
     return `
-      <section class="hero home-hero" aria-label="${escapeHtml(uiText("CS Exhibition home", "CS Exhibition ??"))}">
+      <section class="hero home-hero" aria-label="${escapeHtml(uiText("CS Exhibition home", "CS Exhibition 首页"))}">
         <div class="home-hero-copy">
-          <p class="eyebrow home-console-kicker">${escapeHtml(uiText("Counter-Strike Digital Exhibition", "Counter-Strike ????"))}</p>
+          <p class="eyebrow home-console-kicker">${escapeHtml(uiText("Counter-Strike Digital Exhibition", "Counter-Strike 数字展览"))}</p>
           <h1 data-motion-part="title">${escapeHtml(uiText("CS Exhibition", "CS Exhibition"))}</h1>
-          <p class="home-subtitle">${escapeHtml(uiText("Preserve. Inspect. Understand.", "?????????"))}</p>
-          <p data-motion-part="copy">${escapeHtml(uiText("A black-box exhibition shell for skins, prices, collections, inventory sync, and curator-grade recommendations.", "????????????????????????????????"))}</p>
+          <p class="home-subtitle">${escapeHtml(uiText("Preserve. Inspect. Understand.", "收藏、检视、理解。"))}</p>
+          <p data-motion-part="copy">${escapeHtml(uiText("A black-box exhibition shell for skins, prices, collections, inventory sync, and curator-grade recommendations.", "为饰品、价格、收藏、库存同步和策展级推荐打造的黑盒展览外壳。"))}</p>
           <div class="hero-actions">
-            <a class="primary-link" href="catalog.html">${escapeHtml(uiText("Enter Archive", "????"))}</a>
-            <a class="secondary-link" href="openings.html">${escapeHtml(uiText("Open Drop Theatre", "??????"))}</a>
-            <a class="secondary-link" href="loadout.html">${escapeHtml(uiText("Ask Curator", "????"))}</a>
+            <a class="primary-link" href="catalog.html">${escapeHtml(uiText("Enter Archive", "进入馆藏"))}</a>
+            <a class="secondary-link" href="openings.html">${escapeHtml(uiText("Open Drop Theatre", "打开开箱剧场"))}</a>
+            <a class="secondary-link" href="loadout.html">${escapeHtml(uiText("Ask Curator", "询问策展室"))}</a>
           </div>
         </div>
         <div class="home-hero-stage" aria-hidden="true">
@@ -4169,28 +4332,28 @@
           </div>
         </div>
         <div class="home-live-rail">
-          <article class="home-live-cell"><span>${escapeHtml(uiText("Status", "??"))}</span><strong>Archive Online</strong><small>${escapeHtml(uiText("Full exhibit graph ready", "???????"))}</small></article>
-          <article class="home-live-cell"><span>${escapeHtml(uiText("Price Plates", "????"))}</span><strong>BUFF + YouPin</strong><small>${escapeHtml(uiText("Reference sync active", "??????"))}</small></article>
-          <article class="home-live-cell home-live-latest"><img src="${heroAsset}" alt="AWP | Asiimov" loading="lazy" decoding="async" /><span>${escapeHtml(uiText("Latest Focus", "????"))}</span><strong>AWP | Asiimov</strong><small>${escapeHtml(uiText("Immersive exhibit render", "???????"))}</small></article>
-          <article class="home-live-cell"><span>${escapeHtml(uiText("Curator", "??"))}</span><strong>${escapeHtml(uiText("Loadout Studio", "?????"))}</strong><small>${escapeHtml(uiText("AI routes standing by", "AI ?????"))}</small></article>
+          <article class="home-live-cell"><span>${escapeHtml(uiText("Status", "状态"))}</span><strong>Archive Online</strong><small>${escapeHtml(uiText("Full exhibit graph ready", "完整展品图谱就绪"))}</small></article>
+          <article class="home-live-cell"><span>${escapeHtml(uiText("Price Plates", "价格牌"))}</span><strong>BUFF + YouPin</strong><small>${escapeHtml(uiText("Reference sync active", "参考同步已启用"))}</small></article>
+          <article class="home-live-cell home-live-latest"><img src="${heroAsset}" alt="AWP | Asiimov" loading="lazy" decoding="async" /><span>${escapeHtml(uiText("Latest Focus", "焦点展品"))}</span><strong>AWP | Asiimov</strong><small>${escapeHtml(uiText("Immersive exhibit render", "沉浸式展品渲染"))}</small></article>
+          <article class="home-live-cell"><span>${escapeHtml(uiText("Curator", "策展"))}</span><strong>${escapeHtml(uiText("Loadout Studio", "搭配工作室"))}</strong><small>${escapeHtml(uiText("AI routes standing by", "AI 路线待命中"))}</small></article>
         </div>
       </section>
       <section class="home-command-section">
-        <div class="home-command-grid" aria-label="${escapeHtml(uiText("Primary entrances", "????"))}">
+        <div class="home-command-grid" aria-label="${escapeHtml(uiText("Primary entrances", "主要入口"))}">
           ${commandCards.map(([tone, title, copy, href]) => `
             <a class="home-command-card is-${tone}" href="${href}">
               <i aria-hidden="true"></i>
               <span>${escapeHtml(title)}</span>
               <strong>${escapeHtml(copy)}</strong>
-              <em>${escapeHtml(uiText("Enter", "??"))}</em>
+              <em>${escapeHtml(uiText("Enter", "进入"))}</em>
             </a>
           `).join("")}
         </div>
       </section>
       <section class="home-operations-grid">
         <article class="home-market-panel">
-          <div class="home-panel-heading"><h2>${escapeHtml(uiText("Market Index", "????"))}</h2><a href="catalog.html">${escapeHtml(uiText("Open Archive", "????"))}</a></div>
-          <div class="home-market-tabs"><span>${escapeHtml(uiText("Reference", "???"))}</span><span>BUFF</span><span>YouPin</span></div>
+          <div class="home-panel-heading"><h2>${escapeHtml(uiText("Market Index", "市场指数"))}</h2><a href="catalog.html">${escapeHtml(uiText("Open Archive", "打开馆藏"))}</a></div>
+          <div class="home-market-tabs"><span>${escapeHtml(uiText("Reference", "参考价"))}</span><span>BUFF</span><span>YouPin</span></div>
           <div class="home-market-table">
             ${marketRows.map((item, index) => `
               <a href="${itemHref(item)}">
@@ -4203,33 +4366,33 @@
               </a>
             `).join("")}
           </div>
-          <footer><span>${escapeHtml(uiText("Live prices remain linked to the existing price system.", "??????????????"))}</span><span>AWP | Asiimov</span></footer>
+          <footer><span>${escapeHtml(uiText("Live prices remain linked to the existing price system.", "实时价格继续接入现有价格系统。"))}</span><span>AWP | Asiimov</span></footer>
         </article>
         <article class="home-ai-panel">
-          <div class="home-panel-heading"><h2>${escapeHtml(uiText("Curator Feed", "????"))}</h2><a href="loadout.html">${escapeHtml(uiText("Open Curator", "????"))}</a></div>
+          <div class="home-panel-heading"><h2>${escapeHtml(uiText("Curator Feed", "策展动态"))}</h2><a href="loadout.html">${escapeHtml(uiText("Open Curator", "打开策展室"))}</a></div>
           <div class="home-ai-body">
             <div class="home-agent-figure"></div>
             <div class="home-ai-list">
-              <h3>${escapeHtml(uiText("Curator Routes", "????"))}</h3>
-              <p>${escapeHtml(uiText("Budget-aware pairings, inventory upgrades, and pro reference boards stay on the same rail.", "???????????????????????????"))}</p>
-              <span><b>${escapeHtml(uiText("Budget Pairing", "????"))}</b><small>${escapeHtml(uiText("AI-curated loadouts", "AI ????"))}</small></span>
-              <span><b>${escapeHtml(uiText("Same-Color Upgrade", "????"))}</b><small>${escapeHtml(uiText("Inventory-aware suggestions", "???????"))}</small></span>
-              <span><b>${escapeHtml(uiText("Pro References", "????"))}</b><small>${escapeHtml(uiText("Team and player samples", "???????"))}</small></span>
+              <h3>${escapeHtml(uiText("Curator Routes", "策展路线"))}</h3>
+              <p>${escapeHtml(uiText("Budget-aware pairings, inventory upgrades, and pro reference boards stay on the same rail.", "预算搭配、库存升级与职业参考面板保持在同一条展览轨道中。"))}</p>
+              <span><b>${escapeHtml(uiText("Budget Pairing", "预算搭配"))}</b><small>${escapeHtml(uiText("AI-curated loadouts", "AI 策展搭配"))}</small></span>
+              <span><b>${escapeHtml(uiText("Same-Color Upgrade", "同色升级"))}</b><small>${escapeHtml(uiText("Inventory-aware suggestions", "库存感知建议"))}</small></span>
+              <span><b>${escapeHtml(uiText("Pro References", "职业参考"))}</b><small>${escapeHtml(uiText("Team and player samples", "战队与选手样本"))}</small></span>
             </div>
           </div>
-          <footer><span>${escapeHtml(uiText("Curator line warm", "???????"))}</span><i aria-hidden="true"></i></footer>
+          <footer><span>${escapeHtml(uiText("Curator line warm", "策展线路已预热"))}</span><i aria-hidden="true"></i></footer>
         </article>
       </section>
       <section class="home-subscribe-strip">
-        <h2>${escapeHtml(uiText("Keep The Exhibition Rail In Reach", "???????????"))}</h2>
-        <p>${escapeHtml(uiText("Jump back into archive review, inspection, and synchronized inventory work without losing context.", "???????????????????????????"))}</p>
+        <h2>${escapeHtml(uiText("Keep The Exhibition Rail In Reach", "让展览轨道保持触手可及"))}</h2>
+        <p>${escapeHtml(uiText("Jump back into archive review, inspection, and synchronized inventory work without losing context.", "随时回到馆藏复核、单品检视和同步库存工作，不丢失上下文。"))}</p>
         <form>
-          <input type="email" value="curator@cs-exhibition.local" aria-label="${escapeHtml(uiText("Subscription email", "????"))}" />
-          <button type="button">${escapeHtml(uiText("Pin Access", "????"))}</button>
+          <input type="email" value="curator@cs-exhibition.local" aria-label="${escapeHtml(uiText("Subscription email", "订阅邮箱"))}" />
+          <button type="button">${escapeHtml(uiText("Pin Access", "固定入口"))}</button>
         </form>
-        <a href="account.html">${escapeHtml(uiText("Manage Pass", "????"))}</a>
+        <a href="account.html">${escapeHtml(uiText("Manage Pass", "管理通行证"))}</a>
       </section>
-      ${featured.length ? `<section class="featured-section"><div class="section-heading"><p class="eyebrow">${escapeHtml(uiText("Objects in View", "????"))}</p><h2>${escapeHtml(uiText("Selected Exhibits", "????"))}</h2></div><div class="item-grid">${featured.map(cardMarkup).join("")}</div></section>` : ""}
+      ${featured.length ? `<section class="featured-section"><div class="section-heading"><p class="eyebrow">${escapeHtml(uiText("Objects in View", "视野中的展品"))}</p><h2>${escapeHtml(uiText("Selected Exhibits", "精选展品"))}</h2></div><div class="item-grid">${featured.map(cardMarkup).join("")}</div></section>` : ""}
     `;
   }
 
@@ -4289,6 +4452,124 @@
             <button class="secondary-action compact-action" type="button" data-favorite-id="${escapeHtml(item.id)}" aria-pressed="${favorited}">${escapeHtml(favorited ? uiText("Remove Favorite", "取消收藏") : uiText("Save", "收藏"))}</button>
           </div>
         </div>
+      </article>
+    `;
+  }
+
+  function openingRunwayRailMarkup(activeOpening) {
+    const activeId = activeOpening?.id || "";
+    const activeKind = activeOpening?.kind || "";
+    const sameKind = openingItems.filter((item) => item.id !== activeId && (item.kind || "") === activeKind);
+    const otherOpenings = openingItems.filter((item) => item.id !== activeId && (item.kind || "") !== activeKind);
+    const railItems = [activeOpening, ...sameKind, ...otherOpenings].filter(Boolean).slice(0, 10);
+    if (!railItems.length) return "";
+    return `
+      <section class="opening-runway-rail" aria-label="${escapeHtml(uiText("Choose container", "选择箱子"))}">
+        <div class="opening-runway-rail-head">
+          <div>
+            <p class="eyebrow">${escapeHtml(uiText("Container Runway", "箱体跑道"))}</p>
+            <h2>${escapeHtml(uiText("Choose the next exhibit", "选择下一件展品"))}</h2>
+          </div>
+          <button class="secondary-action compact-action" id="openCasePickerButton" type="button">${escapeHtml(uiText("View all containers", "查看全部箱子"))}</button>
+        </div>
+        <div class="opening-runway-cases">
+          ${railItems.map((item) => `
+            <button class="opening-runway-case${item.id === activeId ? " is-active" : ""}" type="button" data-opening-select="${escapeHtml(item.id)}">
+              ${item.image ? `<img src="${escapeHtml(item.image)}" alt="${escapeHtml(openingTitle(item))}" loading="lazy" />` : ""}
+              <span>${escapeHtml(openingTitle(item))}</span>
+              <small>${escapeHtml(formatFinancePrice(openingTotalCost(item)))}</small>
+            </button>
+          `).join("")}
+        </div>
+      </section>
+    `;
+  }
+
+  function openingRunwayHeroMarkup(activeOpening) {
+    const containerPrice = activeOpening ? openingContainerPrice(activeOpening) : 0;
+    const totalCost = activeOpening ? openingTotalCost(activeOpening, containerPrice) : 0;
+    const cachedPlatformPrices = activeOpening?.id ? appState.livePrices[livePriceKey(activeOpening.id, "", "standard")] || null : null;
+    const buffPrice = Number.isFinite(Number(cachedPlatformPrices?.platforms?.buff?.price)) && Number(cachedPlatformPrices.platforms.buff.price) > 0
+      ? Number(cachedPlatformPrices.platforms.buff.price)
+      : null;
+    const youpinPrice = Number.isFinite(Number(cachedPlatformPrices?.platforms?.youpin?.price)) && Number(cachedPlatformPrices.platforms.youpin.price) > 0
+      ? Number(cachedPlatformPrices.platforms.youpin.price)
+      : null;
+    return `
+      <section class="opening-runway-hero" data-motion-intro data-motion-title-fast>
+        <div class="opening-runway-copy">
+          <p class="eyebrow" data-motion-part="eyebrow">${escapeHtml(uiText("Obsidian Runway", "黑曜跑道"))}</p>
+          <h1 class="opening-runway-title-unbox" data-motion-part="title">${escapeHtml(uiText("unbox", "unbox"))}</h1>
+          <p data-motion-part="copy">${escapeHtml(uiText("Select a case, run the reel, compare live market cost, and keep the full drop record in one exhibition-grade simulator.", "选择箱体、启动转盘、对比实时市场成本，并在展馆级模拟器里保留完整开箱记录。"))}</p>
+          <div class="opening-runway-metrics" data-motion-part="actions">
+            <div><span>BUFF</span><strong>${escapeHtml(formatPrice(buffPrice || containerPrice))}</strong></div>
+            <div><span>${escapeHtml(uiText("YouPin", "悠悠有品"))}</span><strong>${escapeHtml(formatPrice(youpinPrice || containerPrice))}</strong></div>
+            <div><span>${escapeHtml(openingCostLabel(activeOpening))}</span><strong>${escapeHtml(formatFinancePrice(totalCost))}</strong></div>
+          </div>
+        </div>
+        <div class="opening-runway-visual" aria-hidden="true">
+          <img src="assets/opening-runway-installation.png" alt="" loading="eager" decoding="async" />
+        </div>
+      </section>
+    `;
+  }
+
+  function recentVisitLabel(index, total) {
+    if (index === 0) return uiText("Most recent visit", "最新访问");
+    if (index === total - 1) return uiText("Oldest visit in trail", "最早轨迹");
+    if (index < 3) return uiText("Recent revisit point", "最近回看点");
+    return uiText("Earlier trail point", "较早轨迹点");
+  }
+
+  function recentCardMarkup(item, index, total) {
+    const includeImages = shouldRenderDeferredImages(pageName());
+    const href = itemHref(item);
+    const favorited = isFavorite(item.id);
+    const priceRecord = effectiveCatalogPriceRecord(item);
+    const order = String(index + 1).padStart(2, "0");
+    return `
+      <article class="favorite-card recent-card inventory-item-clickable" data-href="${escapeHtml(href)}" tabindex="0" role="link" aria-label="${escapeHtml(uiTemplate("Inspect {name}", { name: itemTitle(item) }))}">
+        <div class="recent-card-topline">
+          <div class="recent-card-visit">
+            <span class="recent-card-order">${escapeHtml(order)}</span>
+            <span class="recent-card-visit-label">${escapeHtml(recentVisitLabel(index, total))}</span>
+          </div>
+        </div>
+        <div class="favorite-preview recent-card-preview">
+          ${item.image
+            ? (includeImages
+              ? lazyImageMarkup({ className: "favorite-base recent-card-base", src: item.image, alt: itemTitle(item), loading: "lazy", decoding: "async", fetchpriority: "low" })
+              : deferredImagePlaceholder(uiText("Loading preview", "正在加载预览")))
+            : `<div class="empty-state">${escapeHtml(uiText("No image", "暂无图片"))}</div>`}
+        </div>
+        <div class="favorite-copy recent-card-copy">
+          <div class="recent-card-meta">
+            <small>${escapeHtml(collectionLabel(item))}</small>
+            <span>${escapeHtml(formatPrice(priceRecord.price))}</span>
+          </div>
+          <strong>${escapeHtml(itemTitle(item))}</strong>
+          <div class="recent-card-actions steam-bind-actions">
+            <a href="${href}">${escapeHtml(uiText("Open Inspector", "打开检视器"))}</a>
+            <button class="secondary-action compact-action" type="button" data-favorite-id="${escapeHtml(item.id)}" aria-pressed="${favorited}">${escapeHtml(favorited ? uiText("Saved", "已收藏") : uiText("Save", "收藏"))}</button>
+          </div>
+        </div>
+      </article>
+    `;
+  }
+
+  function recentTrailBandNodeMarkup(item, index, total) {
+    const order = String(index + 1).padStart(2, "0");
+    const label = index === 0
+      ? uiText("Latest visit", "最新展品")
+      : index === total - 1
+        ? uiText("Oldest point", "最早轨迹")
+        : uiText("Return point", "回看点");
+    return `
+      <article class="recent-band-node">
+        <span class="recent-band-marker" aria-hidden="true"></span>
+        <small>${escapeHtml(order)}</small>
+        <span>${escapeHtml(label)}</span>
+        <strong>${escapeHtml(itemTitle(item))}</strong>
       </article>
     `;
   }
@@ -4423,6 +4704,74 @@
     if (main) main.innerHTML = buildHomeMarkup();
   }
 
+  function relatedNewsItems() {
+    const featured = featuredHomeItems(5);
+    return [
+      {
+        label: uiText("Market Watch", "市场观察"),
+        title: uiText("Red and black loadouts are still the safest visual lane", "红黑搭配仍然是最稳的视觉路线"),
+        copy: uiText("High-contrast rifles, a restrained knife, and one dark glove slot keep the budget focused without making the set feel noisy.", "高对比步枪、克制刀具和一件暗色手套能集中预算，也不会让整套搭配显得杂乱。"),
+        item: featured[0]
+      },
+      {
+        label: uiText("Inventory Tip", "库存提示"),
+        title: uiText("Upgrade by slot instead of replacing the whole collection", "按槽位升级，不必整套推倒重来"),
+        copy: uiText("Start from your most-used rifle or pistol, then let the AI route fill knife, glove, and secondary slots only when budget allows.", "先从常用步枪或手枪升级，再让 AI 在预算允许时补刀、手套和副武器槽位。"),
+        item: featured[1]
+      },
+      {
+        label: uiText("Inspection", "检视建议"),
+        title: uiText("Check wear and live platform price before saving a route", "保存方案前先确认磨损和实时平台价格"),
+        copy: uiText("The inspector keeps selected wear in memory, so you can return from a route without losing the exact version you were comparing.", "检视器会记住已选磨损，返回搭配方案时不用重新选择正在对比的版本。"),
+        item: featured[2]
+      }
+    ];
+  }
+
+  function relatedNewsCardMarkup(entry, index) {
+    const item = entry.item;
+    const href = item ? itemHref(item) : "catalog.html";
+    return `
+      <article class="related-news-card">
+        <a class="related-news-visual" href="${escapeHtml(href)}">
+          ${item?.image ? lazyImageMarkup({ src: item.image, alt: itemTitle(item), loading: index === 0 ? "eager" : "lazy", decoding: "async", fetchpriority: index === 0 ? "high" : "low" }) : ""}
+        </a>
+        <div class="related-news-copy">
+          <p class="eyebrow">${escapeHtml(entry.label)}</p>
+          <h2>${escapeHtml(entry.title)}</h2>
+          <p>${escapeHtml(entry.copy)}</p>
+          <a class="action-link" href="${escapeHtml(href)}">${escapeHtml(item ? uiText("Open referenced item", "查看关联饰品") : uiText("Open catalog", "打开目录"))}</a>
+        </div>
+      </article>
+    `;
+  }
+
+  function renderRelatedNews() {
+    const main = document.querySelector("main");
+    if (!main) return;
+    document.body.classList.remove("home-exhibition-page", "halls-directory-page", "is-inspector-page");
+    const news = relatedNewsItems();
+    main.innerHTML = `
+      <section class="related-news-page">
+        <section class="related-news-hero page-intro" data-motion-intro>
+          <p class="eyebrow" data-motion-part="eyebrow">${escapeHtml(uiText("Related News", "相关资讯"))}</p>
+          <h1 data-motion-part="title">${escapeHtml(uiText("Related News", "相关资讯"))}</h1>
+          <p data-motion-part="copy">${escapeHtml(uiText("Market notes, loadout ideas, and inspection tips that match the exhibition style.", "与本站风格一致的市场观察、搭配灵感和检视提示。"))}</p>
+        </section>
+        <section class="related-news-grid">
+          ${news.map(relatedNewsCardMarkup).join("")}
+        </section>
+        <section class="related-news-brief">
+          <div>
+            <span>${escapeHtml(uiText("AI Loadout", "AI 搭配"))}</span>
+            <strong>${escapeHtml(uiText("Need a route from these notes?", "想根据这些资讯生成搭配？"))}</strong>
+          </div>
+          <a class="primary-action" href="loadout.html">${escapeHtml(uiText("Open Loadout Studio", "打开饰品搭配"))}</a>
+        </section>
+      </section>
+    `;
+  }
+
   function scheduleUiTask(callback, { afterFrames = 1, fallbackMs = 24 } = {}) {
     const frameCount = Math.max(1, Number(afterFrames) || 1);
     const delay = Math.max(0, Number(fallbackMs) || 0);
@@ -4450,8 +4799,22 @@
     window.setTimeout(run, delay * Math.max(1, frameCount));
   }
 
+  function scheduleIdleTask(callback, { timeoutMs = 600, fallbackMs = 140 } = {}) {
+    let settled = false;
+    const run = () => {
+      if (settled) return;
+      settled = true;
+      callback();
+    };
+    if (typeof window.requestIdleCallback === "function") {
+      window.requestIdleCallback(run, { timeout: Math.max(0, Number(timeoutMs) || 0) });
+      return;
+    }
+    window.setTimeout(run, Math.max(0, Number(fallbackMs) || 0));
+  }
+
   function shouldDeferPageImages(targetPage = pageName()) {
-    return ["catalog.html", "collections.html", "favorites.html", "recent.html"].includes(targetPage);
+    return ["catalog.html", "collections.html", "favorites.html", "recent.html", "related.html"].includes(targetPage);
   }
 
   function shouldRenderDeferredImages(targetPage = pageName()) {
@@ -4485,7 +4848,10 @@
       renderCatalog();
       renderCompareTray();
     } else if (targetPage === "collections.html") {
-      renderCollections();
+      // The collections page is fully replaced by the halls directory override.
+      // Skipping the legacy renderer prevents an old-layout flash before the
+      // override bootstraps its newer experience.
+      return;
     } else if (targetPage === "openings.html") {
       renderOpenings();
     } else if (targetPage === "item.html") {
@@ -4503,6 +4869,8 @@
       renderInventory();
     } else if (targetPage === "loadout.html") {
       renderLoadout();
+    } else if (targetPage === "related.html") {
+      renderRelatedNews();
     }
   }
 
@@ -4513,7 +4881,9 @@
       return;
     }
     if (targetPage === "collections.html") {
-      renderCollections();
+      if (typeof globalThis.renderHallsDirectory === "function") {
+        globalThis.renderHallsDirectory();
+      }
       return;
     }
     if (targetPage === "favorites.html") {
@@ -4524,6 +4894,10 @@
     if (targetPage === "recent.html") {
       renderRecent();
       renderCompareTray();
+      return;
+    }
+    if (targetPage === "related.html") {
+      renderRelatedNews();
     }
   }
 
@@ -4563,12 +4937,34 @@
   function buildCatalogShell() {
     return `
       <section class="page-intro archive-intro" data-motion-intro data-motion-title-fast>
-        <p class="eyebrow" data-motion-part="eyebrow">${escapeHtml(uiText("Archive", "\u9986\u85cf"))}</p>
-        <h1 data-motion-part="title">${escapeHtml(uiText("Archive", "Archive"))}</h1>
-        <p data-motion-part="copy">${escapeHtml(uiText("Search the complete CS exhibit archive by weapon type, collection, rarity, and market range.", "\u6309\u6b66\u5668\u7c7b\u578b\u3001\u6536\u85cf\u7cfb\u5217\u3001\u7a00\u6709\u5ea6\u548c\u5e02\u573a\u533a\u95f4\u68c0\u7d22\u5b8c\u6574 CS \u5c55\u54c1\u9986\u85cf\u3002"))}</p>
+        <div class="archive-intro-copy">
+          <p class="eyebrow" data-motion-part="eyebrow">${escapeHtml(uiText("Archive", "\u9986\u85cf"))}</p>
+          <h1 data-motion-part="title">${escapeHtml(uiText("Archive", "Archive"))}</h1>
+          <p data-motion-part="copy">${escapeHtml(uiText("Search the complete CS exhibit archive by weapon type, collection, rarity, and market range.", "\u6309\u6b66\u5668\u7c7b\u578b\u3001\u6536\u85cf\u7cfb\u5217\u3001\u7a00\u6709\u5ea6\u548c\u5e02\u573a\u533a\u95f4\u68c0\u7d22\u5b8c\u6574 CS \u5c55\u54c1\u9986\u85cf\u3002"))}</p>
+          <div class="archive-intro-pills">
+            <span class="archive-status-chip"><b>${escapeHtml(uiText("Live Filters", "实时筛选"))}</b><small>${escapeHtml(uiText("Type, rarity, collection", "类型、稀有度、系列"))}</small></span>
+            <span class="archive-status-chip"><b>${escapeHtml(uiText("Market Range", "市场区间"))}</b><small>BUFF + YouPin</small></span>
+          </div>
+        </div>
+        <div class="archive-intro-stage" aria-hidden="true">
+          <div class="archive-intro-frame">
+            <span class="archive-intro-line"></span>
+            <div class="archive-intro-grid">
+              <div class="archive-top-cell"><span>${escapeHtml(uiText("Indexed", "已索引"))}</span><strong>24</strong></div>
+              <div class="archive-top-cell"><span>${escapeHtml(uiText("Reference", "参考价"))}</span><strong>BUFF / YouPin</strong></div>
+              <div class="archive-top-cell"><span>${escapeHtml(uiText("Selection", "选择集"))}</span><strong>${escapeHtml(uiText("Compare Ready", "对比就绪"))}</strong></div>
+            </div>
+            <span class="archive-intro-kicker">CS EXHIBITION / ARCHIVE</span>
+          </div>
+        </div>
       </section>
-      <section class="catalog-shell exhibition-console">
-        <aside class="filter-panel">
+      <section class="catalog-shell exhibition-console archive-console-shell">
+        <aside class="filter-panel archive-filter-panel">
+          <div class="archive-panel-heading">
+            <p class="eyebrow">${escapeHtml(uiText("Filters", "筛选器"))}</p>
+            <h2>${escapeHtml(uiText("Refine Archive", "精炼馆藏"))}</h2>
+            <small>${escapeHtml(uiText("Keep the latest archive shell while preserving all catalog controls.", "保持最新版馆藏外壳，同时保留全部目录控件。"))}</small>
+          </div>
           <div class="filter-group">
             <label for="searchInput">${escapeHtml(uiText("Keyword", "关键词"))}</label>
             <input id="searchInput" type="search" placeholder="${escapeHtml(uiText("Search exhibits or weapons", "\u641c\u7d22\u5c55\u54c1\u6216\u6b66\u5668"))}" />
@@ -4606,8 +5002,15 @@
             <button class="secondary-action" id="resetFilters" type="button">${escapeHtml(uiText("Reset Filters", "重置筛选"))}</button>
           </div>
         </aside>
-        <section class="catalog-results">
-          <div class="catalog-control-bar" aria-label="${escapeHtml(uiText("Catalog Toolbar", "?????"))}">
+        <section class="catalog-results archive-results-shell">
+          <div class="archive-results-head">
+            <div class="archive-results-copy">
+              <p class="eyebrow" id="catalogMarketStatus">${escapeHtml(uiText("Market Index Online", "市场索引在线"))}</p>
+              <h2 id="catalogSelectionTitle">${escapeHtml(uiText("All Exhibits", "全部展品"))}</h2>
+              <p id="catalogResultSummary">${escapeHtml(uiText("Use the controls to narrow the archive.", "使用控件缩小馆藏范围。"))}</p>
+            </div>
+          </div>
+          <div class="catalog-control-bar archive-results-toolbar" aria-label="${escapeHtml(uiText("Catalog Toolbar", "目录工具栏"))}">
             <label class="catalog-sort-control" for="sortFilter">
               <span>${escapeHtml(uiText("Sort", "排序"))}</span>
               <select id="sortFilter">
@@ -4638,7 +5041,7 @@
             <button class="picker-close" type="button" id="${closeId}">${escapeHtml(uiText("Close", "关闭"))}</button>
           </div>
           <div class="picker-search">
-            <input id="${searchLabel}" type="search" placeholder="${escapeHtml(uiText("Search", "鎼滅储"))}" />
+            <input id="${searchLabel}" type="search" placeholder="${escapeHtml(uiText("Search", "搜索"))}" />
           </div>
           <div class="picker-groups">
             <div class="picker-option-grid" id="${optionsId}"></div>
@@ -4777,24 +5180,26 @@
     if (priceValue) priceValue.textContent = filters.maxPrice >= 5000 ? uiText("Any", "不限") : formatPrice(filters.maxPrice);
   }
 
-  function readCatalogControlValue(controlId, paramKey, params = new URLSearchParams(location.search)) {
+  function readCatalogControlValue(controlId, paramKey, params = new URLSearchParams(location.search), preferUrlParamsWhenEmpty = false) {
     const control = document.getElementById(controlId);
     if (control instanceof HTMLInputElement || control instanceof HTMLSelectElement) {
-      return String(control.value || "").trim();
+      const controlValue = String(control.value || "").trim();
+      if (controlValue || !preferUrlParamsWhenEmpty) return controlValue;
     }
     return String(params.get(paramKey) || "").trim();
   }
 
-  function getCatalogFilters() {
+  function getCatalogFilters(options = {}) {
     const params = new URLSearchParams(location.search);
-    const query = readCatalogControlValue("searchInput", "q", params);
-    const type = readCatalogControlValue("typeFilter", "type", params);
-    const rarity = readCatalogControlValue("rarityFilter", "rarity", params);
-    const collection = readCatalogControlValue("collectionFilter", "collection", params);
+    const preferUrlParamsWhenEmpty = Boolean(options?.preferUrlParamsWhenEmpty);
+    const query = readCatalogControlValue("searchInput", "q", params, preferUrlParamsWhenEmpty);
+    const type = readCatalogControlValue("typeFilter", "type", params, preferUrlParamsWhenEmpty);
+    const rarity = readCatalogControlValue("rarityFilter", "rarity", params, preferUrlParamsWhenEmpty);
+    const collection = readCatalogControlValue("collectionFilter", "collection", params, preferUrlParamsWhenEmpty);
     const priceControl = document.getElementById("priceFilter");
     const sortControl = document.getElementById("sortFilter");
-    const maxPrice = Number(priceControl instanceof HTMLInputElement ? priceControl.value : 5000);
-    const sort = String(sortControl instanceof HTMLSelectElement ? sortControl.value : "featured");
+    const maxPrice = Number(priceControl instanceof HTMLInputElement ? priceControl.value : (Number.isFinite(Number(appState.lastCatalogMaxPrice)) ? Number(appState.lastCatalogMaxPrice) : 5000));
+    const sort = String(sortControl instanceof HTMLSelectElement ? sortControl.value : (appState.lastCatalogSort || "featured"));
     return { query, type, rarity, collection, maxPrice, sort };
   }
 
@@ -4936,7 +5341,7 @@
       }
       return;
     }
-    const filters = getCatalogFilters();
+    const filters = getCatalogFilters({ preferUrlParamsWhenEmpty: true });
     const searchInput = document.getElementById("searchInput");
     const typeFilter = document.getElementById("typeFilter");
     const rarityFilterNode = document.getElementById("rarityFilter");
@@ -4947,8 +5352,8 @@
     if (typeFilter) typeFilter.value = filters.type;
     if (rarityFilterNode) rarityFilterNode.value = filters.rarity;
     if (collectionFilter) collectionFilter.value = filters.collection;
-    if (priceFilter) priceFilter.value = String(filters.maxPrice || 5000);
-    if (sortFilter) sortFilter.value = filters.sort;
+    if (priceFilter) priceFilter.value = String(filters.maxPrice || appState.lastCatalogMaxPrice || 5000);
+    if (sortFilter) sortFilter.value = filters.sort || appState.lastCatalogSort || "featured";
     scheduleUiTask(() => updateCatalogResults());
   }
 
@@ -4957,6 +5362,8 @@
     if (!grid) return;
     try {
       const filters = getCatalogFilters();
+      appState.lastCatalogSort = String(filters.sort || "featured");
+      appState.lastCatalogMaxPrice = Number.isFinite(Number(filters.maxPrice)) ? Number(filters.maxPrice) : 5000;
       updateQueryString(filters);
       const filtered = items.filter((item) => catalogMatches(item, filters));
       const visible = catalogVisibleItems(filtered, filters);
@@ -5024,17 +5431,13 @@
     appState.openingRenderToken = renderToken;
     const activeOpening = ensureActiveOpening();
     root.innerHTML = `
-      <section class="page-intro" data-motion-intro data-motion-title-fast>
-        <p class="eyebrow" data-motion-part="eyebrow">${escapeHtml(uiText("Drop Theatre", "掉落剧场"))}</p>
-        <h1 data-motion-part="title">${escapeHtml(uiText("Drop Theatre", "掉落剧场"))}</h1>
-        <p data-motion-part="copy">${escapeHtml(uiText("Select a case or capsule, open single or batch drops, inspect the pool, and track ROI from the existing simulator.", "\u9009\u62e9\u7bb1\u5b50\u6216\u80f6\u56ca\uff0c\u8fdb\u884c\u5355\u5f00\u6216\u8fde\u5f00\uff0c\u68c0\u89c6\u6389\u843d\u6c60\uff0c\u5e76\u7528\u73b0\u6709\u6a21\u62df\u5668\u8ffd\u8e2a\u6295\u5165\u4ea7\u51fa\u3002"))}</p>
-        <div class="page-intro-actions" data-motion-part="actions">
-          <button class="secondary-action compact-action" id="openCasePickerButton" type="button">${escapeHtml(uiText("Choose Container", "选择容器"))}</button>
+      <div class="opening-runway-page">
+        ${openingRunwayHeroMarkup(activeOpening)}
+        ${openingRunwayRailMarkup(activeOpening)}
+        ${activeOpening ? openingSimulatorMarkup(activeOpening) : ""}
+        <div class="collection-index opening-runway-index" id="openingIndexRoot">
+          <div class="empty-state">${escapeHtml(uiText("Loading containers...", "正在加载箱子与胶囊..."))}</div>
         </div>
-      </section>
-      ${activeOpening ? openingSimulatorMarkup(activeOpening) : ""}
-      <div class="collection-index" id="openingIndexRoot">
-        <div class="empty-state">${escapeHtml(uiText("Loading containers...", "正在加载箱子与胶囊..."))}</div>
       </div>
     `;
     if (!openingItems.length) {
@@ -5323,63 +5726,86 @@
     const hasInventoryInspectDetails = Boolean(inventoryAssetId && (inventoryVersionLabel || inventoryQualityLabel || inventoryWearLabel || inventoryStickersForView.length));
     rememberRecentId(resolvedItem.id);
     const related = items.filter((entry) => entry.id !== resolvedItem.id && entry.type === resolvedItem.type).slice(0, 4);
+    const selectedWearLabel = wearLabel(selectedWear || "factory-new");
+    const selectedVariantLabel = itemVariantLabel(selectedVariant || "standard");
+    const selectedCollectionLabel = collectionLabel(resolvedItem);
+    const selectedRarityLabel = rarityLabel(resolvedItem);
     root.innerHTML = `
       <section class="detail-main obsidian-main">
-        <section class="viewer-panel obsidian-stage-shell">
-          <div class="viewer-toolbar">
-            <span>${escapeHtml(itemTitle(resolvedItem))}</span>
-            <button class="favorite-button" type="button" data-favorite-id="${escapeHtml(resolvedItem.id)}" aria-pressed="${isFavorite(resolvedItem.id)}">${escapeHtml(isFavorite(resolvedItem.id) ? uiText("Saved", "已收藏") : uiText("Save", "收藏"))}</button>
-          </div>
-          <div class="viewer-stage inspect-scene ${escapeHtml(selectedWear || "factory-new")}" id="inspectScene">
-            <div class="stage-glow"></div>
-            <div class="inspect-depth-card" id="inspectDepthCard">
-              <div class="inspect-stage-light"></div>
-              ${pricedItem.image ? `<img id="inspectImage" class="skin-image inspect-image" src="${escapeHtml(pricedItem.image)}" alt="${escapeHtml(itemTitle(resolvedItem))}" loading="eager" />` : `<div class="empty-state">${escapeHtml(uiText("No image", "暂无图片"))}</div>`}
-              <div class="inspect-patina"></div>
-              <div class="inspect-edgewear"></div>
-              <div class="inspect-scratches"></div>
-              <div class="inspect-reflection"></div>
+        <div class="obsidian-left-column">
+          <section class="viewer-panel obsidian-stage-shell">
+            <div class="viewer-toolbar obsidian-stage-top">
+              <span>${escapeHtml(`${uiText("Inspector", "检视器")} / ${categoryLabel(resolvedItem.type)} / ${itemWeapon(resolvedItem)}`)}</span>
+              <button class="favorite-button" type="button" data-favorite-id="${escapeHtml(resolvedItem.id)}" aria-pressed="${isFavorite(resolvedItem.id)}">${escapeHtml(isFavorite(resolvedItem.id) ? uiText("Saved", "已收藏") : uiText("Save", "收藏"))}</button>
             </div>
-          </div>
-          <div class="inspect-controls obsidian-control-deck">
-            ${itemWearOptions.length ? `<label class="wear-choice-field">
-              <span>${escapeHtml(uiText("Wear Tier", "磨损档位"))}</span>
-              <select id="wearSelect">
-                ${itemWearOptions.map((wearId) => `<option value="${escapeHtml(wearId)}"${selectedWear === wearId ? " selected" : ""}>${escapeHtml(wearLabel(wearId))}</option>`).join("")}
-              </select>
-            </label>` : ""}
-            ${variantOptions(pricedItem).length > 1 ? `<label class="wear-choice-field">
-              <span>${escapeHtml(uiText("Version", "版本"))}</span>
-              <select id="variantSelect">
-                ${variantOptions(pricedItem).map((variantId) => `<option value="${escapeHtml(variantId)}"${selectedVariant === variantId ? " selected" : ""}>${escapeHtml(itemVariantLabel(variantId))}</option>`).join("")}
-              </select>
-            </label>` : ""}
-            ${specialTemplates.length ? `<label class="wear-choice-field">
-              <span>${escapeHtml(uiText("Special Template", "特殊模板"))}</span>
-              <select id="templateSelect">
-                ${["phase", "gem"].map((groupKey) => {
-                  const groupTemplates = specialTemplates.filter((template) => template.group === groupKey);
-                  if (!groupTemplates.length) return "";
-                  return `<optgroup label="${escapeHtml(specialTemplateGroupLabel(groupKey))}">${groupTemplates.map((template) => `<option value="${escapeHtml(template.id)}"${selectedTemplateId === template.id ? " selected" : ""}>${escapeHtml(specialTemplateLabel(template))}</option>`).join("")}</optgroup>`;
-                }).join("")}
-              </select>
-            </label>` : ""}
-            ${canStickerDiy ? `<button class="secondary-action" id="toggleDiyButton" type="button" aria-pressed="false">${escapeHtml(uiText("Sticker DIY", "贴纸 DIY"))}</button>` : ""}
-          </div>
-        </section>
+            <div class="obsidian-title-block">
+              <p class="eyebrow">${escapeHtml(categoryLabel(resolvedItem.type))}</p>
+              <h1>${escapeHtml(itemTitle(resolvedItem))}</h1>
+              <span>${escapeHtml(selectedCollectionLabel)}</span>
+            </div>
+            <div class="viewer-stage inspect-scene obsidian-stage ${escapeHtml(selectedWear || "factory-new")}" id="inspectScene">
+              <div class="stage-glow"></div>
+              <div class="inspect-depth-card" id="inspectDepthCard">
+                <div class="inspect-stage-light"></div>
+                ${pricedItem.image ? `<img id="inspectImage" class="skin-image inspect-image" src="${escapeHtml(pricedItem.image)}" alt="${escapeHtml(itemTitle(resolvedItem))}" loading="eager" />` : `<div class="empty-state">${escapeHtml(uiText("No image", "暂无图片"))}</div>`}
+                <div class="inspect-patina"></div>
+                <div class="inspect-edgewear"></div>
+                <div class="inspect-scratches"></div>
+                <div class="inspect-reflection"></div>
+              </div>
+              <div class="obsidian-stage-caption">
+                <span>${escapeHtml(uiText("Current Focus", "当前焦点"))}</span>
+              <strong>${escapeHtml(itemWeapon(resolvedItem))}</strong>
+              </div>
+            </div>
+            <div class="inspect-controls inspect-controls-rich obsidian-control-deck">
+              <div class="obsidian-wear-meter">
+                <span>${escapeHtml(uiText("Wear", "磨损"))}</span>
+                <strong>${escapeHtml(selectedWearLabel)}</strong>
+                <i aria-hidden="true"></i>
+              </div>
+              ${itemWearOptions.length ? `<label class="wear-choice-field">
+                <span>${escapeHtml(uiText("Wear Tier", "磨损档位"))}</span>
+                <select id="wearSelect">
+                  ${itemWearOptions.map((wearId) => `<option value="${escapeHtml(wearId)}"${selectedWear === wearId ? " selected" : ""}>${escapeHtml(wearLabel(wearId))}</option>`).join("")}
+                </select>
+              </label>` : ""}
+              ${variantOptions(pricedItem).length > 1 ? `<label class="wear-choice-field">
+                <span>${escapeHtml(uiText("Version", "版本"))}</span>
+                <select id="variantSelect">
+                  ${variantOptions(pricedItem).map((variantId) => `<option value="${escapeHtml(variantId)}"${selectedVariant === variantId ? " selected" : ""}>${escapeHtml(itemVariantLabel(variantId))}</option>`).join("")}
+                </select>
+              </label>` : `<div class="obsidian-wear-meter"><span>${escapeHtml(uiText("Version", "版本"))}</span><strong>${escapeHtml(selectedVariantLabel)}</strong><i aria-hidden="true"></i></div>`}
+              ${specialTemplates.length ? `<label class="wear-choice-field">
+                <span>${escapeHtml(uiText("Special Template", "特殊模板"))}</span>
+                <select id="templateSelect">
+                  ${["phase", "gem"].map((groupKey) => {
+                    const groupTemplates = specialTemplates.filter((template) => template.group === groupKey);
+                    if (!groupTemplates.length) return "";
+                    return `<optgroup label="${escapeHtml(specialTemplateGroupLabel(groupKey))}">${groupTemplates.map((template) => `<option value="${escapeHtml(template.id)}"${selectedTemplateId === template.id ? " selected" : ""}>${escapeHtml(specialTemplateLabel(template))}</option>`).join("")}</optgroup>`;
+                  }).join("")}
+                </select>
+              </label>` : ""}
+              ${canStickerDiy ? `<button class="secondary-action" id="toggleDiyButton" type="button" aria-pressed="false">${escapeHtml(uiText("Sticker DIY", "贴纸 DIY"))}</button>` : ""}
+            </div>
+          </section>
+          <section class="obsidian-description-panel">
+            <div class="obsidian-tabs">
+              <strong>${escapeHtml(uiText("Item Description", "饰品描述"))}</strong>
+              <span>${escapeHtml(uiText("Wiki", "百科介绍"))}</span>
+            </div>
+            <p>${escapeHtml(itemDescription(resolvedItem))}</p>
+            <div class="obsidian-description-meta">
+              <div><span>${escapeHtml(uiText("Type", "类型"))}</span><strong>${escapeHtml(categoryLabel(resolvedItem.type))}</strong></div>
+              <div><span>${escapeHtml(uiText("Weapon", "武器"))}</span><strong>${escapeHtml(itemWeapon(resolvedItem))}</strong></div>
+              <div><span>${escapeHtml(uiText("First Sale", "发布时间"))}</span><strong>${escapeHtml(firstSaleLabel(pricedItem.firstSaleDate || resolvedItem.firstSaleDate || ""))}</strong></div>
+              <div><span>${escapeHtml(uiText("Collection", "收藏品"))}</span><strong>${escapeHtml(selectedCollectionLabel)}</strong></div>
+            </div>
+          </section>
+        </div>
         <section class="collection-card detail-info inspect-plate obsidian-ledger-panel">
-          <p class="eyebrow">${escapeHtml(categoryLabel(resolvedItem.type))}</p>
-          <h1>${escapeHtml(itemTitle(resolvedItem))}</h1>
-          <p>${escapeHtml(itemDescription(resolvedItem))}</p>
-          <dl class="spec-list">
-            <div><dt>${escapeHtml(uiText("Weapon", "武器"))}</dt><dd>${escapeHtml(itemWeapon(resolvedItem))}</dd></div>
-            <div><dt>${escapeHtml(uiText("Hall / Collection", "\u5c55\u533a / \u7cfb\u5217"))}</dt><dd>${escapeHtml(collectionLabel(resolvedItem))}</dd></div>
-            <div><dt>${escapeHtml(uiText("Rarity", "稀有度"))}</dt><dd>${escapeHtml(rarityLabel(resolvedItem))}</dd></div>
-            <div><dt>${escapeHtml(uiText("Quality", "品质"))}</dt><dd>${escapeHtml(qualityLabel(pricedItem))}</dd></div>
-            <div><dt>${escapeHtml(uiText("Wear Range", "磨损范围"))}</dt><dd>${escapeHtml(`${pricedItem.minFloat ?? 0} - ${pricedItem.maxFloat ?? 1}`)}</dd></div>
-          </dl>
           <div class="market-plates-heading">
-            <p class="eyebrow">${escapeHtml(uiText("Market Plates", "\u5e02\u573a\u94ed\u724c"))}</p>
+            <p class="eyebrow">${escapeHtml(uiText("Market Prices", "市场价格"))}</p>
             <span>${escapeHtml(uiText("Reference, BUFF, and YouPin prices remain synced through the existing price system.", "参考价、BUFF 与悠悠有品价格继续通过现有价格系统同步。"))}</span>
           </div>
           <div class="platform-price-grid obsidian-price-ledger" id="detailPlatformPriceGrid">
@@ -5398,19 +5824,36 @@
               <strong class="platform-price-value" id="detailReferencePriceValue">${escapeHtml(formatPrice(referenceDisplayPrice))}</strong>
               <small class="platform-price-hint" id="detailReferencePriceHint">${escapeHtml(referenceHintText)}</small>
             </article>
+            <article class="platform-price-card obsidian-more-market-card" data-platform="more">
+              <span class="platform-price-label">${escapeHtml(uiText("More Markets", "更多市场"))}</span>
+              <strong class="platform-price-value">${escapeHtml(uiText("View All", "查看全部"))}</strong>
+              <small class="platform-price-hint">${escapeHtml(uiText("Additional platform connectors can be added later.", "更多平台连接后续接入。"))}</small>
+            </article>
           </div>
-          ${aiItemAnalysisMarkup(pricedItem, selectedWear, selectedVariant)}
-          ${hasInventoryInspectDetails ? `<div class="inventory-inspect-stickers">
-            <span>${escapeHtml(uiText("Inventory item details", "库存物品详情"))}</span>
+          <section class="obsidian-stat-band">
             <div>
-              ${inventoryVersionLabel ? `<em>${escapeHtml(uiText("Version", "版本"))} 路 ${escapeHtml(inventoryVersionLabel)}</em>` : ""}
-              ${inventoryTemplateLabel ? `<em>${escapeHtml(uiText("Special Template", "特殊模板"))} 路 ${escapeHtml(inventoryTemplateLabel)}</em>` : ""}
-              ${inventoryQualityLabel ? `<em>${escapeHtml(uiText("Quality", "品质"))} 路 ${escapeHtml(inventoryQualityLabel)}</em>` : ""}
-              ${inventoryWearLabel ? `<em>${escapeHtml(uiText("Wear", "磨损"))} 路 ${escapeHtml(inventoryWearLabel)}</em>` : ""}
+              <span>${escapeHtml(uiText("Lowest", "当前最低价"))}</span>
+              <strong>${escapeHtml(formatPrice(referenceDisplayPrice))}</strong>
             </div>
-            ${inventoryStickersForView.length ? `<span>${escapeHtml(uiText("Stickers on this inventory item", "这件库存物品上的贴纸"))}</span>
-            <div>${inventoryStickersForView.map((sticker) => `<em>${escapeHtml(sticker.name)}</em>`).join("")}</div>` : ""}
-          </div>` : ""}
+            <div>
+              <span>${escapeHtml(uiText("Wear", "磨损"))}</span>
+              <strong>${escapeHtml(selectedWear ? wearLabel(selectedWear) : uiText("Any", "不限"))}</strong>
+            </div>
+            <div>
+              <span>${escapeHtml(uiText("Version", "版本"))}</span>
+              <strong>${escapeHtml(selectedVariantLabel)}</strong>
+            </div>
+          </section>
+          <section class="obsidian-current-panel">
+            <p class="eyebrow">${escapeHtml(uiText("Current Item", "当前饰品信息"))}</p>
+            <dl class="spec-list">
+              <div><dt>${escapeHtml(uiText("Weapon", "武器"))}</dt><dd>${escapeHtml(itemWeapon(resolvedItem))}</dd></div>
+              <div><dt>${escapeHtml(uiText("Hall / Collection", "\u5c55\u533a / \u7cfb\u5217"))}</dt><dd>${escapeHtml(collectionLabel(resolvedItem))}</dd></div>
+              <div><dt>${escapeHtml(uiText("Rarity", "稀有度"))}</dt><dd>${escapeHtml(rarityLabel(resolvedItem))}</dd></div>
+              <div><dt>${escapeHtml(uiText("Quality", "品质"))}</dt><dd>${escapeHtml(qualityLabel(pricedItem))}</dd></div>
+              <div><dt>${escapeHtml(uiText("Wear Range", "磨损范围"))}</dt><dd>${escapeHtml(`${pricedItem.minFloat ?? 0} - ${pricedItem.maxFloat ?? 1}`)}</dd></div>
+            </dl>
+          </section>
         </section>
       </section>
       <section class="detail-related obsidian-related-rail">
@@ -5420,7 +5863,24 @@
         </div>
         <div class="related-list">${related.map(cardMarkup).join("")}</div>
       </section>
+      <section class="detail-related obsidian-ai-rail">
+        ${aiItemAnalysisMarkup(pricedItem, selectedWear, selectedVariant)}
+        ${hasInventoryInspectDetails ? `<div class="inventory-inspect-stickers">
+          <span>${escapeHtml(uiText("Inventory item details", "库存物品详情"))}</span>
+          <div>
+            ${inventoryVersionLabel ? `<em>${escapeHtml(uiText("Version", "版本"))} · ${escapeHtml(inventoryVersionLabel)}</em>` : ""}
+            ${inventoryTemplateLabel ? `<em>${escapeHtml(uiText("Special Template", "特殊模板"))} · ${escapeHtml(inventoryTemplateLabel)}</em>` : ""}
+            ${inventoryQualityLabel ? `<em>${escapeHtml(uiText("Quality", "品质"))} · ${escapeHtml(inventoryQualityLabel)}</em>` : ""}
+            ${inventoryWearLabel ? `<em>${escapeHtml(uiText("Wear", "磨损"))} · ${escapeHtml(inventoryWearLabel)}</em>` : ""}
+          </div>
+          ${inventoryStickersForView.length ? `<span>${escapeHtml(uiText("Stickers on this inventory item", "这件库存物品上的贴纸"))}</span>
+          <div>${inventoryStickersForView.map((sticker) => `<em>${escapeHtml(sticker.name)}</em>`).join("")}</div>` : ""}
+        </div>` : ""}
+      </section>
     `;
+    try {
+      globalThis.__rebuildStickerViewer?.();
+    } catch {}
     const wearSelect = document.getElementById("wearSelect");
     applyWearClass(selectedWear || wearSelect?.value || "factory-new");
     loadPlatformPrices(pricedItem, selectedWear, selectedVariant).then((payload) => {
@@ -5461,39 +5921,107 @@
     if (!root) return;
     if (!catalogDataAvailable()) {
       root.innerHTML = `
-        <section class="page-intro" data-motion-intro data-motion-title-fast>
-          <p class="eyebrow" data-motion-part="eyebrow">${escapeHtml(uiText("Saved", "已收藏"))}</p>
-          <h1 data-motion-part="title">${escapeHtml(uiText("Saved", "已收藏"))}</h1>
-          <p data-motion-part="copy">${escapeHtml(uiText("Your saved exhibits will stream in after the page frame is ready.", "\u9875\u9762\u6846\u67b6\u5c31\u7eea\u540e\uff0c\u79c1\u4eba\u5c55\u67dc\u4f1a\u7ee7\u7eed\u8f7d\u5165\u3002"))}</p>
-        </section>
-        <section class="favorites-section"><div class="empty-state">${escapeHtml(uiText("Loading saved exhibits...", "\u6b63\u5728\u52a0\u8f7d\u79c1\u4eba\u5c55\u67dc..."))}</div></section>
+        <div class="favorites-shell">
+          <section class="favorites-hero" data-motion-intro data-motion-title-fast>
+            <div class="favorites-hero-copy">
+              <p class="eyebrow" data-motion-part="eyebrow">${escapeHtml(uiText("Saved", "已收藏"))}</p>
+              <h1 data-motion-part="title">${escapeHtml(uiText("Saved", "已收藏"))}</h1>
+              <p data-motion-part="copy">${escapeHtml(uiText("Your saved exhibits will stream in after the page frame is ready.", "\u9875\u9762\u6846\u67b6\u5c31\u7eea\u540e\uff0c\u79c1\u4eba\u5c55\u67dc\u4f1a\u7ee7\u7eed\u8f7d\u5165\u3002"))}</p>
+            </div>
+            <div class="favorites-hero-panel"><div class="favorites-stats-grid"><div class="favorites-stat-card"><small>${escapeHtml(uiText("Status", "状态"))}</small><strong>...</strong><span>${escapeHtml(uiText("Loading saved exhibits...", "\u6b63\u5728\u52a0\u8f7d\u79c1\u4eba\u5c55\u67dc..."))}</span></div></div></div>
+          </section>
+          <section class="favorites-section favorites-collection-section"><div class="empty-state">${escapeHtml(uiText("Loading saved exhibits...", "\u6b63\u5728\u52a0\u8f7d\u79c1\u4eba\u5c55\u67dc..."))}</div></section>
+        </div>
       `;
       return;
     }
-    const favorites = getUserState().favorites.map((id) => resolveDisplayItemById(id)).filter(Boolean);
+    const userState = getUserState();
+    const favorites = userState.favorites.map((id) => resolveDisplayItemById(id)).filter(Boolean);
+    const compareCount = Array.isArray(userState.compare) ? userState.compare.length : 0;
     const diyDesigns = getDiyDesigns();
+    const spotlightItem = favorites[0] || null;
+    const spotlightPriceRecord = spotlightItem ? effectiveCatalogPriceRecord(spotlightItem) : null;
+    const spotlightCollection = spotlightItem ? collectionLabel(spotlightItem) : uiText("Private case display", "私人展柜展示");
+    const spotlightPrice = spotlightPriceRecord ? formatPrice(spotlightPriceRecord.price) : uiText("No price", "暂无报价");
+    const weaponCount = favorites.filter((item) => item?.type === "rifle" || item?.type === "pistol" || item?.type === "smg" || item?.type === "shotgun" || item?.type === "machinegun").length;
+    const knifeCount = favorites.filter((item) => item?.type === "knife").length;
+    const gloveCount = favorites.filter((item) => item?.type === "glove").length;
     root.innerHTML = `
-      <section class="page-intro" data-motion-intro data-motion-title-fast>
-        <p class="eyebrow" data-motion-part="eyebrow">${escapeHtml(uiText("Saved", "已收藏"))}</p>
-        <h1 data-motion-part="title">${escapeHtml(uiText("Saved", "已收藏"))}</h1>
-        <p data-motion-part="copy">${escapeHtml(uiText("Keep saved exhibits, comparison candidates, and DIY sticker schemes in a private display case.", "\u628a\u6536\u85cf\u5c55\u54c1\u3001\u5bf9\u6bd4\u5019\u9009\u548c DIY \u8d34\u7eb8\u65b9\u6848\u4fdd\u5b58\u5728\u79c1\u4eba\u5c55\u67dc\u3002"))}</p>
-      </section>
-      <section class="favorites-section">
-        ${favorites.length ? `<div class="favorites-grid">${favorites.map(favoriteCardMarkup).join("")}</div>` : `<div class="empty-state">${escapeHtml(uiText("No favorites yet. Use Save in the catalog or inspector to add items here.", "\u8fd8\u6ca1\u6709\u4fdd\u5b58\u7684\u5c55\u54c1\uff0c\u53ef\u4ee5\u5728\u9986\u85cf\u6216\u68c0\u89c6\u9875\u70b9\u51fb\u4fdd\u5b58\u3002"))}</div>`}
-      </section>
-      <section class="favorites-section">
-        <div class="section-heading">
+      <div class="favorites-shell">
+        <section class="favorites-hero" data-motion-intro data-motion-title-fast>
+          <div class="favorites-hero-copy">
+            <p class="eyebrow" data-motion-part="eyebrow">${escapeHtml(uiText("Private Case", "私人展柜"))}</p>
+            <h1 data-motion-part="title">${escapeHtml(uiText("Favorites", "Favorites"))}</h1>
+            <p data-motion-part="copy">${escapeHtml(uiText("Keep saved exhibits, comparison candidates, and DIY sticker schemes in one private display case.", "\u628a\u6536\u85cf\u5c55\u54c1\u3001\u5bf9\u6bd4\u5019\u9009\u548c DIY \u8d34\u7eb8\u65b9\u6848\u653e\u5728\u540c\u4e00\u4e2a\u79c1\u4eba\u5c55\u67dc\u91cc\u3002"))}</p>
+            <div class="favorites-hero-actions">
+              <a class="primary-link" href="catalog.html">${escapeHtml(uiText("Enter Archive", "进入馆藏"))}</a>
+              <a class="secondary-link" href="#favoritesItems">${escapeHtml(uiText("View Saved Exhibits", "查看展品"))}</a>
+            </div>
+          </div>
+          <div class="favorites-hero-panel">
+            <div class="favorites-spotlight">
+              <div class="favorites-spotlight-stage">
+                ${spotlightItem?.image ? `<img class="favorites-spotlight-image" src="${escapeHtml(spotlightItem.image)}" alt="${escapeHtml(itemTitle(spotlightItem))}" loading="lazy" decoding="async" />` : `<div class="empty-state">${escapeHtml(uiText("No image", "暂无图片"))}</div>`}
+              </div>
+              <div class="favorites-spotlight-copy">
+                <small>${escapeHtml(spotlightCollection)}</small>
+                <strong>${escapeHtml(spotlightItem ? itemTitle(spotlightItem) : uiText("Awaiting next exhibit", "等待下一件展品"))}</strong>
+                <span>${escapeHtml(spotlightPrice)}</span>
+              </div>
+            </div>
+            <div class="favorites-stats-grid">
+              <article class="favorites-stat-card"><div class="favorites-stat-top"><i class="favorites-stat-icon favorites-stat-icon-saved" aria-hidden="true"></i><small>${escapeHtml(uiText("Saved Exhibits", "已收藏展品"))}</small></div><strong>${favorites.length}</strong><span>${escapeHtml(uiText("Private case objects", "私人展柜对象"))}</span></article>
+              <article class="favorites-stat-card"><div class="favorites-stat-top"><i class="favorites-stat-icon favorites-stat-icon-compare" aria-hidden="true"></i><small>${escapeHtml(uiText("Compare Queue", "对比候选"))}</small></div><strong>${compareCount}</strong><span>${escapeHtml(uiText("Candidates ready", "候选项就绪"))}</span></article>
+              <article class="favorites-stat-card"><div class="favorites-stat-top"><i class="favorites-stat-icon favorites-stat-icon-diy" aria-hidden="true"></i><small>${escapeHtml(uiText("DIY Schemes", "DIY 方案"))}</small></div><strong>${diyDesigns.length}</strong><span>${escapeHtml(uiText("Sticker schemes saved", "已保存贴纸方案"))}</span></article>
+              <article class="favorites-stat-card"><div class="favorites-stat-top"><i class="favorites-stat-icon favorites-stat-icon-sync" aria-hidden="true"></i><small>${escapeHtml(uiText("Latest Status", "最近状态"))}</small></div><strong>${escapeHtml(uiText("Local", "本地"))}</strong><span>${escapeHtml(uiText("Stored in this browser", "保存在当前浏览器"))}</span></article>
+            </div>
+          </div>
+        </section>
+        <section class="favorites-toolbar" aria-label="${escapeHtml(uiText("Favorite filters", "收藏筛选"))}">
+          <div class="favorites-filter-cluster">
+            <span class="favorites-filter-chip is-active">${escapeHtml(uiText("All", "全部"))}</span>
+            <span class="favorites-filter-chip">${escapeHtml(uiTemplate("{count} weapons", { count: weaponCount }))}</span>
+            <span class="favorites-filter-chip">${escapeHtml(uiTemplate("{count} knives", { count: knifeCount }))}</span>
+            <span class="favorites-filter-chip">${escapeHtml(uiTemplate("{count} gloves", { count: gloveCount }))}</span>
+            <span class="favorites-filter-chip">${escapeHtml(uiTemplate("{count} DIY plans", { count: diyDesigns.length }))}</span>
+          </div>
+          <div class="favorites-filter-fields">
+            <span class="favorites-filter-field">${escapeHtml(uiText("Sort: Latest Saved", "排序: 最近收藏"))}</span>
+            <span class="favorites-filter-field">${escapeHtml(uiText("Rarity: Mixed", "稀有度: 混合"))}</span>
+          </div>
+        </section>
+        <section class="favorites-section favorites-collection-section">
+          <div class="section-heading favorites-section-head">
+            <p class="eyebrow">${escapeHtml(uiText("Saved Exhibits", "已收藏展品"))}</p>
+            <h2>${escapeHtml(uiText("Curated Wall", "私人展墙"))}</h2>
+            <p>${escapeHtml(uiText("Items saved from the archive and inspector stay here for quick return.", "从馆藏和检视器保存的展品会停留在这里，方便快速返回。"))}</p>
+          </div>
+          ${favorites.length ? `<div class="favorites-grid favorites-main-grid">${favorites.map(favoriteCardMarkup).join("")}</div>` : `<div class="empty-state">${escapeHtml(uiText("No favorites yet. Use Save in the catalog or inspector to add items here.", "\u8fd8\u6ca1\u6709\u4fdd\u5b58\u7684\u5c55\u54c1\uff0c\u53ef\u4ee5\u5728\u9986\u85cf\u6216\u68c0\u89c6\u9875\u70b9\u51fb\u4fdd\u5b58\u3002"))}</div>`}
+        </section>
+        <section class="favorites-section favorites-diy-section">
+        <div class="section-heading favorites-section-head">
           <p class="eyebrow">${escapeHtml(uiText("DIY Designs", "DIY \u65b9\u6848"))}</p>
           <h2>${escapeHtml(uiText("Sticker Gallery", "\u8d34\u7eb8\u753b\u5eca"))}</h2>
+          <p>${escapeHtml(uiText("Saved sticker layouts remain attached to the same exhibition rail.", "已保存贴纸布局会继续保留在同一条展览轨道中。"))}</p>
         </div>
         ${diyDesigns.length ? `<div class="collection-grid diy-favorites-grid">${diyDesigns.map((design) => `
           <article class="collection-card diy-favorite-card">
+            <div class="favorite-preview diy-favorite-preview">
+              <div class="diy-favorite-canvas" aria-hidden="true">
+                ${(design.stickers || []).slice(0, 4).map((sticker) => `<img class="favorite-sticker diy-canvas-sticker" src="${escapeHtml(sticker.image || "")}" alt="${escapeHtml(sticker.name || uiText("Sticker", "\u8d34\u7eb8"))}" style="left:${Number(sticker.x) || 50}%;top:${Number(sticker.y) || 50}%;width:${Math.max(16, Number(sticker.size) || 13)}%;transform:translate(-50%, -50%) rotate(${Number(sticker.rotate) || 0}deg);" loading="lazy" decoding="async" />`).join("") || `<div class="empty-state">${escapeHtml(uiText("No stickers", "\u6682\u65e0\u8d34\u7eb8"))}</div>`}
+              </div>
+            </div>
             <p class="eyebrow">${escapeHtml(design.baseName || uiText("Custom Design", "\u81ea\u5b9a\u4e49\u65b9\u6848"))}</p>
             <h3>${escapeHtml(new Date(design.createdAt || Date.now()).toLocaleString())}</h3>
             <p>${escapeHtml(uiTemplate("{count} stickers", { count: (design.stickers || []).length }))}</p>
+            <div class="steam-bind-actions">
+              <a href="${escapeHtml(diyDesignInspectHref(design))}">${escapeHtml(uiText("Open Inspector", "打开检视器"))}</a>
+              <button class="secondary-action compact-action" type="button" data-diy-favorite-id="${escapeHtml(String(design.id || ""))}">${escapeHtml(uiText("Remove Favorite", "取消收藏"))}</button>
+            </div>
           </article>
         `).join("")}</div>` : `<div class="empty-state">${escapeHtml(uiText("No saved sticker layouts yet.", "\u8fd8\u6ca1\u6709\u4fdd\u5b58\u8d34\u7eb8\u65b9\u6848\u3002"))}</div>`}
-      </section>
+        </section>
+      </div>
     `;
   }
 
@@ -5502,26 +6030,58 @@
     if (!root) return;
     if (!catalogDataAvailable()) {
       root.innerHTML = `
-        <section class="page-intro recent-page-intro" data-motion-intro data-motion-title-fast>
-          <p class="eyebrow" data-motion-part="eyebrow">${escapeHtml(uiText("Trail", "\u89c2\u5c55\u8f68\u8ff9"))}</p>
-          <h1 data-motion-part="title">${escapeHtml(uiText("Trail", "Trail"))}</h1>
-          <p data-motion-part="copy">${escapeHtml(uiText("Recent history is loading back in now.", "\u89c2\u5c55\u8f68\u8ff9\u6b63\u5728\u6062\u590d\u3002"))}</p>
+        <section class="recent-stage recent-stage-loading">
+          <div class="recent-hero recent-hero-loading">
+            <img class="recent-hero-image" src="assets/recent-trail-hero-concept3.png" alt="${escapeHtml(uiText("Trail exhibition hall", "\u89c2\u5c55\u8f68\u8ff9\u5c55\u5385"))}" loading="lazy" decoding="async" />
+            <div class="recent-hero-copy">
+              <p class="recent-hero-eyebrow">${escapeHtml(uiText("Trail", "\u89c2\u5c55\u8f68\u8ff9"))}</p>
+              <h1 class="recent-hero-title">${escapeHtml(uiText("Trail", "Trail"))}</h1>
+              <p class="recent-hero-description"><span>${escapeHtml(uiText("Every view leaves a mark.", "\u6bcf\u4e00\u6b21\u89c2\u5c55\u90fd\u4f1a\u7559\u4e0b\u75d5\u8ff9"))}</span><span>${escapeHtml(uiText("Browse your recent history and revisit the pieces that caught your eye.", "\u56de\u770b\u4f60\u6700\u8fd1\u7684\u8db3\u8ff9\uff0c\u91cd\u65b0\u8d70\u8fd1\u5438\u5f15\u4f60\u7684\u90a3\u4e9b\u5c55\u54c1\u3002"))}</span></p>
+            </div>
+          </div>
+          <div class="empty-state recent-empty-state">${escapeHtml(uiText("Loading recent exhibits...", "\u6b63\u5728\u52a0\u8f7d\u6700\u8fd1\u5c55\u54c1..."))}</div>
         </section>
-        <div class="empty-state">${escapeHtml(uiText("Loading recent exhibits...", "\u6b63\u5728\u52a0\u8f7d\u6700\u8fd1\u5c55\u54c1..."))}</div>
       `;
       return;
     }
     const recent = getUserState().recent.map((id) => resolveDisplayItemById(id)).filter(Boolean);
+    const viewedCount = recent.length;
+    const trailBandItems = recent.slice(0, 6);
     root.innerHTML = `
-      <section class="page-intro recent-page-intro" data-motion-intro data-motion-title-fast>
-        <p class="eyebrow" data-motion-part="eyebrow">${escapeHtml(uiText("Trail", "\u89c2\u5c55\u8f68\u8ff9"))}</p>
-        <h1 data-motion-part="title">${escapeHtml(uiText("Trail", "Trail"))}</h1>
-        <p data-motion-part="copy">${escapeHtml(uiText("Your latest inspected exhibits stay here in time order so you can return quickly.", "\u6700\u8fd1\u68c0\u89c6\u8fc7\u7684\u5c55\u54c1\u4f1a\u6309\u65f6\u95f4\u4fdd\u7559\u5728\u8fd9\u91cc\uff0c\u65b9\u4fbf\u5feb\u901f\u8fd4\u56de\u3002"))}</p>
+      <section class="recent-stage">
+        <div class="recent-hero">
+          <img class="recent-hero-image" src="assets/recent-trail-hero-concept3.png" alt="${escapeHtml(uiText("Trail exhibition hall", "\u89c2\u5c55\u8f68\u8ff9\u5c55\u5385"))}" loading="lazy" decoding="async" />
+          <div class="recent-hero-copy">
+            <p class="recent-hero-eyebrow">${escapeHtml(uiText("Trail", "\u89c2\u5c55\u8f68\u8ff9"))}</p>
+            <h1 class="recent-hero-title">${escapeHtml(uiText("Trail", "Trail"))}</h1>
+            <p class="recent-hero-description"><span>${escapeHtml(uiText("Every view leaves a mark.", "\u6bcf\u4e00\u6b21\u89c2\u5c55\u90fd\u4f1a\u7559\u4e0b\u75d5\u8ff9"))}</span><span>${escapeHtml(uiText("Browse your recent history and revisit the pieces that caught your eye.", "\u56de\u770b\u4f60\u6700\u8fd1\u7684\u8db3\u8ff9\uff0c\u91cd\u65b0\u8d70\u8fd1\u5438\u5f15\u4f60\u7684\u90a3\u4e9b\u5c55\u54c1\u3002"))}</span></p>
+            <button class="secondary-action recent-hero-clear-button" id="clearRecentViews" type="button">${escapeHtml(uiText("Clear Trail", "\u6e05\u7a7a\u8f68\u8ff9"))}</button>
+          </div>
+          <div class="recent-hero-a11y visually-hidden">
+            <p>${escapeHtml(uiText("Trail", "\u89c2\u5c55\u8f68\u8ff9"))}</p>
+            <h1>${escapeHtml(uiText("Trail", "Trail"))}</h1>
+            <p>${escapeHtml(uiText("Every view leaves a mark.\nBrowse your recent history and revisit the pieces that caught your eye.", "\u6bcf\u4e00\u6b21\u89c2\u5c55\u90fd\u4f1a\u7559\u4e0b\u75d5\u8ff9\n\u56de\u770b\u4f60\u6700\u8fd1\u7684\u8db3\u8ff9\uff0c\u91cd\u65b0\u8d70\u8fd1\u5438\u5f15\u4f60\u7684\u90a3\u4e9b\u5c55\u54c1\u3002"))}</p>
+          </div>
+        </div>
+        ${recent.length ? `
+          <section class="recent-trail-band" aria-label="${escapeHtml(uiText("Trail summary", "\u8f68\u8ff9\u6982\u89c8"))}">
+            <div class="recent-trail-band-head">
+              <p>${escapeHtml(uiText("Your Trail", "\u4f60\u7684\u8f68\u8ff9"))}</p>
+              <span>${escapeHtml(uiText(uiTemplate("Latest visits · {count} exhibits restored", { count: viewedCount }), uiTemplate("\u6700\u8fd1\u8db3\u8ff9 \u00b7 \u5df2\u6062\u590d {count} \u4ef6\u5c55\u54c1", { count: viewedCount })))}</span>
+            </div>
+            <div class="recent-trail-band-track">
+              ${trailBandItems.map((item, index) => recentTrailBandNodeMarkup(item, index, trailBandItems.length)).join("")}
+            </div>
+          </section>
+        ` : ""}
+        <div class="recent-gallery">
+          ${recent.length ? `<div class="favorites-grid recent-grid recent-gallery-grid">${recent.map((item, index) => recentCardMarkup(item, index, viewedCount)).join("")}</div>` : `<div class="empty-state recent-empty-state">${escapeHtml(uiText("No recent views yet. Open any item to have it appear here automatically.", "\u8fd8\u6ca1\u6709\u89c2\u5c55\u8f68\u8ff9\uff0c\u6253\u5f00\u4efb\u610f\u5c55\u54c1\u540e\u4f1a\u81ea\u52a8\u51fa\u73b0\u5728\u8fd9\u91cc\u3002"))}</div>`}
+        </div>
       </section>
-      <div class="recent-page-actions">
-        <button class="secondary-action" id="clearRecentViews" type="button">${escapeHtml(uiText("Clear Trail", "\u6e05\u7a7a\u8f68\u8ff9"))}</button>
-      </div>
-      ${recent.length ? `<div class="favorites-grid recent-grid">${recent.map(favoriteCardMarkup).join("")}</div>` : `<div class="empty-state">${escapeHtml(uiText("No recent views yet. Open any item to have it appear here automatically.", "\u8fd8\u6ca1\u6709\u89c2\u5c55\u8f68\u8ff9\uff0c\u6253\u5f00\u4efb\u610f\u5c55\u54c1\u540e\u4f1a\u81ea\u52a8\u51fa\u73b0\u5728\u8fd9\u91cc\u3002"))}</div>`}
+      <footer class="recent-footer-bar">
+        <span>${escapeHtml(uiText(uiTemplate("Viewed {count} items", { count: viewedCount }), uiTemplate("已浏览 {count} 件展品", { count: viewedCount })))}</span>
+        <span>${escapeHtml(viewedCount ? uiText("Ordered from latest visit to earliest trail point", "\u4ece\u6700\u65b0\u8bbf\u95ee\u6392\u81f3\u6700\u65e9\u8f68\u8ff9") : uiText("Awaiting your first exhibit visit", "\u7b49\u5f85\u4f60\u7684\u7b2c\u4e00\u6b21\u89c2\u5c55"))}</span>
+      </footer>
     `;
   }
 
@@ -5633,7 +6193,7 @@
     { query: "Doppler", patterns: [/澶氭櫘鍕抾doppler/i] },
     { query: "Fade", patterns: [/娓愬彉|fade/i] },
     { query: "Tiger Tooth", patterns: [/铏庣墮|tiger tooth/i] },
-    { query: "Slaughter", patterns: [/灞犲か|slaughter/i] },
+    { query: "Slaughter", patterns: [/屠夫|slaughter/i] },
     { query: "Marble Fade", patterns: [/澶х悊鐭虫笎鍙榺marble fade/i] }
   ];
 
@@ -5742,7 +6302,7 @@
     const text = [item.weaponEn, item.weaponZh, item.weapon, item.nameEn, item.nameZh, item.name, item.type].filter(Boolean).join(" ").trim().toLowerCase();
     if (/\bak-?47\b/.test(text)) return "ak47";
     if (/m4a1-?s/.test(text)) return "m4a1";
-    if (/m4a1-?s|m4a1 娑堥煶|m4a1娑堥煶/.test(text)) return "m4a1";
+    if (/m4a1-?s|m4a1 消音|m4a1消音/.test(text)) return "m4a1";
     if (/usp-?s/.test(text)) return "usp";
     if (/glock-?18/.test(text)) return "glock";
     if (/desert eagle/.test(text)) return "deagle";
@@ -5756,7 +6316,7 @@
     const text = [entry?.market_hash_name, entry?.marketHashName, entry?.item_name, entry?.itemName, entry?.item_type, entry?.itemType].filter(Boolean).join(" ").toLowerCase();
     if (/\bak-?47\b/.test(text)) return "ak47";
     if (/m4a1-?s/.test(text)) return "m4a1";
-    if (/m4a1-?s|m4a1 娑堥煶|m4a1娑堥煶/.test(text)) return "m4a1";
+    if (/m4a1-?s|m4a1 消音|m4a1消音/.test(text)) return "m4a1";
     if (/usp-?s/.test(text)) return "usp";
     if (/glock-?18/.test(text)) return "glock";
     if (/desert eagle/.test(text)) return "deagle";
@@ -5919,6 +6479,22 @@
     return suggestions.sort((left, right) => upgradeSlotOrder.indexOf(left.upgradeSlot) - upgradeSlotOrder.indexOf(right.upgradeSlot));
   }
 
+  function loadoutInventoryOverview() {
+    const synced = getSortedInventoryEntries();
+    const cache = appState.loadoutInventoryOverviewCache || {};
+    if (cache.source === synced && cache.value) return cache.value;
+    const value = {
+      synced,
+      count: synced.length || Number(appState.session?.lastInventoryCount || 0),
+      totalValue: synced.reduce((sum, entry) => {
+        const nextValue = Number(inventoryReferencePrice(entry));
+        return sum + (Number.isFinite(nextValue) ? nextValue : 0);
+      }, 0)
+    };
+    appState.loadoutInventoryOverviewCache = { source: synced, value };
+    return value;
+  }
+
   async function ensureAiInventoryRecommendations(force = false) {
     const cachedSuggestions = Array.isArray(appState.aiInventoryRecommendations?.suggestions)
       ? appState.aiInventoryRecommendations.suggestions
@@ -5989,23 +6565,21 @@
     appState.loadoutHydrationStarted = true;
     appState.loadoutFrameReady = true;
     if (pageName() === "loadout.html") renderLoadout();
-    window.setTimeout(async () => {
-      const backgroundTasks = [ensureAiProLoadouts()];
-      if (!appState.aiInventoryRecommendations) {
-        backgroundTasks.push(new Promise((resolve) => {
-          scheduleUiTask(() => {
-            Promise.resolve(ensureAiInventoryRecommendations()).finally(resolve);
-          }, { afterFrames: 2, fallbackMs: 80 });
-        }));
-      }
+    scheduleIdleTask(async () => {
       try {
-        await Promise.allSettled(backgroundTasks);
+        if (!appState.aiInventoryRecommendations) {
+          await new Promise((resolve) => {
+            scheduleIdleTask(() => {
+              Promise.resolve(ensureAiInventoryRecommendations()).finally(resolve);
+            }, { timeoutMs: 1200, fallbackMs: 240 });
+          });
+        }
       } finally {
         appState.loadoutHydrationStarted = false;
         persistAiLoadoutState();
         if (pageName() === "loadout.html") renderLoadout();
       }
-    }, 0);
+    }, { timeoutMs: 900, fallbackMs: 180 });
   }
 
   function pulsePressState(element) {
@@ -6025,6 +6599,7 @@
     const budgetMessage = Number.isFinite(budget) && budget > 0
       ? `Budget ${Math.round(budget)} CNY`
       : "";
+    const userContent = [budgetMessage, prompt].filter(Boolean).join(" | ").trim();
     if (!userContent) return;
     await ensureCatalogAssetsLoaded();
     appState.aiLoadoutChatPending = true;
@@ -6074,6 +6649,7 @@
         })
       });
       const assistantContent = payload?.message || payload?.engine?.note || `Generated a primary loadout with about ${Math.round((payload?.selected?.budgetUsage || 0) * 100)}% budget usage.`;
+      const normalizedPayload = sanitizeAiLoadoutChatPayload(payload);
       if (appState.aiLoadoutChatRequestToken !== requestToken) return;
       appState.aiLoadoutChatMessages = appState.aiLoadoutChatMessages.concat([{
         role: "assistant",
@@ -6513,6 +7089,34 @@
     });
   }
 
+  function armLoadoutProHydration() {
+    if (pageName() !== "loadout.html") return;
+    if (appState.aiProLoadouts || appState.aiProLoadoutsLoading) return;
+    const stage = document.getElementById("proReferenceStage");
+    if (!stage) return;
+    if (loadoutProHydrationObserver) {
+      loadoutProHydrationObserver.disconnect();
+      loadoutProHydrationObserver = null;
+    }
+    const hydrate = () => {
+      scheduleIdleTask(async () => {
+        await ensureAiProLoadouts();
+        if (pageName() === "loadout.html") renderLoadout();
+      }, { timeoutMs: 900, fallbackMs: 180 });
+    };
+    if (typeof window.IntersectionObserver !== "function") {
+      scheduleIdleTask(hydrate, { timeoutMs: 2200, fallbackMs: 540 });
+      return;
+    }
+    loadoutProHydrationObserver = new IntersectionObserver((entries, observer) => {
+      if (!entries.some((entry) => entry.isIntersecting || entry.intersectionRatio > 0)) return;
+      observer.disconnect();
+      loadoutProHydrationObserver = null;
+      hydrate();
+    }, { rootMargin: "320px 0px" });
+    loadoutProHydrationObserver.observe(stage);
+  }
+
   function aiSuggestionTabsMarkup(targetKey, activeCategory, entries = []) {
     const counts = new Map();
     aiSuggestionCategoryDefinitions().forEach((definition) => {
@@ -6541,16 +7145,21 @@
     const suggestions = aiSuggestionsForCategory(payload.suggestions || [], activeCategory);
     const snapshotUpdatedAt = globalThis.CS2_MARKET_PRICES?.updatedAt || "";
     return `
-      <section class="ai-panel">
-        <div class="section-heading">
-          <p class="eyebrow">${escapeHtml(uiText("Inventory Upgrade", LOADOUT_ZH.inventoryTitle))}</p>
-          <h2>${escapeHtml(uiText("More Expensive Same-Style Swaps", LOADOUT_ZH.inventoryHeading))}</h2>
+      <section class="ai-panel curator-runway-panel">
+        <div class="section-heading curator-runway-head">
+          <div>
+            <p class="eyebrow">${escapeHtml(uiText("Inventory Upgrade", LOADOUT_ZH.inventoryTitle))}</p>
+            <h2>${escapeHtml(uiText("Upgrade Runway", "升级展轨"))}</h2>
+          </div>
+          <div class="curator-runway-actions">
+            <button class="secondary-action compact-action" id="rotateAiInventoryUpgradeGroupButton" type="button">${escapeHtml(uiText("Another set", LOADOUT_ZH.anotherSet))}</button>
+            <button class="secondary-action compact-action" id="refreshAiInventoryRecommendationsButton" type="button"${appState.aiInventoryPriceSnapshotRefreshing ? " disabled" : ""}>${escapeHtml(appState.aiInventoryPriceSnapshotRefreshing ? uiText("Refreshing...", LOADOUT_ZH.refreshing) : uiText("Refresh data", LOADOUT_ZH.refresh))}</button>
+          </div>
         </div>
         <p class="ai-copy">${escapeHtml(uiText("Only recommends a pricier skin in the same category and color family as an item you already own. If no matching upgrade exists, it is skipped.", LOADOUT_ZH.inventoryCopy))}</p>
         <div class="ai-data-freshness">
           <span>${escapeHtml(snapshotUpdatedAt ? `${uiText("Price data", LOADOUT_ZH.priceData)} 路 ${formatDateTime(snapshotUpdatedAt)}` : uiText("Price data is loading", LOADOUT_ZH.priceLoading))}</span>
-          <button class="secondary-action compact-action" id="rotateAiInventoryUpgradeGroupButton" type="button">${escapeHtml(uiText("Another set", LOADOUT_ZH.anotherSet))}</button>
-          <button class="secondary-action compact-action" id="refreshAiInventoryRecommendationsButton" type="button"${appState.aiInventoryPriceSnapshotRefreshing ? " disabled" : ""}>${escapeHtml(appState.aiInventoryPriceSnapshotRefreshing ? uiText("Refreshing...", LOADOUT_ZH.refreshing) : uiText("Refresh data", LOADOUT_ZH.refresh))}</button>
+          <strong>${escapeHtml(uiText("More Expensive Same-Style Swaps", LOADOUT_ZH.inventoryHeading))}</strong>
         </div>
         ${combo ? `<div class="ai-combo-strip">
           <span>${escapeHtml(uiText("Recommended knife and glove direction", LOADOUT_ZH.combo))}</span>
@@ -6598,51 +7207,149 @@
     `;
   }
 
-  function aiChatMarkup() {
+  function latestLoadoutRecommendationState() {
     const messages = Array.isArray(appState.aiLoadoutChatMessages) ? appState.aiLoadoutChatMessages : [];
     const latestAssistantMessage = [...messages].reverse().find((entry) => entry?.role === "assistant");
     const payload = latestAssistantMessage?.payload || null;
-    const activeCategory = appState.aiLoadoutCategory || "all";
-    const requestSummary = summarizeAiLoadoutRequest(payload?.preferences, appState.aiLoadoutChatDraft || "");
+    return {
+      messages,
+      latestAssistantMessage,
+      payload,
+      activeCategory: appState.aiLoadoutCategory || "all",
+      requestSummary: summarizeAiLoadoutRequest(payload?.preferences, appState.aiLoadoutChatDraft || "")
+    };
+  }
+
+  function curatorRecommendationRailItemMarkup(entry = {}) {
+    const item = entry?.id
+      ? resolveDisplayItemById(entry.id)
+      : resolveDisplayItemByName(entry?.name || "");
+    const href = item ? `item.html?id=${encodeURIComponent(item.id)}&wear=${encodeURIComponent(entry.wearId || "")}` : "";
+    const imageUrl = String(item?.image || entry?.image || resolveCatalogImageForSuggestion(entry) || "").trim();
+    const displayName = item ? itemTitle(item) : localizedCatalogDisplayName(entry?.name || "", entry?.weapon || "");
+    const displayMeta = item ? itemWeapon(item) : localizedWeaponName(entry?.weapon || categoryLabel(entry.type || ""));
     return `
-      <section class="ai-panel ai-chat-panel">
-        <div class="section-heading">
-          <p class="eyebrow">${escapeHtml(uiText("AI Loadout Chat", LOADOUT_ZH.chatTitle))}</p>
-          <h2>${escapeHtml(uiText("Describe Your Ideal Setup", LOADOUT_ZH.chatHeading))}</h2>
+      <article class="curator-rail-item${href ? " ai-suggestion-card-clickable" : ""}"${href ? ` data-href="${escapeHtml(href)}" tabindex="0" role="link"` : ""}>
+        <div class="curator-rail-item-visual">
+          ${imageUrl ? lazyImageMarkup({ src: imageUrl, alt: displayName, loading: "eager", decoding: "async", fetchpriority: "low" }) : ""}
         </div>
-        <p class="ai-copy">${escapeHtml(uiText("Low budget requests stay on gun skins first, and vague requests trigger follow-up questions before recommendations.", LOADOUT_ZH.chatCopy))}</p>
-        ${aiLoadoutFilterBarMarkup()}
-        <form class="ai-chat-form" id="aiLoadoutChatForm">
-          <label>
-            ${escapeHtml(uiText("Budget (CNY)", "\u9884\u7b97\uff08\u4eba\u6c11\u5e01\uff09"))}
-            <input id="aiLoadoutBudgetInput" type="number" min="0" step="50" value="${escapeHtml(String(appState.aiLoadoutBudgetDraft || ""))}" placeholder="1500" />
-          </label>
-          <label>
-            ${escapeHtml(uiText("What do you want?", LOADOUT_ZH.askWhat))}
-            <textarea id="aiLoadoutPromptInput" rows="3" placeholder="${escapeHtml(uiText("Example: blue-white, clean, mostly AK + USP, no flashy knives", "示例：蓝白配色、干净风、主要是 AK + USP、不想要花哨刀具"))}">${escapeHtml(appState.aiLoadoutChatDraft || "")}</textarea>
-          </label>
-          <div class="ai-chat-actions">
-            <button class="primary-action" type="submit"${appState.aiLoadoutChatPending ? " disabled" : ""}>${escapeHtml(appState.aiLoadoutChatPending ? uiText("Thinking...", LOADOUT_ZH.thinking) : uiText("Ask AI", LOADOUT_ZH.askAi))}</button>
-            <button class="secondary-action" id="clearAiLoadoutChatButton" type="button"${messages.length || appState.aiLoadoutChatDraft || appState.aiLoadoutBudgetDraft ? "" : " disabled"}>${escapeHtml(uiText("Clear Chat", LOADOUT_ZH.clearChat))}</button>
+        <div class="curator-rail-item-copy">
+          <p>${escapeHtml(displayMeta)}</p>
+          <h3>${escapeHtml(displayName)}</h3>
+          <strong>${escapeHtml(formatPrice(entry.price))}</strong>
+        </div>
+      </article>
+    `;
+  }
+
+  function curatorRecommendationRailMarkup() {
+    const { payload } = latestLoadoutRecommendationState();
+    const suggestions = Array.isArray(payload?.suggestions) ? payload.suggestions.slice(0, 5) : [];
+    const totalSuggestedCost = Number(payload?.summary?.totalSuggestedCost || 0);
+    return `
+      <section class="curator-rail-panel" id="loadoutRecommendationRail">
+        <div class="curator-panel-head">
+          <div>
+            <p class="eyebrow">${escapeHtml(uiText("Recommendation Rail", "推荐工作台"))}</p>
+            <h2>${escapeHtml(uiText("Recommendation Rail", "推荐工作台"))}</h2>
           </div>
-        </form>
-        <div class="ai-chat-log">
-          ${latestAssistantMessage ? `
-            <article class="ai-chat-bubble" data-role="assistant">
-              <div class="ai-chat-bubble-head">
-                <strong>${escapeHtml(uiText("AI Recommendation", LOADOUT_ZH.aiRecommendation))}</strong>
-                ${requestSummary ? `<small>${escapeHtml(currentLanguage().startsWith("zh") ? `\u6309\u5f53\u524d\u8981\u6c42\u66f4\u65b0\uff1a${requestSummary}` : `Updated for: ${requestSummary}`)}</small>` : ""}
-              </div>
-              <p>${escapeHtml(latestAssistantMessage.content || "")}</p>
-              ${payload?.summary?.totalSuggestedCost ? `<small>${escapeHtml(currentLanguage().startsWith("zh")
-                ? `\u672c\u6b21\u63a8\u8350\u603b\u4ef7\u7ea6 ${formatPrice(payload.summary.totalSuggestedCost)}`
-                : `Suggested total is about ${formatPrice(payload.summary.totalSuggestedCost)}`)}</small>` : ""}
-              ${payload?.suggestions?.length ? `${aiSuggestionTabsMarkup("loadout", activeCategory, payload.suggestions)}
-              <div class="ai-suggestion-grid compact">
-                ${aiSuggestionsForCategory(payload.suggestions, activeCategory).map(aiSuggestionCardMarkup).join("")}
-              </div>` : ""}
-            </article>
-          ` : appState.aiLoadoutChatPending ? `<div class="empty-state">${escapeHtml(uiText("Updating the recommendation...", LOADOUT_ZH.updating))}</div>` : `<div class="empty-state">${escapeHtml(uiText("Start with a color, mood, weapon preference, or pro player name.", LOADOUT_ZH.chatEmpty))}</div>`}
+          <span>››</span>
+        </div>
+        <div class="curator-rail-list">
+          ${suggestions.length
+            ? suggestions.map(curatorRecommendationRailItemMarkup).join("")
+            : `<div class="empty-state">${escapeHtml(uiText("Generate an AI route and the key picks will appear here.", "生成 AI 方案后，核心推荐会显示在这里。"))}</div>`}
+        </div>
+        <div class="curator-rail-footer">
+          <small>${escapeHtml(uiText("Reference Value", "参考总值"))}</small>
+          <strong>${escapeHtml(totalSuggestedCost > 0 ? formatPrice(totalSuggestedCost) : uiText("No price", "暂无报价"))}</strong>
+        </div>
+      </section>
+    `;
+  }
+
+  function curatorSidebarMarkup(frameState = "frame") {
+    const overview = loadoutInventoryOverview();
+    return `
+      <aside class="curator-sidebar">
+        <div class="curator-sidebar-brand">
+          <strong>CS LOOT</strong>
+          <span>${escapeHtml(uiText("Curator Console", "策展控制台"))}</span>
+        </div>
+        <nav class="curator-sidebar-nav" aria-label="${escapeHtml(uiText("Curator Sections", "策展分区"))}">
+          <a class="is-active" href="#loadoutCommandDeck"><b>${escapeHtml(uiText("Loadout Studio", "搭配推荐"))}</b><small>LOADOUT STUDIO</small></a>
+          <a href="#inventoryUpgradeStage"><b>${escapeHtml(uiText("Inventory Analysis", "库存分析"))}</b><small>INVENTORY</small></a>
+          <a href="#proReferenceStage"><b>${escapeHtml(uiText("Pro Archive", "职业选手"))}</b><small>PRO ARCHIVE</small></a>
+          <a href="favorites.html"><b>${escapeHtml(uiText("Collection", "收藏馆"))}</b><small>COLLECTION</small></a>
+          <a href="catalog.html"><b>${escapeHtml(uiText("Market Trends", "市场趋势"))}</b><small>MARKET</small></a>
+          <a href="account.html"><b>${escapeHtml(uiText("Profile", "个人中心"))}</b><small>PROFILE</small></a>
+        </nav>
+        <section class="curator-sidebar-summary">
+          <h3>${escapeHtml(uiText("Inventory Overview", "我的库存总览"))}</h3>
+          <div><span>${escapeHtml(uiText("Items", "持有饰品"))}</span><strong>${escapeHtml(String(overview.count || 0))}</strong></div>
+          <div><span>${escapeHtml(uiText("Reference Value", "库存总价值"))}</span><strong>${escapeHtml(overview.totalValue > 0 ? formatPrice(overview.totalValue) : uiText("No price", "暂无报价"))}</strong></div>
+          <div><span>${escapeHtml(uiText("Console Status", "控制台状态"))}</span><strong>${escapeHtml(frameState === "ready" ? uiText("Ready", "已就绪") : frameState === "hydrating" ? uiText("Hydrating", "加载中") : uiText("Preparing", "准备中"))}</strong></div>
+          <a class="secondary-action" href="inventory.html">${escapeHtml(uiText("Open Inventory", "前往库存"))}</a>
+        </section>
+      </aside>
+    `;
+  }
+
+  function curatorMarketStripMarkup() {
+    const { payload } = latestLoadoutRecommendationState();
+    const overview = loadoutInventoryOverview();
+    return `
+      <section class="curator-market-strip">
+        <article><span>${escapeHtml(uiText("Market Overview", "市场总览"))}</span><strong>${escapeHtml(overview.synced.length ? formatPrice(overview.totalValue) : uiText("No price", "暂无报价"))}</strong></article>
+        <article><span>${escapeHtml(uiText("Today Route", "今日方案数"))}</span><strong>${escapeHtml(String(Array.isArray(payload?.suggestions) ? payload.suggestions.length : 0))}</strong></article>
+        <article><span>${escapeHtml(uiText("24h Trend", "24h 趋势"))}</span><strong class="is-red">-2.38%</strong></article>
+        <article><span>${escapeHtml(uiText("Data Source", "数据来源"))}</span><strong>${escapeHtml(uiText("BUFF / YouPin", "BUFF / 悠悠有品"))}</strong></article>
+      </section>
+    `;
+  }
+
+  function aiChatMarkup() {
+    const { messages, latestAssistantMessage, payload, activeCategory, requestSummary } = latestLoadoutRecommendationState();
+    return `
+      <section class="ai-panel ai-chat-panel curator-command-panel">
+        <div class="section-heading curator-command-head">
+          <div>
+            <p class="eyebrow">${escapeHtml(uiText("AI Loadout Chat", LOADOUT_ZH.chatTitle))}</p>
+            <h2>${escapeHtml(uiText("AI Loadout Assistant", "AI 搭配顾问"))}</h2>
+          </div>
+          <span class="curator-command-status">${escapeHtml(uiText("Online", "在线"))}</span>
+        </div>
+        ${aiLoadoutFilterBarMarkup()}
+        <div class="curator-command-console">
+          <div class="curator-command-output">
+            ${latestAssistantMessage ? `
+              <article class="ai-chat-bubble" data-role="assistant">
+                <div class="ai-chat-bubble-head">
+                  <strong>${escapeHtml(uiText("AI Recommendation", LOADOUT_ZH.aiRecommendation))}</strong>
+                  ${requestSummary ? `<small>${escapeHtml(currentLanguage().startsWith("zh") ? `按当前要求更新：${requestSummary}` : `Updated for: ${requestSummary}`)}</small>` : ""}
+                </div>
+                <p>${escapeHtml(latestAssistantMessage.content || "")}</p>
+                ${payload?.summary?.totalSuggestedCost ? `<small>${escapeHtml(currentLanguage().startsWith("zh")
+                  ? `本次推荐总价约 ${formatPrice(payload.summary.totalSuggestedCost)}`
+                  : `Suggested total is about ${formatPrice(payload.summary.totalSuggestedCost)}`)}</small>` : ""}
+                ${payload?.suggestions?.length ? `<div class="curator-inline-tags">${aiSuggestionsForCategory(payload.suggestions, activeCategory).slice(0, 3).map((entry) => `<span>${escapeHtml((resolveDisplayItemById(entry.id) ? itemTitle(resolveDisplayItemById(entry.id)) : localizedCatalogDisplayName(entry?.name || "", "")))}</span>`).join("")}</div>` : ""}
+              </article>
+            ` : appState.aiLoadoutChatPending ? `<div class="empty-state">${escapeHtml(uiText("Updating the recommendation...", LOADOUT_ZH.updating))}</div>` : `<div class="empty-state">${escapeHtml(uiText("Tell the curator your budget, style, and favorite weapons.", "告诉顾问你的预算、风格和常用武器。"))}</div>`}
+          </div>
+          <form class="ai-chat-form curator-command-form" id="aiLoadoutChatForm">
+            <label>
+              ${escapeHtml(uiText("Budget (CNY)", "\u9884\u7b97\uff08\u4eba\u6c11\u5e01\uff09"))}
+              <input id="aiLoadoutBudgetInput" type="number" min="0" step="50" value="${escapeHtml(String(appState.aiLoadoutBudgetDraft || ""))}" placeholder="1500" />
+            </label>
+            <label>
+              ${escapeHtml(uiText("What do you want?", LOADOUT_ZH.askWhat))}
+              <textarea id="aiLoadoutPromptInput" rows="3" placeholder="${escapeHtml(uiText("Example: red-black, restrained, knife + AK focus, no flashy gloves", "示例：红黑、克制、刀和 AK 为主、不想要太花的手套"))}">${escapeHtml(appState.aiLoadoutChatDraft || "")}</textarea>
+            </label>
+            <div class="ai-chat-actions">
+              <button class="primary-action" type="submit"${appState.aiLoadoutChatPending ? " disabled" : ""}>${escapeHtml(appState.aiLoadoutChatPending ? uiText("Thinking...", LOADOUT_ZH.thinking) : uiText("Generate Route", "生成搭配方案"))}</button>
+              <button class="secondary-action" id="clearAiLoadoutChatButton" type="button"${messages.length || appState.aiLoadoutChatDraft || appState.aiLoadoutBudgetDraft ? "" : " disabled"}>${escapeHtml(uiText("Clear Chat", LOADOUT_ZH.clearChat))}</button>
+            </div>
+          </form>
         </div>
       </section>
     `;
@@ -6657,41 +7364,38 @@
     const visibleCount = Math.max(PRO_LOADOUT_TEAM_PAGE_SIZE, Number(appState.aiProTeamsRenderedCount) || PRO_LOADOUT_TEAM_PAGE_SIZE);
     const visibleTeams = teams.slice(0, visibleCount);
     const hasMoreTeams = visibleTeams.length < teams.length;
+    const visiblePlayers = visibleTeams.flatMap((team) => (Array.isArray(team.players) ? team.players : []).map((player) => ({ team, player }))).slice(0, 6);
     return `
-      <section class="ai-panel">
-        <div class="section-heading">
-          <p class="eyebrow">${escapeHtml(uiText("Pro Loadouts", LOADOUT_ZH.proTitle))}</p>
-          <h2>${escapeHtml(uiText("By Team", LOADOUT_ZH.byTeam))}</h2>
+      <section class="ai-panel curator-pro-panel">
+        <div class="section-heading curator-pro-head">
+          <div>
+            <p class="eyebrow">${escapeHtml(uiText("Pro Loadouts", LOADOUT_ZH.proTitle))}</p>
+            <h2>${escapeHtml(uiText("Pro Player Loadout Archive", "职业选手搭配档案"))}</h2>
+          </div>
+          <p class="ai-copy">${escapeHtml(uiText("Browse team-by-team player references without leaving the curator flow.", "来自顶级战队的真实选择。"))}</p>
         </div>
-        <div class="pro-team-grid">
-          ${visibleTeams.map((team) => `
-            <article class="pro-team-card">
-              <div class="pro-team-head">
-                ${proTeamLogoMarkup(team)}
-                <div>
-                  <h3>${escapeHtml(team.team)}</h3>
-                  <small><a href="${escapeHtml(team.sourceUrl)}" target="_blank" rel="noreferrer">${escapeHtml(uiText("Source", LOADOUT_ZH.source))}</a></small>
+        <div class="curator-team-tabs">
+          ${visibleTeams.map((team) => `<span>${escapeHtml(team.team)}</span>`).join("")}
+        </div>
+        <div class="curator-pro-card-grid">
+          ${visiblePlayers.map(({ team, player }) => {
+            const key = proPlayerKey(team.team, player.name);
+            const isActive = appState.activeProPlayerKey === key;
+            return `
+              <article class="curator-pro-card">
+                <button class="curator-pro-card-head pro-player-head${isActive ? " is-active" : ""}" type="button" data-pro-player="${escapeHtml(key)}" aria-expanded="${isActive ? "true" : "false"}">
+                  ${proAvatarMarkup(player)}
+                  <div>
+                    <strong>${escapeHtml(player.name)}</strong>
+                    <small>${escapeHtml(team.team)}</small>
+                  </div>
+                </button>
+                <div class="pro-player-loadout" data-pro-player-loadout="${escapeHtml(key)}"${isActive ? "" : " hidden"}>
+                  ${proPlayerLoadoutMarkup(team, player)}
                 </div>
-              </div>
-              <div class="pro-player-list">
-                ${(Array.isArray(team.players) ? team.players : []).map((player) => {
-                  const key = proPlayerKey(team.team, player.name);
-                  const isActive = appState.activeProPlayerKey === key;
-                  return `
-                    <section class="pro-player-card">
-                      <button class="pro-player-head${isActive ? " is-active" : ""}" type="button" data-pro-player="${escapeHtml(key)}" aria-expanded="${isActive ? "true" : "false"}">
-                        ${proAvatarMarkup(player)}
-                        <strong>${escapeHtml(player.name)}</strong>
-                      </button>
-                      <div class="pro-player-loadout" data-pro-player-loadout="${escapeHtml(key)}"${isActive ? "" : " hidden"}>
-                        ${proPlayerLoadoutMarkup(team, player)}
-                      </div>
-                    </section>
-                  `;
-                }).join("")}
-              </div>
-            </article>
-          `).join("")}
+              </article>
+            `;
+          }).join("")}
         </div>
         ${hasMoreTeams ? `<button class="load-more-button" id="loadMoreProTeams" type="button">${escapeHtml(uiText("Load More Teams", LOADOUT_ZH.loadMoreTeams))}</button>` : ""}
       </section>
@@ -6700,32 +7404,93 @@
   function aiItemAnalysisMarkup(item, wearId = "", variantId = "standard") {
     const payload = appState.aiItemAnalyses[livePriceKey(item?.id, wearId, variantId)];
     if (payload?.loading || !payload) {
-      return `<section class="ai-panel ai-inline-panel"><p class="eyebrow">${escapeHtml(uiText("AI Market Read", "AI 甯傚満鍒ゆ柇"))}</p><div class="empty-state">${escapeHtml(uiText("Reading current market data...", "正在读取当前市场数据..."))}</div></section>`;
+      return `<section class="ai-panel ai-inline-panel"><p class="eyebrow">${escapeHtml(uiText("AI Market Read", "AI 市场判断"))}</p><div class="empty-state">${escapeHtml(uiText("Reading current market data...", "正在读取当前市场数据..."))}</div></section>`;
     }
     if (!payload?.ok) {
-      return `<section class="ai-panel ai-inline-panel"><p class="eyebrow">${escapeHtml(uiText("AI Market Read", "AI 甯傚満鍒ゆ柇"))}</p><h2>${escapeHtml(uiText("Market Read", "甯傚満鍒ゆ柇"))}</h2><div class="empty-state">${escapeHtml(uiText("AI market read is temporarily unavailable for this version.", "当前版本的 AI 市场判断暂时不可用。"))}</div></section>`;
+      return `<section class="ai-panel ai-inline-panel"><p class="eyebrow">${escapeHtml(uiText("AI Market Read", "AI 市场判断"))}</p><h2>${escapeHtml(uiText("Market Read", "市场判断"))}</h2><div class="empty-state">${escapeHtml(uiText("AI market read is temporarily unavailable for this version.", "当前版本的 AI 市场判断暂时不可用。"))}</div></section>`;
     }
     return `
       <section class="ai-panel ai-inline-panel">
-        <p class="eyebrow">${escapeHtml(uiText("AI Market Read", "AI 甯傚満鍒ゆ柇"))}</p>
-        <h2>${escapeHtml(uiText("Market Read", "甯傚満鍒ゆ柇"))}</h2>
+        <p class="eyebrow">${escapeHtml(uiText("AI Market Read", "AI 市场判断"))}</p>
+        <h2>${escapeHtml(uiText("Market Read", "市场判断"))}</h2>
         <div class="ai-metric-row">
-          <span>${escapeHtml(uiText("Liquidity", "娴佸姩鎬?"))}</span>
-          <strong>${escapeHtml(payload.liquidity || uiText("Unknown", "未知"))}</strong>
+          <span>${escapeHtml(uiText("Liquidity", "流动性"))}</span>
+          <strong>${escapeHtml(localizeAiLiquidity(payload.liquidity || ""))}</strong>
         </div>
         ${payload.bestSellingWear ? `<div class="ai-metric-row">
           <span>${escapeHtml(uiText("Most active wear", "最活跃磨损"))}</span>
-          <strong>${escapeHtml(wearLabel(payload.bestSellingWear.wearId || "") || payload.bestSellingWear.label)}</strong>
+          <strong>${escapeHtml(localizeAiWearLabel(payload.bestSellingWear))}</strong>
         </div>` : ""}
         ${payload.history ? `<div class="ai-metric-row">
           <span>${escapeHtml(uiText("7d trend", "7 天趋势"))}</span>
-          <strong>${escapeHtml(payload.history.trend === "up" ? uiText("Rising", "涓婃定") : payload.history.trend === "down" ? uiText("Falling", "涓嬭穼") : uiText("Stable", "骞崇ǔ"))}</strong>
+          <strong>${escapeHtml(localizeAiTrend(payload.history.trend || ""))}</strong>
         </div>` : ""}
         <div class="ai-insight-list">
-          ${(payload.insights || []).map((entry) => `<p>${escapeHtml(entry)}</p>`).join("")}
+          ${localizeAiInsights(payload.insights || []).map((entry) => `<p>${escapeHtml(entry)}</p>`).join("")}
         </div>
       </section>
     `;
+  }
+
+  function wearIdFromAiLabel(value = "") {
+    const normalized = String(value || "").trim().toLowerCase();
+    if (!normalized) return "";
+    return Object.entries(WEAR_TEXT).find(([, label]) => (
+      String(label?.en || "").trim().toLowerCase() === normalized
+      || String(label?.zh || "").trim().toLowerCase() === normalized
+    ))?.[0] || "";
+  }
+
+  function localizeAiWearLabel(entry) {
+    const wearId = wearIdFromAiLabel(entry?.wearId || entry?.label || "");
+    return wearLabel(wearId) || cleanVisibleText(entry?.label, entry?.wearId, uiText("Unknown", "未知"));
+  }
+
+  function localizeAiLiquidity(value = "") {
+    const normalized = String(value || "").trim().toLowerCase();
+    if (normalized === "high") return uiText("High", "高");
+    if (normalized === "medium") return uiText("Medium", "中");
+    if (normalized === "low") return uiText("Low", "低");
+    return cleanVisibleText(value, uiText("Unknown", "未知")) || uiText("Unknown", "未知");
+  }
+
+  function localizeAiTrend(value = "") {
+    const normalized = String(value || "").trim().toLowerCase();
+    if (normalized === "up") return uiText("Rising", "上涨");
+    if (normalized === "down") return uiText("Falling", "下跌");
+    if (normalized === "stable") return uiText("Stable", "稳定");
+    return cleanVisibleText(value, uiText("Unknown", "未知")) || uiText("Unknown", "未知");
+  }
+
+  function localizeAiInsight(value = "") {
+    const text = cleanVisibleText(value);
+    if (!text || !currentLanguage().startsWith("zh")) return text;
+    const wearActivityMatch = text.match(/^(Factory New|Minimal Wear|Field-Tested|Well-Worn|Battle-Scarred) is currently the most active wear tier in the local snapshot\.$/i);
+    if (wearActivityMatch) {
+      const wearName = wearLabel(wearIdFromAiLabel(wearActivityMatch[1])) || wearActivityMatch[1];
+      return `${wearName}当前是本地快照里最活跃的磨损档位。`;
+    }
+    const spreadMatch = text.match(/^Cross-market reference spread is about (\d+)% between the lowest and highest quoted sources\.$/i);
+    if (spreadMatch) {
+      return `最低报价与最高报价之间的跨市场价差约为 ${spreadMatch[1]}%。`;
+    }
+    if (/^Current references are tightly clustered, so price discovery looks stable\.$/i.test(text)) {
+      return "当前多端参考价比较集中，价格发现相对稳定。";
+    }
+    if (/^Multiple listings are active, so this item should be easier to move without waiting too long\.$/i.test(text)) {
+      return "当前在售挂单较多，出手时通常不用等待太久。";
+    }
+    if (/^Some fresh listings are active, but you may still need a bit of patience to sell cleanly\.$/i.test(text)) {
+      return "当前有一些新挂单在售，但想要顺利成交通常还需要一点耐心。";
+    }
+    if (/^Listings are thin, so expect a slower exit unless you price aggressively\.$/i.test(text)) {
+      return "当前挂单偏少，除非主动让价，否则出手速度可能会比较慢。";
+    }
+    return text;
+  }
+
+  function localizeAiInsights(values = []) {
+    return cleanVisibleList(values.map((value) => localizeAiInsight(value)));
   }
 
   function localizeAiOpeningTopDrop(entry) {
@@ -6740,10 +7505,10 @@
       || null;
     const displayName = catalogItem
       ? itemTitle(catalogItem)
-      : firstNonEmpty(currentLanguage() === "en" ? entry.nameEn : entry.nameZh, entry.nameZh, entry.nameEn, entry.name, entry.id);
+      : cleanVisibleText(currentLanguage() === "en" ? entry.nameEn : entry.nameZh, entry.nameZh, entry.nameEn, entry.name, entry.id);
     const displayRarity = catalogItem
       ? rarityLabel(catalogItem)
-      : firstNonEmpty(currentLanguage() === "en" ? entry.rarityEn : entry.rarityZh, entry.rarityZh, entry.rarityEn, entry.rarity, "");
+      : cleanVisibleText(currentLanguage() === "en" ? entry.rarityEn : entry.rarityZh, entry.rarityZh, entry.rarityEn, entry.rarity, "");
     return {
       ...entry,
       catalogItem,
@@ -6760,6 +7525,11 @@
     if (!payload?.ok) {
       return `<section class="ai-panel ai-inline-panel"><p class="eyebrow">${escapeHtml(uiText("AI Case Read", "AI 开箱解读"))}</p><h2>${escapeHtml(uiText("Input vs Return", "投入与产出"))}</h2><div class="empty-state">${escapeHtml(uiText("AI case read is temporarily unavailable.", "AI 开箱解读暂时不可用。"))}</div></section>`;
     }
+    const fallbackCommentary = Number(payload.roi) >= 0
+      ? uiText("At current drop values, the case is roughly break-even or better on paper.", "按当前掉落结构估算，这个箱子的理论回报已经接近或高于入场成本。")
+      : uiText("At current drop values, the case still runs below break-even and is better treated as entertainment.", "按当前掉落结构估算，这个箱子的理论回报仍低于入场成本，更适合娱乐或收藏视角。");
+    const commentary = cleanVisibleText(payload.commentary, fallbackCommentary);
+    const insights = cleanVisibleList(payload.insights);
     return `
       <section class="ai-panel ai-inline-panel">
         <p class="eyebrow">${escapeHtml(uiText("AI Case Read", "AI 开箱解读"))}</p>
@@ -6769,8 +7539,8 @@
           <div><span>${escapeHtml(uiText("Expected Value", "期望价值"))}</span><strong>${escapeHtml(payload.expectedValue ? formatPrice(payload.expectedValue) : uiText("Unknown", "未知"))}</strong></div>
           <div><span>${escapeHtml(uiText("ROI", "回报率"))}</span><strong>${escapeHtml(payload.roi ? `${payload.roi}%` : uiText("Unknown", "未知"))}</strong></div>
         </div>
-        <p class="ai-copy">${escapeHtml(payload.commentary || "")}</p>
-        ${(payload.insights || []).length ? `<div class="ai-insight-list">${payload.insights.map((entry) => `<p>${escapeHtml(entry)}</p>`).join("")}</div>` : ""}
+        <p class="ai-copy">${escapeHtml(commentary)}</p>
+        ${insights.length ? `<div class="ai-insight-list">${insights.map((entry) => `<p>${escapeHtml(entry)}</p>`).join("")}</div>` : ""}
         <div class="ai-suggestion-grid compact">
           ${(payload.topDrops || []).map((entry) => {
             const localizedEntry = localizeAiOpeningTopDrop(entry);
@@ -6778,7 +7548,7 @@
               <article class="ai-suggestion-card">
                 <p class="eyebrow">${escapeHtml(localizedEntry?.displayRarity || "")}</p>
                 <h3>${escapeHtml(localizedEntry?.displayName || "")}</h3>
-                <p>${escapeHtml(currentLanguage().startsWith("zh") ? `璇ョ█鏈夊害妗跺崰姣旂害 ${localizedEntry?.probability}%` : `${localizedEntry?.probability}% chance bucket share`)}</p>
+                <p>${escapeHtml(currentLanguage().startsWith("zh") ? `预计落在该概率档位的占比约为 ${localizedEntry?.probability}%` : `${localizedEntry?.probability}% chance bucket share`)}</p>
                 <strong>${escapeHtml(formatPrice(localizedEntry?.price))}</strong>
               </article>
             `;
@@ -6946,6 +7716,66 @@
     return effectiveCatalogPriceRecord(item).price;
   }
 
+  const HOME_FEATURED_LIMIT = 4;
+  const HOME_FEATURED_GLOVE_LIMIT = 1;
+  const HOME_FEATURED_PRIMARY_TYPES = new Set(["knife", "rifle", "pistol", "smg", "shotgun", "machinegun", "sticker", "agent"]);
+
+  function isHomeFeaturedGlove(item) {
+    return String(item?.type || "").trim() === "glove";
+  }
+
+  function homeFeaturedPriority(item) {
+    const type = String(item?.type || "").trim();
+    if (HOME_FEATURED_PRIMARY_TYPES.has(type)) return 3;
+    if (type && type !== "glove") return 2;
+    if (type === "glove") return 1;
+    return 0;
+  }
+
+  function compareHomeFeaturedItems(left, right) {
+    if ((right?.price || 0) !== (left?.price || 0)) return (right?.price || 0) - (left?.price || 0);
+    const priorityGap = (right?.priority || 0) - (left?.priority || 0);
+    if (priorityGap) return priorityGap;
+    const featuredGap = Number(Boolean(right?.featured)) - Number(Boolean(left?.featured));
+    if (featuredGap) return featuredGap;
+    return String(left?.title || "").localeCompare(String(right?.title || ""), currentLanguage());
+  }
+
+  function homeFeaturedReferencePrice(item) {
+    const priceRecord = effectiveCatalogPriceRecordForSelection(item, "", "standard");
+    const effectivePrice = Number(priceRecord?.price);
+    if (Number.isFinite(effectivePrice) && effectivePrice > 0) return effectivePrice;
+    const fallbackPrice = Number(item?.price);
+    return Number.isFinite(fallbackPrice) && fallbackPrice > 0 ? fallbackPrice : 0;
+  }
+
+  function featuredHomeItems(limit = HOME_FEATURED_LIMIT) {
+    const safeLimit = Math.max(0, Number(limit) || 0);
+    if (!safeLimit) return [];
+    const candidates = items
+      .filter((entry) => entry?.image)
+      .map((entry) => ({
+        item: entry,
+        price: homeFeaturedReferencePrice(entry),
+        priority: homeFeaturedPriority(entry),
+        featured: Boolean(entry?.featured),
+        title: itemTitle(entry)
+      }))
+      .sort(compareHomeFeaturedItems);
+    const selected = [];
+    let gloveCount = 0;
+    for (const candidate of candidates) {
+      if (selected.length >= safeLimit) break;
+      const item = candidate.item;
+      if (isHomeFeaturedGlove(item)) {
+        if (gloveCount >= HOME_FEATURED_GLOVE_LIMIT) continue;
+        gloveCount += 1;
+      }
+      selected.push(item);
+    }
+    return selected;
+  }
+
   function detailReferenceHintText(sourceKey, fallbackText = "") {
     if (sourceKey === "youpin" || sourceKey === "buff") return syncedPriceSourceLabel(sourceKey);
     return fallbackText && fallbackText !== "PublicMarket"
@@ -7077,6 +7907,34 @@
     });
   }
 
+  async function saveAccountUsername(form) {
+    const body = Object.fromEntries(new FormData(form).entries());
+    const username = String(body.username || "").trim();
+    if (username.length < 3 || username.length > 24) {
+      throw new Error(uiText("Username must be 3-24 characters.", "用户名需要 3-24 个字符。"));
+    }
+    setAccountBusyAction("username");
+    renderAccount();
+    try {
+      const payload = await fetchJson("/api/auth/username", { method: "POST", body: JSON.stringify({ username }) });
+      if (payload?.user) applyAuthenticatedUser(payload.user, { keepFeedback: true });
+      appState.accountMessage = uiText("Username updated.", "用户名已更新。");
+      appState.accountError = "";
+    } catch (error) {
+      if (error.status === 409 || error.code === "account_exists") {
+        throw new Error(uiText("This username is already taken.", "这个用户名已被占用。"));
+      }
+      if (error.status === 401) {
+        throw new Error(uiText("Please sign in again before changing your username.", "请重新登录后再修改用户名。"));
+      }
+      throw error;
+    } finally {
+      setAccountBusyAction("");
+      renderAccount();
+      renderNavAccountIdentity();
+    }
+  }
+
   function scheduleAuthFormAutofillClear() {
     if (Date.now() > appState.suppressAuthAutofillUntil) return;
     requestAnimationFrame(() => clearAuthFormAutofill());
@@ -7090,77 +7948,172 @@
     try {
       const user = appState.session;
       const isBusy = Boolean(appState.accountBusyAction);
-      const inventoryItems = getAccountPreviewInventoryEntries(8);
+      const inventoryItems = Array.isArray(appState.inventoryPreview?.items) ? appState.inventoryPreview.items.slice(0, 8) : [];
       const inventoryCount = Array.isArray(appState.inventoryPreview?.items) ? appState.inventoryPreview.items.length : Number(user?.lastInventoryCount || 0);
       const steamProfile = pickSteamProfileForUser(user, appState.steamProfile, user?.steamProfile);
       const steamAvatar = steamAvatarUrl(steamProfile, user?.steamId);
+      const accountAvatar = resolveAccountAvatarUrl(user, steamProfile, user?.steamId);
+      const isPreviewAvatar = !String(user?.avatarUrl || "").trim() && !steamAvatar;
       const buffStatus = appState.buffStatus || { status: "not_started", connected: false, message: uiText("Connect BUFF to unlock live BUFF prices.", "连接 BUFF 后可启用实时 BUFF 价格。") };
       const youpinStatus = appState.youpinStatus || { status: "not_started", connected: false, message: uiText("Connect YouPin to unlock live YouPin prices.", "连接悠悠有品后可启用实时悠悠有品价格。") };
-      const hasSteamProfileCard = Boolean(steamProfile?.steamId || user?.steamId);
       const hasSteamProfileDetails = Boolean(steamProfile?.personaName || steamProfile?.avatar);
-      const steamBindingState = user?.steamId ? (hasSteamProfileDetails ? "complete" : "bound") : "empty";
       const authUnavailable = appState.authStatus === "error" && !user;
       const authLoading = !appState.authLoaded || appState.authLoading;
-      const profileCard = hasSteamProfileCard ? `
-      <div class="steam-profile-info">
-        ${steamAvatar ? lazyImageMarkup({ className: "steam-avatar", src: steamAvatar, alt: steamProfile.personaName || "Steam", loading: "lazy" }) : ""}
-        <div>
-          <span>${escapeHtml(uiText("Steam Profile", "Steam 璧勬枡"))}</span>
-          <strong>${escapeHtml(steamProfile?.personaName || steamProfile?.steamId || user?.steamId || uiText("Player", "玩家"))}</strong>
-          ${steamProfile?.profileUrl ? `<a href="${escapeHtml(steamProfile.profileUrl)}" target="_blank" rel="noreferrer">${escapeHtml(uiText("Open Steam Profile", "打开 Steam 主页"))}</a>` : ""}
-        </div>
-        <div>
-          <span>${escapeHtml(uiText("Community Visibility", "社区可见性"))}</span>
-          <strong>${escapeHtml(steamProfile?.visibility || uiText("Unknown", "未知"))}</strong>
-        </div>
-      </div>
-    ` : "";
-      const profileHint = hasSteamProfileCard
-      ? (!hasSteamProfileDetails ? `<p class="version-note">${escapeHtml(uiText("Steam binding is saved. Public profile details will appear as soon as they are fetched successfully.", "Steam 绑定已保存，公开资料获取成功后会显示在这里。"))}</p>` : "")
-      : `<p class="version-note">${escapeHtml(uiText("Bind a public SteamID64 to show the Steam name, avatar, and synced inventory here.", "绑定公开的 SteamID64 后，这里会显示 Steam 名称、头像和同步库存。"))}</p>`;
+      const identityName = steamProfile?.personaName || user?.username || uiText("Player", "玩家");
+      const heroStatus = user
+        ? uiText("Authenticated and ready for sync.", "已验证，可继续同步")
+        : uiText("Sign in to unlock binding and market sync.", "登录后开启绑定与市场同步");
+      const commandDeckMarkup = `
+        <section class="account-command-deck" aria-label="${escapeHtml(uiText("Pass status overview", "通行证状态总览"))}">
+          <article class="account-command-chip">
+            <span>${escapeHtml(uiText("Account", "账号状态"))}</span>
+            <strong>${escapeHtml(user ? uiText("Verified", "已验证") : uiText("Guest", "访客"))}</strong>
+          </article>
+          <article class="account-command-chip">
+            <span>${escapeHtml(uiText("Steam", "Steam 绑定"))}</span>
+            <strong>${escapeHtml(user?.steamId ? uiText("Bound", "已绑定") : uiText("Pending", "待绑定"))}</strong>
+          </article>
+          <article class="account-command-chip">
+            <span>${escapeHtml(uiText("BUFF", "BUFF 状态"))}</span>
+            <strong>${escapeHtml(buffStatus.connected ? uiText("Connected", "已登录") : uiText("Offline", "未连接"))}</strong>
+          </article>
+          <article class="account-command-chip">
+            <span>${escapeHtml(uiText("YouPin", "悠悠有品状态"))}</span>
+            <strong>${escapeHtml(youpinStatus.connected ? uiText("Connected", "已登录并验证") : uiText("Offline", "未连接"))}</strong>
+          </article>
+          <article class="account-command-chip">
+            <span>${escapeHtml(uiText("Inventory", "藏库藏品"))}</span>
+            <strong>${escapeHtml(uiTemplate("{count} items", { count: inventoryCount || 0 }))}</strong>
+          </article>
+        </section>
+      `;
+      const profileStageMarkup = user ? `
+        <aside class="account-profile-stage">
+          <div class="account-profile-stage-head">
+            <div class="account-profile-avatar-ring${isPreviewAvatar ? " is-preview-avatar" : ""}">
+              <img class="account-profile-avatar${isPreviewAvatar ? " is-preview-avatar" : ""}" src="${escapeHtml(accountAvatar)}" alt="${escapeHtml(identityName)}" />
+            </div>
+            <div class="account-profile-stage-copy">
+              <p>${escapeHtml(uiText("Curator Identity", "策展身份"))}</p>
+              <h2>${escapeHtml(user.username || identityName)}</h2>
+              <span>${escapeHtml(heroStatus)}</span>
+            </div>
+          </div>
+          <div class="account-profile-stage-meta">
+            <div><span>${escapeHtml(uiText("Account ID", "账户 ID"))}</span><strong>${escapeHtml(user.id || uiText("Unknown", "未知"))}</strong></div>
+            <div><span>${escapeHtml(uiText("Steam ID", "Steam ID"))}</span><strong>${escapeHtml(user.steamId || uiText("Not bound", "未绑定"))}</strong></div>
+            <div><span>${escapeHtml(uiText("Created", "注册时间"))}</span><strong>${escapeHtml(formatDateTime(user.createdAt))}</strong></div>
+            <div><span>${escapeHtml(uiText("Items Synced", "同步数量"))}</span><strong>${escapeHtml(String(user.lastInventoryCount || 0))}</strong></div>
+          </div>
+          <div class="account-avatar-upload">
+            <input id="accountAvatarInput" class="account-avatar-input" type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden />
+            <div class="account-avatar-upload-copy">
+              <strong>${escapeHtml(uiText("Avatar Upload", "头像上传"))}</strong>
+              <span>${escapeHtml(uiText("Upload a custom portrait, or fall back to the exhibition default avatar.", "上传自定义头像，未上传时回落到展馆默认头像。"))}</span>
+            </div>
+            <div class="account-avatar-upload-actions">
+              <button class="primary-action" id="accountAvatarUploadButton" type="button"${isBusy ? " disabled" : ""}>${escapeHtml(appState.accountBusyAction === "avatar-upload" ? uiText("Uploading...", "上传中...") : uiText("Upload Avatar", "上传头像"))}</button>
+              <button class="secondary-action" id="accountAvatarResetButton" type="button"${isBusy ? " disabled" : ""}>${escapeHtml(appState.accountBusyAction === "avatar-reset" ? uiText("Resetting...", "重置中...") : uiText("Use Default Avatar", "使用默认头像"))}</button>
+            </div>
+          </div>
+          <form class="account-username-form" id="accountUsernameForm" autocomplete="off">
+            <div class="account-avatar-upload-copy">
+              <strong>${escapeHtml(uiText("Username", "用户名"))}</strong>
+              <span>${escapeHtml(uiText("This name appears in the navigation bar and account surfaces.", "这个名称会显示在导航栏和账号页面。"))}</span>
+            </div>
+            <div class="account-username-row">
+              <input name="username" required minlength="3" maxlength="24" value="${escapeHtml(user.username || "")}" autocomplete="off" autocapitalize="none" spellcheck="false" />
+              <button class="secondary-action" type="submit"${isBusy ? " disabled" : ""}>${escapeHtml(appState.accountBusyAction === "username" ? uiText("Saving...", "保存中...") : uiText("Save Username", "保存用户名"))}</button>
+            </div>
+          </form>
+          <div class="account-profile-stage-actions">
+            <button class="secondary-action" id="accountLogoutButton" type="button"${isBusy ? " disabled" : ""}>${escapeHtml(uiText("Sign Out", "退出登录"))}</button>
+            ${steamProfile?.profileUrl ? `<a class="action-link" href="${escapeHtml(steamProfile.profileUrl)}" target="_blank" rel="noreferrer">${escapeHtml(uiText("Open Steam Profile", "打开 Steam 主页"))}</a>` : ""}
+          </div>
+        </aside>
+      ` : `
+        <aside class="account-profile-stage account-profile-stage-guest">
+          <div class="account-profile-stage-head">
+            <div class="account-profile-avatar-ring is-preview-avatar">
+              <img class="account-profile-avatar is-preview-avatar" src="${escapeHtml(accountAvatar)}" alt="${escapeHtml(uiText("Default exhibition avatar", "默认展馆头像"))}" />
+            </div>
+            <div class="account-profile-stage-copy">
+              <p>${escapeHtml(uiText("Pass Access", "通行证入口"))}</p>
+              <h2>${escapeHtml(uiText("Guest Access", "访客通行"))}</h2>
+              <span>${escapeHtml(heroStatus)}</span>
+            </div>
+          </div>
+          <div class="account-profile-stage-note">
+            ${escapeHtml(uiText("Use a local account to bind Steam, validate market sessions, and unlock your synced vault preview.", "使用本地账号可绑定 Steam、验证市场会话，并解锁你的同步藏库预览。"))}
+          </div>
+        </aside>
+      `;
       const authMarkup = authLoading ? `
-      <section class="account-panel account-loading-panel">
-        <p class="eyebrow">${escapeHtml(uiText("Pass", "通行证"))}</p>
-        <h2>${escapeHtml(uiText("Checking Session", "正在检查会话"))}</h2>
+      <section class="account-module account-loading-panel">
+        <div class="account-module-heading">
+          <p>${escapeHtml(uiText("Pass", "通行证"))}</p>
+          <h3>${escapeHtml(uiText("Checking Session", "正在检查会话"))}</h3>
+        </div>
         <p class="account-loading-copy">${escapeHtml(uiText("Checking your local account session and synced inventory status.", "正在检查本地账号会话和库存同步状态。"))}</p>
       </section>
     ` : authUnavailable ? `
-      <section class="account-panel account-loading-panel">
-        <p class="eyebrow">${escapeHtml(uiText("Pass", "通行证"))}</p>
-        <h2>${escapeHtml(uiText("Service Unavailable", "服务暂不可用"))}</h2>
+      <section class="account-module account-loading-panel">
+        <div class="account-module-heading">
+          <p>${escapeHtml(uiText("Pass", "通行证"))}</p>
+          <h3>${escapeHtml(uiText("Service Unavailable", "服务暂不可用"))}</h3>
+        </div>
         ${accountFeedbackMarkup()}
-        <div class="account-actions">
+        <div class="account-module-actions">
           <button class="secondary-action" id="retryAccountButton" type="button">${escapeHtml(uiText("Retry", "重试"))}</button>
         </div>
       </section>
     ` : user ? `
-      <section class="account-panel account-profile-panel">
-        <p class="eyebrow">${escapeHtml(uiText("Profile", "资料"))}</p>
-        <h2>${escapeHtml(user.username || uiText("Player", "玩家"))}</h2>
-        <div class="account-meta" data-steam-state="${escapeHtml(steamBindingState)}">
-          <div><span>${escapeHtml(uiText("Created", "创建时间"))}</span><strong>${escapeHtml(formatDateTime(user.createdAt))}</strong></div>
-          <div><span>${escapeHtml(uiText("Steam ID", "Steam ID"))}</span><strong>${escapeHtml(user.steamId || uiText("Not bound", "未绑定"))}</strong></div>
-          <div><span>${escapeHtml(uiText("Inventory Sync", "库存同步"))}</span><strong>${escapeHtml(formatDateTime(user.lastInventorySyncAt))}</strong></div>
-          <div><span>${escapeHtml(uiText("Items Synced", "同步数量"))}</span><strong>${escapeHtml(String(user.lastInventoryCount || 0))}</strong></div>
+      <section class="account-module account-module-primary account-profile-panel">
+        <div class="account-module-heading">
+          <p>${escapeHtml(uiText("Steam Binding", "Steam 绑定"))}</p>
+          <h3>${escapeHtml(uiText("Account and Steam Control", "账号与 Steam 控制"))}</h3>
         </div>
-        ${profileCard}
-        ${profileHint}
+        <div class="account-stage-grid">
+          <div class="account-stage-card">
+            <div class="account-stage-card-head">
+              <img class="account-stage-avatar" src="${escapeHtml(accountAvatar)}" alt="${escapeHtml(identityName)}" />
+              <div>
+                <strong>${escapeHtml(identityName)}</strong>
+                <span>${escapeHtml(steamProfile?.visibility || uiText("Steam profile pending", "Steam 资料待补齐"))}</span>
+              </div>
+            </div>
+            <div class="account-meta account-meta-compact">
+              <div><span>${escapeHtml(uiText("Created", "创建时间"))}</span><strong>${escapeHtml(formatDateTime(user.createdAt))}</strong></div>
+              <div><span>${escapeHtml(uiText("Inventory Sync", "库存同步"))}</span><strong>${escapeHtml(formatDateTime(user.lastInventorySyncAt))}</strong></div>
+            </div>
+          </div>
+          <div class="account-stage-card">
+            <div class="account-meta account-meta-compact">
+              <div><span>${escapeHtml(uiText("Steam ID", "Steam ID"))}</span><strong>${escapeHtml(user.steamId || uiText("Not bound", "未绑定"))}</strong></div>
+              <div><span>${escapeHtml(uiText("Items Synced", "同步数量"))}</span><strong>${escapeHtml(String(user.lastInventoryCount || 0))}</strong></div>
+            </div>
+            ${user.steamId && !hasSteamProfileDetails ? `<p class="account-stage-note">${escapeHtml(uiText("Steam binding is saved. Public profile details will appear as soon as they are fetched successfully.", "Steam 绑定已保存，公开资料获取成功后会显示在这里。"))}</p>` : ""}
+            ${!user.steamId ? `<p class="account-stage-note">${escapeHtml(uiText("Bind a public SteamID64 to show the Steam name, avatar, and synced inventory here.", "绑定公开的 SteamID64 后，这里会显示 Steam 名称、头像和同步库存。"))}</p>` : ""}
+          </div>
+        </div>
         <form class="steam-bind" id="accountSteamBindForm">
           <label>
             ${escapeHtml(uiText("Steam ID / 64-bit account", "Steam ID / 64 位账号"))}
             <input name="steamId" placeholder="7656119..." value="${escapeHtml(user.steamId || "")}" />
           </label>
-          <button class="primary-action" type="submit"${isBusy ? " disabled" : ""}>${escapeHtml(uiText("Save Steam Binding", "保存 Steam 绑定"))}</button>
+          <button class="primary-action" type="submit"${isBusy ? " disabled" : ""}>${escapeHtml(appState.accountBusyAction === "steam-bind" ? uiText("Saving...", "保存中...") : uiText("Save Steam Binding", "保存 Steam 绑定"))}</button>
         </form>
-        <div class="account-actions">
+        <div class="account-module-actions account-inline-actions">
           <button class="secondary-action" id="syncSteamButton" type="button"${user.steamId && !isBusy ? "" : " disabled"}>${escapeHtml(appState.inventorySyncRunning ? uiText("Syncing...", "同步中...") : uiText("Sync Steam Inventory", "同步 Steam 库存"))}</button>
-          <button class="secondary-action" id="accountLogoutButton" type="button"${isBusy ? " disabled" : ""}>${escapeHtml(uiText("Sign Out", "退出登录"))}</button>
+          <span class="account-action-note">${escapeHtml(uiText("Reference, BUFF, and YouPin prices remain synced through the existing price system.", "参考价、BUFF 与悠悠有品价格继续通过现有价格系统同步。"))}</span>
         </div>
       </section>
     ` : `
-      <section class="account-panel account-access-panel">
-        <p class="eyebrow">${escapeHtml(uiText("Platform Access", "平台访问"))}</p>
-        <h2>${escapeHtml(uiText("Sign In or Create an Account", "登录或创建账号"))}</h2>
+      <section class="account-module account-module-primary account-access-panel">
+        <div class="account-module-heading">
+          <p>${escapeHtml(uiText("Platform Access", "平台访问"))}</p>
+          <h3>${escapeHtml(uiText("Sign In or Create an Account", "登录或创建账号"))}</h3>
+        </div>
         <div class="auth-grid account-auth-grid">
           <form class="auth-form" id="accountLoginForm" autocomplete="off">
             <h3>${escapeHtml(uiText("Sign In", "登录"))}</h3>
@@ -7177,73 +8130,94 @@
         </div>
       </section>
     `;
-      root.innerHTML = `
-      <section class="page-intro account-hero" data-motion-intro>
-        <p class="eyebrow" data-motion-part="eyebrow">${escapeHtml(uiText("Pass", "通行证"))}</p>
-        <h1 data-motion-part="title">${escapeHtml(uiText("Pass", "通行证"))}</h1>
-        <p data-motion-part="copy">${escapeHtml(uiText("Manage account access, Steam binding, platform credentials, inventory sync, and market price sync.", "管理账号通行、Steam 绑定、平台凭证、库存同步和市场价格同步。"))}</p>
-      </section>
-      ${accountFeedbackMarkup()}
-      <section class="account-layout">
-        <div class="account-main">
-          ${authMarkup}
-          <section class="account-panel account-sync-panel">
-            <p class="eyebrow">${escapeHtml(uiText("Market Sync", "市场同步"))}</p>
-            <h2>${escapeHtml(uiText("Market Sync", "市场同步"))}</h2>
-            <div class="account-meta sync-meta">
+      const marketSyncMarkup = `
+        <section class="account-module account-sync-panel">
+          <div class="account-module-heading">
+            <p>${escapeHtml(uiText("Market Sync", "市场同步"))}</p>
+            <h3>${escapeHtml(uiText("Market Sync", "市场同步"))}</h3>
+          </div>
+          <div class="account-sync-strip">
+            <div class="account-sync-emblem"><span></span></div>
+            <div class="account-sync-grid">
               <div><span>${escapeHtml(uiText("Current Source", "当前来源"))}</span><strong>${escapeHtml(uiText("Public Market", "公开市场"))}</strong></div>
               <div><span>${escapeHtml(uiText("Sync Interval", "同步周期"))}</span><strong>${escapeHtml(appState.syncStatus?.intervalMinutes ? `${appState.syncStatus.intervalMinutes} min` : uiText("Unknown", "未知"))}</strong></div>
               <div><span>${escapeHtml(uiText("Task", "同步任务"))}</span><strong>${escapeHtml(appState.syncStatus?.running ? uiText("Running", "运行中") : uiText("Idle", "空闲"))}</strong></div>
               <div><span>${escapeHtml(uiText("Last Run", "上次执行"))}</span><strong>${escapeHtml(formatDateTime(appState.syncStatus?.lastRunAt))}</strong></div>
               <div><span>${escapeHtml(uiText("Next Run", "下次执行"))}</span><strong>${escapeHtml(formatDateTime(appState.syncStatus?.nextRunAt))}</strong></div>
+              <div><span>${escapeHtml(uiText("Inventory", "藏库藏品"))}</span><strong>${escapeHtml(String(inventoryCount || 0))}</strong></div>
             </div>
-            <div class="account-actions">
-              <small>${escapeHtml(uiText("Viewing an item now automatically saves the latest platform price and reuses it as the reference price across the catalog and inspector.", "查看任意饰品后，系统会自动保存最新平台价格，并在目录和检视器中作为参考价复用。"))}</small>
-            </div>
-          </section>
-        </div>
-        <div class="account-side">
-          <section class="account-panel">
-            <p class="eyebrow">${escapeHtml(uiText("BUFF", "BUFF"))}</p>
-            <h2>${escapeHtml(uiText("BUFF Price Login", "BUFF 价格登录"))}</h2>
-            <div class="account-meta sync-meta">
-              <div><span>${escapeHtml(uiText("Connection", "连接状态"))}</span><strong>${escapeHtml(buffStatus.connected ? uiText("Connected", "已连接") : uiText("Not Connected", "未连接"))}</strong></div>
-              <div><span>${escapeHtml(uiText("Last Validation", "最近验证"))}</span><strong>${escapeHtml(formatDateTime(buffStatus.lastValidatedAt))}</strong></div>
-            </div>
-            <p class="version-note">${escapeHtml(localizePlatformMessage(buffStatus.message) || uiText("Use the helper browser only for the initial BUFF login. After validation, live prices keep working without leaving that browser open.", "仅首次连接 BUFF 时使用辅助浏览器。验证成功后，实时价格可继续使用。"))}</p>
-            <div class="account-actions">
-              <button class="primary-action" id="startBuffLoginButton" type="button"${user && !isBusy ? "" : " disabled"}>${escapeHtml(uiText("Log In to BUFF", "登录 BUFF"))}</button>
-              <button class="secondary-action" id="validateBuffLoginButton" type="button"${user && !isBusy ? "" : " disabled"}>${escapeHtml(uiText("Validate BUFF Session", "验证 BUFF 登录"))}</button>
-              <button class="secondary-action" id="disconnectBuffLoginButton" type="button"${user && !isBusy ? "" : " disabled"}>${escapeHtml(uiText("Disconnect BUFF", "解绑 BUFF"))}</button>
-            </div>
-          </section>
-          <section class="account-panel">
-            <p class="eyebrow">${escapeHtml(uiText("YouPin", "悠悠有品"))}</p>
-            <h2>${escapeHtml(uiText("YouPin Price Login", "悠悠有品价格登录"))}</h2>
-            <div class="account-meta sync-meta">
-              <div><span>${escapeHtml(uiText("Connection", "连接状态"))}</span><strong>${escapeHtml(youpinStatus.connected ? uiText("Connected", "已连接") : uiText("Not Connected", "未连接"))}</strong></div>
-              <div><span>${escapeHtml(uiText("Last Validation", "最近验证"))}</span><strong>${escapeHtml(formatDateTime(youpinStatus.lastValidatedAt))}</strong></div>
-            </div>
-            <p class="version-note">${escapeHtml(localizePlatformMessage(youpinStatus.message) || uiText("Use the helper browser only for the initial YouPin login. After validation, live prices keep working without leaving that browser open.", "仅首次连接悠悠有品时使用辅助浏览器。验证成功后，无需保持浏览器开启也能继续获取实时价格。"))}</p>
-            <div class="account-actions">
-              <button class="primary-action" id="startYoupinLoginButton" type="button"${user && !isBusy ? "" : " disabled"}>${escapeHtml(uiText("Log In to YouPin", "登录悠悠有品"))}</button>
-              <button class="secondary-action" id="validateYoupinLoginButton" type="button"${user && !isBusy ? "" : " disabled"}>${escapeHtml(uiText("Validate YouPin Session", "验证悠悠有品登录"))}</button>
-              <button class="secondary-action" id="disconnectYoupinLoginButton" type="button"${user && !isBusy ? "" : " disabled"}>${escapeHtml(uiText("Disconnect YouPin", "解绑悠悠有品"))}</button>
-              <button class="secondary-action" id="runSyncButton" type="button"${user && !isBusy ? "" : " disabled"}>${escapeHtml(appState.accountBusyAction === "price-sync" ? uiText("Syncing YouPin Prices...", "正在同步悠悠有品价格...") : uiText("Sync YouPin Prices", "同步悠悠有品价格"))}</button>
-            </div>
-          </section>
-        </div>
-        <section class="account-panel account-inventory-panel">
-          <div class="account-panel-heading">
-            <div>
-              <p class="eyebrow">${escapeHtml(uiText("Inventory", "库存"))}</p>
-              <h2>${escapeHtml(uiText("Vault Preview", "藏库预览"))}</h2>
-            </div>
-            <p class="inventory-summary">${escapeHtml(user ? uiTemplate("{count} synced items are ready for preview here.", { count: inventoryCount }) : uiText("After Steam is bound, synced items will appear here.", "绑定 Steam 后，同步库存会显示在这里。"))}</p>
           </div>
-          <div class="inventory-grid">
-            ${inventoryItems.slice(0, 8).map(safeInventoryCardMarkup).join("") || `<div class="empty-state">${escapeHtml(uiText("No synced inventory yet.", "还没有同步到库存。"))}</div>`}
+        </section>
+      `;
+      root.innerHTML = `
+      <section class="account-shell" data-account-theme="curator-atrium">
+        <section class="account-hero account-hero-shell" data-motion-intro>
+          <div class="account-hero-copy">
+            <p class="eyebrow" data-motion-part="eyebrow">${escapeHtml(uiText("Pass", "通行证"))}</p>
+            <h1 data-motion-part="title">${escapeHtml(uiText("Pass", "通行证"))}<span>${escapeHtml("PASS")}</span></h1>
+            <p data-motion-part="copy">${escapeHtml(uiText("Manage account access, Steam binding, platform credentials, inventory sync, and market price sync.", "账户访问、全平台互联与藏库同步，都在这里调度。"))}</p>
+            <small>${escapeHtml(uiText("In the exhibition shell, your pass controls identity, platform trust, and vault readiness.", "在这座展馆外壳里，通行证负责身份、平台信任与藏库就绪状态。"))}</small>
           </div>
+          <div class="account-hero-atrium" aria-hidden="true"></div>
+          ${profileStageMarkup}
+        </section>
+        ${commandDeckMarkup}
+        ${accountFeedbackMarkup()}
+        <section class="account-layout">
+          <div class="account-main-column">
+            ${authMarkup}
+            ${marketSyncMarkup}
+          </div>
+          <div class="account-side-column">
+            <section class="account-module">
+              <div class="account-module-heading">
+                <p>${escapeHtml(uiText("BUFF", "BUFF"))}</p>
+                <h3>${escapeHtml(uiText("BUFF Price Login", "BUFF 价格登录"))}</h3>
+              </div>
+              <div class="account-meta account-meta-compact">
+                <div><span>${escapeHtml(uiText("Connection", "连接状态"))}</span><strong>${escapeHtml(buffStatus.connected ? uiText("Connected", "已连接") : uiText("Not Connected", "未连接"))}</strong></div>
+                <div><span>${escapeHtml(uiText("Last Validation", "最近验证"))}</span><strong>${escapeHtml(formatDateTime(buffStatus.lastValidatedAt))}</strong></div>
+              </div>
+              <p class="account-stage-note">${escapeHtml(localizePlatformMessage(buffStatus.message) || uiText("Use the helper browser only for the initial BUFF login. After validation, live prices keep working without leaving that browser open.", "仅首次连接 BUFF 时使用辅助浏览器。验证成功后，实时价格可继续使用。"))}</p>
+              <div class="account-module-actions">
+                <button class="primary-action" id="startBuffLoginButton" type="button"${user && !isBusy ? "" : " disabled"}>${escapeHtml(uiText("Log In to BUFF", "登录 BUFF"))}</button>
+                <button class="secondary-action" id="validateBuffLoginButton" type="button"${user && !isBusy ? "" : " disabled"}>${escapeHtml(uiText("Validate BUFF Session", "验证 BUFF 登录"))}</button>
+                <button class="secondary-action" id="disconnectBuffLoginButton" type="button"${user && !isBusy ? "" : " disabled"}>${escapeHtml(uiText("Disconnect BUFF", "解绑 BUFF"))}</button>
+              </div>
+            </section>
+            <section class="account-module">
+              <div class="account-module-heading">
+                <p>${escapeHtml(uiText("YouPin", "悠悠有品"))}</p>
+                <h3>${escapeHtml(uiText("YouPin Price Login", "悠悠有品价格登录"))}</h3>
+              </div>
+              <div class="account-meta account-meta-compact">
+                <div><span>${escapeHtml(uiText("Connection", "连接状态"))}</span><strong>${escapeHtml(youpinStatus.connected ? uiText("Connected", "已连接") : uiText("Not Connected", "未连接"))}</strong></div>
+                <div><span>${escapeHtml(uiText("Last Validation", "最近验证"))}</span><strong>${escapeHtml(formatDateTime(youpinStatus.lastValidatedAt))}</strong></div>
+              </div>
+              <p class="account-stage-note">${escapeHtml(localizePlatformMessage(youpinStatus.message) || uiText("Use the helper browser only for the initial YouPin login. After validation, live prices keep working without leaving that browser open.", "仅首次连接悠悠有品时使用辅助浏览器。验证成功后，无需保持浏览器开启也能继续获取实时价格。"))}</p>
+              <div class="account-module-actions">
+                <button class="primary-action" id="startYoupinLoginButton" type="button"${user && !isBusy ? "" : " disabled"}>${escapeHtml(uiText("Log In to YouPin", "登录悠悠有品"))}</button>
+                <button class="secondary-action" id="validateYoupinLoginButton" type="button"${user && !isBusy ? "" : " disabled"}>${escapeHtml(uiText("Validate YouPin Session", "验证悠悠有品登录"))}</button>
+                <button class="secondary-action" id="disconnectYoupinLoginButton" type="button"${user && !isBusy ? "" : " disabled"}>${escapeHtml(uiText("Disconnect YouPin", "解绑悠悠有品"))}</button>
+                <button class="secondary-action" id="runSyncButton" type="button"${user && !isBusy ? "" : " disabled"}>${escapeHtml(appState.accountBusyAction === "price-sync" ? uiText("Syncing YouPin Prices...", "正在同步悠悠有品价格...") : uiText("Sync YouPin Prices", "同步悠悠有品价格"))}</button>
+              </div>
+            </section>
+          </div>
+          <section class="account-module account-vault-strip account-inventory-panel">
+            <div class="account-vault-strip-head">
+              <div>
+                <p class="eyebrow">${escapeHtml(uiText("Inventory", "藏库预览"))}</p>
+                <h3>${escapeHtml(uiText("Vault Preview", "藏库预览"))}</h3>
+              </div>
+              <div class="account-vault-strip-summary">
+                <strong>${escapeHtml(String(inventoryCount || 0))}</strong>
+                <span>${escapeHtml(user ? uiText("synced exhibits ready", "件同步藏品待预览") : uiText("Sign in to unlock vault preview", "登录后开启藏库预览"))}</span>
+              </div>
+            </div>
+            <div class="inventory-grid">
+              ${inventoryItems.slice(0, 8).map(safeInventoryCardMarkup).join("") || `<div class="empty-state">${escapeHtml(uiText("No synced inventory yet.", "还没有同步到库存。"))}</div>`}
+            </div>
+          </section>
         </section>
       </section>
       ${!globalThis.CS2_MARKET_PRICES?.items && inventoryItems.length ? `<p class="inventory-summary">${escapeHtml(uiText("Prices are loading in the background and will appear shortly.", "价格正在后台加载，很快会显示。"))}</p>` : ""}
@@ -7285,7 +8259,7 @@
         <section class="inventory-grid">
           ${visibleEntries.map(safeInventoryCardMarkup).join("")}
         </section>
-        ${visibleEntries.length < synced.length ? `<button class="load-more-button" id="loadMoreInventory" type="button">${escapeHtml(currentLanguage().startsWith("zh") ? `?????${visibleEntries.length}/${synced.length}?` : `Load More (${visibleEntries.length}/${synced.length})`)}</button>` : ""}
+        ${visibleEntries.length < synced.length ? `<button class="load-more-button" id="loadMoreInventory" type="button">${escapeHtml(currentLanguage().startsWith("zh") ? `加载更多（${visibleEntries.length}/${synced.length}）` : `Load More (${visibleEntries.length}/${synced.length})`)}</button>` : ""}
         ${!globalThis.CS2_MARKET_PRICES?.items ? `<p class="inventory-summary">${escapeHtml(uiText("Prices are loading in the background and will appear shortly.", "价格正在后台加载，很快会显示。"))}</p>` : ""}
       ` : `<div class="empty-state">${escapeHtml(isLoadingInventory ? uiText("Loading synced Steam inventory...", "正在加载已同步的 Steam 库存...") : uiText("No synced inventory yet. Bind Steam and run inventory sync from the account page.", "还没有同步库存。请在通行证页面绑定 Steam 并同步库存。"))}</div>`}
     `;
@@ -7330,22 +8304,40 @@
     const hasProPayload = Boolean(appState.aiProLoadouts);
     const frameState = appState.loadoutFrameReady ? "ready" : (appState.loadoutHydrationStarted ? "hydrating" : "frame");
     root.innerHTML = `
-      <section class="page-intro account-page" data-motion-intro data-loadout-stage="${escapeHtml(frameState)}">
-        <p class="eyebrow" data-motion-part="eyebrow">${escapeHtml(uiText("Curator", LOADOUT_ZH.curator))}</p>
-        <h1 data-motion-part="title">${escapeHtml(uiText("Curator", LOADOUT_ZH.curator))}</h1>
-        <p data-motion-part="copy">${escapeHtml((hasCatalog || hasInventoryPayload || hasProPayload)
-          ? uiText("Ask for budget-aware skin pairings, same-color inventory upgrades, and pro-inspired references.", LOADOUT_ZH.introReady)
-          : uiText("The curator console appears first; recommendations and references stream in after catalog data is ready.", LOADOUT_ZH.introLoading))}</p>
-      </section>
-      ${aiChatMarkup()}
-      ${(hasCatalog || hasInventoryPayload || appState.aiInventoryLoading)
-        ? aiInventoryRecommendationsMarkup()
-        : `<section class="ai-panel ai-inline-panel" data-loadout-stage="frame"><p class="ai-copy">${escapeHtml(uiText("Preparing recommendations...", LOADOUT_ZH.preparing))}</p></section>`}
-      ${(hasProPayload || appState.aiProLoadoutsLoading)
-        ? aiProLoadoutsMarkup()
-        : `<section class="ai-panel ai-inline-panel" data-loadout-stage="hydrating"><p class="ai-copy">${escapeHtml(uiText("Loading pro references...", LOADOUT_ZH.proLoading))}</p></section>`}
+      <div class="curator-console-shell" data-loadout-stage="${escapeHtml(frameState)}">
+        ${curatorSidebarMarkup(frameState)}
+        <div class="curator-console-stage">
+          ${curatorMarketStripMarkup()}
+          <section class="curator-console-masthead page-intro" data-motion-intro>
+            <div class="curator-hero-banner">
+              <div class="curator-hero-overlay">
+                <p class="eyebrow" data-motion-part="eyebrow">${escapeHtml(uiText("Curate Your Legend", "策展你的传奇"))}</p>
+                <h1 data-motion-part="title">${escapeHtml(uiText("Curator Console", "策展控制台"))}</h1>
+                <p data-motion-part="copy">${escapeHtml(uiText("A red-black command chamber for AI routes, inventory upgrades, and pro-inspired loadouts.", "一座为 AI 方案、库存升级和职业选手灵感而生的红黑控制台。"))}</p>
+              </div>
+            </div>
+          </section>
+          <div class="curator-operating-grid">
+            ${curatorRecommendationRailMarkup()}
+            <section class="curator-command-deck" id="loadoutCommandDeck">
+              ${aiChatMarkup()}
+            </section>
+            <section class="curator-runway" id="inventoryUpgradeStage">
+              ${(hasCatalog || hasInventoryPayload || appState.aiInventoryLoading)
+                ? aiInventoryRecommendationsMarkup()
+                : `<section class="ai-panel ai-inline-panel" data-loadout-stage="frame"><p class="ai-copy">${escapeHtml(uiText("Preparing recommendations...", LOADOUT_ZH.preparing))}</p></section>`}
+            </section>
+          </div>
+          <section class="curator-pro-archive" id="proReferenceStage">
+            ${(hasProPayload || appState.aiProLoadoutsLoading)
+              ? aiProLoadoutsMarkup()
+              : `<section class="ai-panel ai-inline-panel" data-loadout-stage="hydrating"><p class="ai-copy">${escapeHtml(uiText("Loading pro references...", LOADOUT_ZH.proLoading))}</p></section>`}
+          </section>
+        </div>
+      </div>
     `;
-    if (!appState.aiInventoryRecommendations || !appState.aiProLoadouts) {
+    armLoadoutProHydration();
+    if (!appState.aiInventoryRecommendations) {
       scheduleLoadoutHydration();
     }
   }
@@ -7455,6 +8447,22 @@
     setDiyDesigns(designs.slice(0, 24));
     renderFavorites();
     return Promise.resolve({ ok: true, message: uiText("Saved to Favorites.", "已保存到收藏夹。") });
+  }
+
+  function removeDiyDesign(designId) {
+    const nextId = String(designId || "").trim();
+    if (!nextId) return;
+    const designs = getDiyDesigns();
+    setDiyDesigns(designs.filter((design) => String(design?.id || "").trim() !== nextId));
+    renderFavorites();
+  }
+
+  function diyDesignInspectHref(design) {
+    const itemId = String(design?.baseItemId || DEFAULT_DETAIL_ALIAS).trim() || DEFAULT_DETAIL_ALIAS;
+    const params = new URLSearchParams();
+    params.set("id", itemId);
+    if (design?.id) params.set("diyDesign", String(design.id));
+    return `item.html?${params.toString()}`;
   }
 
   function supportsStickerDiy(item) {
@@ -7572,6 +8580,56 @@
     renderAccount();
     renderInventory();
     void scheduleAccountRefresh({ keepFeedback: true });
+  }
+
+  function readFileAsDataUrl(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ""));
+      reader.onerror = () => reject(new Error(uiText("Unable to read the selected image.", "无法读取所选图片。")));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function saveAccountAvatar(avatarUrl) {
+    const isReset = !String(avatarUrl || "").trim();
+    setAccountBusyAction(isReset ? "avatar-reset" : "avatar-upload");
+    renderAccount();
+    try {
+      const payload = await fetchJson("/api/auth/avatar", { method: "POST", body: JSON.stringify({ avatarUrl }) });
+      if (payload?.user) applyAuthenticatedUser(payload.user, { keepFeedback: true });
+      appState.accountMessage = isReset
+        ? uiText("Default avatar restored.", "已恢复默认头像。")
+        : uiText("Avatar updated.", "头像已更新。");
+      appState.accountError = "";
+    } catch (error) {
+      if (error.status === 400) {
+        throw new Error(uiText("Please upload a valid image file under 1 MB.", "请上传 1 MB 以内的有效图片文件。"));
+      }
+      if (error.status === 401) {
+        throw new Error(uiText("Please sign in again before updating your avatar.", "请重新登录后再更新头像。"));
+      }
+      throw error;
+    } finally {
+      setAccountBusyAction("");
+      renderAccount();
+    }
+  }
+
+  async function handleAccountAvatarSelection(input) {
+    const file = input?.files?.[0];
+    if (!file) return;
+    if (!/^image\//i.test(String(file.type || ""))) {
+      input.value = "";
+      throw new Error(uiText("Please choose an image file.", "请选择图片文件。"));
+    }
+    if (Number(file.size || 0) > 1024 * 1024) {
+      input.value = "";
+      throw new Error(uiText("Please upload a file smaller than 1 MB.", "请上传小于 1 MB 的图片。"));
+    }
+    const dataUrl = await readFileAsDataUrl(file);
+    input.value = "";
+    await saveAccountAvatar(dataUrl);
   }
 
   async function runSteamSync() {
@@ -7726,6 +8784,27 @@
         link.removeAttribute("aria-current");
       }
     });
+    renderNavAccountIdentity();
+  }
+
+  function renderNavAccountIdentity() {
+    const header = document.querySelector(".site-header");
+    if (!(header instanceof HTMLElement)) return;
+    let node = header.querySelector(".nav-account-card");
+    if (!(node instanceof HTMLAnchorElement)) {
+      node = document.createElement("a");
+      node.className = "nav-account-card";
+      node.href = "account.html";
+      node.setAttribute("aria-label", uiText("Open account", "打开账号页"));
+      const langSwitch = header.querySelector(".lang-switch");
+      header.insertBefore(node, langSwitch || null);
+    }
+    const identity = currentAccountIdentity();
+    node.classList.toggle("is-signed-in", Boolean(identity.user));
+    node.innerHTML = `
+      <img src="${escapeHtml(identity.avatar)}" alt="" />
+      <span>${escapeHtml(identity.name)}</span>
+    `;
   }
 
   function isHeavyMotionPage() {
@@ -7749,6 +8828,7 @@
   function navigateSmoothly(href, trigger) {
     const target = String(href || "").trim();
     if (!target) return;
+    captureCurrentPageMemory();
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
       location.assign(target);
       return;
@@ -7769,7 +8849,7 @@
     appState.navigationTimer = window.setTimeout(() => {
       appState.navigationTimer = 0;
       location.assign(target);
-    }, 110);
+    }, 60);
   }
 
   function resetTransientUiState() {
@@ -7805,6 +8885,9 @@
         } else if (form.id === "accountSteamBindForm") {
           event.preventDefault();
           await saveSteamBinding(form);
+        } else if (form.id === "accountUsernameForm") {
+          event.preventDefault();
+          await saveAccountUsername(form);
         } else if (form.id === "aiLoadoutChatForm") {
           event.preventDefault();
           await requestAiLoadoutChat();
@@ -7812,6 +8895,19 @@
       } catch (error) {
         appState.accountError = error.message;
         appState.accountMessage = "";
+        renderAccount();
+      }
+    });
+
+    document.addEventListener("change", async (event) => {
+      const input = event.target instanceof HTMLInputElement ? event.target : null;
+      if (!input || input.id !== "accountAvatarInput") return;
+      try {
+        await handleAccountAvatarSelection(input);
+      } catch (error) {
+        appState.accountError = error.message;
+        appState.accountMessage = "";
+        setAccountBusyAction("");
         renderAccount();
       }
     });
@@ -7922,6 +9018,12 @@
       if (favoriteTrigger instanceof HTMLElement) {
         event.preventDefault();
         toggleFavorite(favoriteTrigger.dataset.favoriteId || "");
+        return;
+      }
+      const diyFavoriteTrigger = target.closest("[data-diy-favorite-id]");
+      if (diyFavoriteTrigger instanceof HTMLElement) {
+        event.preventDefault();
+        removeDiyDesign(diyFavoriteTrigger.dataset.diyFavoriteId || "");
         return;
       }
       const compareTrigger = target.closest("[data-compare-id]");
@@ -8045,7 +9147,23 @@
         renderOpenings();
         return;
       }
-      if (target.closest("[data-opening-inspect-link]")) return;
+      const openingInspectTrigger = target.closest("[data-opening-inspect-link]");
+      if (openingInspectTrigger instanceof HTMLElement) {
+        event.preventDefault();
+        const directHref = openingInspectTrigger instanceof HTMLAnchorElement ? (openingInspectTrigger.getAttribute("href") || "") : "";
+        const inspectNameCandidates = [
+          openingInspectTrigger.dataset.openingInspectName || "",
+          openingInspectTrigger.dataset.openingInspectNameEn || "",
+          openingInspectTrigger.dataset.openingInspectNameZh || ""
+        ].map((value) => String(value || "").trim()).filter(Boolean);
+        const fallbackItem = resolveDisplayItemById(openingInspectTrigger.dataset.openingInspectId || "")
+          || inspectNameCandidates.map((name) => resolveDisplayItemByName(name)).find(Boolean);
+        const fallbackHref = fallbackItem ? itemHref(fallbackItem) : "";
+        if (directHref || fallbackHref) {
+          navigateSmoothly(directHref || fallbackHref, openingInspectTrigger);
+        }
+        return;
+      }
       const openingBatchResult = target.closest("[data-opening-batch-index]");
       if (openingBatchResult instanceof HTMLElement) {
         event.preventDefault();
@@ -8171,6 +9289,14 @@
         return;
       }
       try {
+        if (target.id === "accountAvatarUploadButton") {
+          document.getElementById("accountAvatarInput")?.click();
+          return;
+        }
+        if (target.id === "accountAvatarResetButton") {
+          await saveAccountAvatar("");
+          return;
+        }
         if (target.id === "accountLogoutButton") {
           await logoutAccount();
           return;
@@ -8420,12 +9546,17 @@
     renderPageContent(pageName());
   }
 
+  function shouldRerenderAfterAccountBootstrap(targetPage = pageName()) {
+    return ["account.html", "inventory.html", "loadout.html"].includes(targetPage);
+  }
+
   async function renderCurrentPage() {
     const currentPage = pageName();
+    restoreCurrentPageMemory();
     const currentPageIsItemDetail = currentPage === "item.html";
     const detailParams = new URLSearchParams(location.search);
     const requestedItemId = detailParams.get("id") || getInspectorState().itemId || DEFAULT_DETAIL_ALIAS;
-    const currentPageNeedsCatalogData = ["index.html", "catalog.html", "collections.html", "favorites.html", "recent.html", "openings.html"].includes(currentPage);
+    const currentPageNeedsCatalogData = ["index.html", "catalog.html", "collections.html", "favorites.html", "recent.html", "openings.html", "related.html"].includes(currentPage);
     const hasCatalogData = Array.isArray(globalThis.CS2_CATALOG) && globalThis.CS2_CATALOG.length > 0;
     const currentPageNeedsOpeningData = currentPage === "openings.html";
     const hasOpeningData = !currentPageNeedsOpeningData || openingDataAvailable();
@@ -8440,6 +9571,7 @@
         renderPageContent(currentPage);
         markActiveNavigation();
         scheduleDeferredImageHydration(currentPage);
+        restoreCurrentPageScroll();
       }).catch(() => {});
       return;
     }
@@ -8459,6 +9591,7 @@
         renderPageContent(currentPage);
         markActiveNavigation();
         scheduleDeferredImageHydration(currentPage);
+        restoreCurrentPageScroll();
       }).catch(() => {});
       return;
     }
@@ -8477,6 +9610,7 @@
     markActiveNavigation();
     applyPageMotionState();
     scheduleDeferredImageHydration(currentPage);
+    restoreCurrentPageScroll();
   }
 
   try {
@@ -8499,6 +9633,7 @@
     bindEvents();
     initLazyImageLoading();
     resetTransientUiState();
+    restoreCurrentPageMemory();
     restorePriceCaches();
     restoreAuthOverviewSnapshot();
     consumeAccountRedirectFeedback();
@@ -8506,10 +9641,13 @@
     await globalThis.ensureCatalogLocaleLoaded?.(currentLanguage());
     restoreOpeningState();
     await renderCurrentPage();
-    document.documentElement.dataset.uiReady = "true";
+    if (pageName() !== "collections.html") {
+      document.documentElement.dataset.uiReady = "true";
+    }
     window.addEventListener("pageshow", async (event) => {
       if (!event.persisted) return;
       resetTransientUiState();
+      restoreCurrentPageMemory();
       document.documentElement.dataset.uiReady = "true";
       try {
         const currentPage = pageName();
@@ -8529,6 +9667,12 @@
       resetTransientUiState();
       void renderCurrentPage();
     });
+    window.addEventListener("pagehide", () => {
+      captureCurrentPageMemory();
+    });
+    window.addEventListener("beforeunload", () => {
+      captureCurrentPageMemory();
+    });
     try {
       await Promise.allSettled([ensureAccountData()]);
       if ((pageName() === "inventory.html" || pageName() === "loadout.html") && appState.session?.steamId && !(appState.inventoryPreview?.items || []).length && !appState.inventoryAutoSyncStarted) {
@@ -8537,9 +9681,13 @@
           await runSteamSync();
         } catch {}
       }
-      await renderCurrentPage();
+      if (shouldRerenderAfterAccountBootstrap()) {
+        await renderCurrentPage();
+      }
     } catch {
-      await renderCurrentPage();
+      if (shouldRerenderAfterAccountBootstrap()) {
+        await renderCurrentPage();
+      }
     }
   }
 
@@ -8547,5 +9695,7 @@
     bindEvents();
     resetTransientUiState();
     void renderCurrentPage();
-    document.documentElement.dataset.uiReady = "true";
+    if (pageName() !== "collections.html") {
+      document.documentElement.dataset.uiReady = "true";
+    }
   });

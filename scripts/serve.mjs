@@ -108,6 +108,7 @@ db.exec(`
     id TEXT PRIMARY KEY,
     username TEXT NOT NULL UNIQUE,
     password_hash TEXT NOT NULL,
+    avatar_url TEXT DEFAULT '',
     steam_id TEXT DEFAULT '',
     steam_bound_at TEXT,
     last_inventory_sync_at TEXT,
@@ -169,19 +170,29 @@ db.exec(`
   );
 `);
 
+for (const statement of [
+  "ALTER TABLE users ADD COLUMN avatar_url TEXT DEFAULT ''"
+]) {
+  try {
+    db.exec(statement);
+  } catch (error) {
+    if (!/duplicate column name/i.test(String(error?.message || ""))) throw error;
+  }
+}
+
 db.prepare("DELETE FROM sessions WHERE expires_at <= ?").run(new Date().toISOString());
 
 const selectUserByUsername = db.prepare(`
-  SELECT id, username, password_hash, steam_id, steam_bound_at, last_inventory_sync_at, last_inventory_count, created_at, updated_at
+  SELECT id, username, password_hash, avatar_url, steam_id, steam_bound_at, last_inventory_sync_at, last_inventory_count, created_at, updated_at
   FROM users WHERE username = ?
 `);
 const selectUserById = db.prepare(`
-  SELECT id, username, password_hash, steam_id, steam_bound_at, last_inventory_sync_at, last_inventory_count, created_at, updated_at
+  SELECT id, username, password_hash, avatar_url, steam_id, steam_bound_at, last_inventory_sync_at, last_inventory_count, created_at, updated_at
   FROM users WHERE id = ?
 `);
 const selectSessionByToken = db.prepare(`
   SELECT s.token, s.user_id, s.created_at, s.expires_at,
-         u.id, u.username, u.password_hash, u.steam_id, u.steam_bound_at, u.last_inventory_sync_at, u.last_inventory_count, u.created_at AS user_created_at, u.updated_at AS user_updated_at
+         u.id, u.username, u.password_hash, u.avatar_url, u.steam_id, u.steam_bound_at, u.last_inventory_sync_at, u.last_inventory_count, u.created_at AS user_created_at, u.updated_at AS user_updated_at
   FROM sessions s
   JOIN users u ON u.id = s.user_id
   WHERE s.token = ?
@@ -199,8 +210,18 @@ const selectPlatformSession = {
 const upsertSession = db.prepare("INSERT INTO sessions (token, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)");
 const deleteSession = db.prepare("DELETE FROM sessions WHERE token = ?");
 const insertUser = db.prepare(`
-  INSERT INTO users (id, username, password_hash, steam_id, steam_bound_at, last_inventory_sync_at, last_inventory_count, created_at, updated_at)
-  VALUES (?, ?, ?, '', NULL, NULL, 0, ?, ?)
+  INSERT INTO users (id, username, password_hash, avatar_url, steam_id, steam_bound_at, last_inventory_sync_at, last_inventory_count, created_at, updated_at)
+  VALUES (?, ?, ?, '', '', NULL, NULL, 0, ?, ?)
+`);
+const updateUserAvatar = db.prepare(`
+  UPDATE users
+  SET avatar_url = ?, updated_at = ?
+  WHERE id = ?
+`);
+const updateUserUsername = db.prepare(`
+  UPDATE users
+  SET username = ?, updated_at = ?
+  WHERE id = ?
 `);
 const updateUserSteam = db.prepare(`
   UPDATE users
@@ -510,8 +531,16 @@ function staticCacheHeaders(filePath, requestUrl) {
   const extension = extname(filePath).toLowerCase();
   const pathname = decodeURIComponent(requestUrl.pathname || "");
   const hasVersion = requestUrl.searchParams.has("v");
-  const cacheableAsset = hasVersion || pathname.startsWith("/assets/") || pathname.startsWith("/.data/") || [".js", ".css", ".png", ".jpg", ".jpeg", ".webp", ".svg", ".gif", ".ico", ".woff", ".woff2"].includes(extension);
+  const immutableAsset = hasVersion || pathname.startsWith("/assets/") || pathname.startsWith("/.data/");
+  const cacheableAsset = immutableAsset || [".js", ".css", ".png", ".jpg", ".jpeg", ".webp", ".svg", ".gif", ".ico", ".woff", ".woff2"].includes(extension);
   if (!cacheableAsset || extension === ".html") {
+    return {
+      "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+      Pragma: "no-cache",
+      Expires: "0"
+    };
+  }
+  if (!immutableAsset) {
     return {
       "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
       Pragma: "no-cache",
@@ -621,6 +650,7 @@ function mapUser(row) {
   return {
     id: row.id,
     username: row.username,
+    avatarUrl: String(row.avatar_url || "").trim(),
     steamId,
     createdAt: row.created_at || row.user_created_at || null,
     updatedAt: row.updated_at || row.user_updated_at || null,
@@ -739,6 +769,18 @@ function authTokenFromRequest(request) {
   return readCookies(request)[sessionCookieName] || "";
 }
 
+function normalizeAvatarUrl(value) {
+  const avatarUrl = String(value || "").trim();
+  if (!avatarUrl) return "";
+  if (/^data:image\/(?:png|jpeg|jpg|webp|gif);base64,[a-z0-9+/=]+$/i.test(avatarUrl)) {
+    if (avatarUrl.length > 1_600_000) {
+      throw new Error("Avatar image is too large.");
+    }
+    return avatarUrl;
+  }
+  throw new Error("Avatar image must be a valid data URL.");
+}
+
 function readAuthenticatedUser(request) {
   const token = authTokenFromRequest(request);
   if (!token) return { token: "", user: null };
@@ -808,6 +850,39 @@ async function handleSteamBind(request, response, user) {
   updateUserSteam.run(steamId, updatedAt, updatedAt, user.id);
   const nextUser = mapUser(selectUserById.get(user.id));
   json(response, 200, { user: nextUser, profile: buildSteamProfile(steamId) });
+}
+
+async function handleAvatarUpdate(request, response, user) {
+  const body = await readBody(request);
+  let avatarUrl = "";
+  try {
+    avatarUrl = normalizeAvatarUrl(body.avatarUrl);
+  } catch (error) {
+    json(response, 400, { code: "invalid_avatar", error: error.message || "Avatar image is invalid." });
+    return;
+  }
+  const updatedAt = nowIso();
+  updateUserAvatar.run(avatarUrl, updatedAt, user.id);
+  const nextUser = mapUser(selectUserById.get(user.id));
+  json(response, 200, { user: nextUser });
+}
+
+async function handleUsernameUpdate(request, response, user) {
+  const body = await readBody(request);
+  const username = normalizeUsername(body.username);
+  if (username.length < 3 || username.length > 24) {
+    json(response, 400, { code: "invalid_username", error: "Username must be 3-24 characters." });
+    return;
+  }
+  const existing = selectUserByUsername.get(username);
+  if (existing && existing.id !== user.id) {
+    json(response, 409, { code: "account_exists", error: "Account already exists." });
+    return;
+  }
+  const updatedAt = nowIso();
+  updateUserUsername.run(username, updatedAt, user.id);
+  const nextUser = mapUser(selectUserById.get(user.id));
+  json(response, 200, { user: nextUser });
 }
 
 async function handleSteamSync(_request, response, user) {
@@ -2080,6 +2155,14 @@ async function routeApi(request, response, pathname) {
     await handleSteamBind(request, response, user);
     return true;
   }
+  if (pathname === "/api/auth/avatar" && request.method === "POST") {
+    await handleAvatarUpdate(request, response, user);
+    return true;
+  }
+  if (pathname === "/api/auth/username" && request.method === "POST") {
+    await handleUsernameUpdate(request, response, user);
+    return true;
+  }
   if (pathname === "/api/steam/sync" && request.method === "POST") {
     await handleSteamSync(request, response, user);
     return true;
@@ -2173,6 +2256,6 @@ createServer(async (request, response) => {
 }).listen(port, "127.0.0.1", () => {
   console.log(`CS2 Relic Hall: http://127.0.0.1:${port}/`);
   console.log(`Database: SQLite (${dbFile})`);
-  console.log("Auth routes: POST /api/auth/register, /api/auth/login, /api/auth/logout");
+  console.log("Auth routes: POST /api/auth/register, /api/auth/login, /api/auth/logout, /api/auth/avatar");
   console.log("Account routes: GET /api/account/overview, POST /api/auth/steam/bind, POST /api/steam/sync");
 });

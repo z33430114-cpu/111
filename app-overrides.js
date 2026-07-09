@@ -218,10 +218,15 @@
     return String(item?.translations?.[globalThis.getCurrentLanguage?.() || "zh-CN"]?.name || item?.nameZh || item?.nameEn || item?.displayName || item?.name || "").trim() || text("Sticker", "贴纸");
   }
 
+  function stickerDataset() {
+    const catalogStickers = (globalThis.items || []).filter((item) => item.type === "sticker" && item.image);
+    if (catalogStickers.length) return catalogStickers;
+    return (globalThis.CS2_STICKERS || []).filter((item) => item?.image);
+  }
+
   function stickerPool() {
     const query = String($("#stickerSearchInput")?.value || "").trim().toLowerCase();
-    const stickers = (globalThis.items || [])
-      .filter((item) => item.type === "sticker" && item.image)
+    const stickers = stickerDataset()
       .filter((item) => !query || [stickerLabel(item), item.collectionZh, item.collectionEn].some((value) => String(value || "").toLowerCase().includes(query)))
       .slice(0, STICKER_LIMIT);
     state.stickers = stickers;
@@ -230,7 +235,7 @@
   }
 
   function activeSticker() {
-    return (globalThis.items || []).find((item) => item.id === state.activeStickerId) || state.stickers[0] || null;
+    return stickerDataset().find((item) => item.id === state.activeStickerId) || state.stickers[0] || null;
   }
 
   function ensureStickerOverlay() {
@@ -565,6 +570,63 @@
     selectedName: "",
     touched: false
   };
+  const HALL_STATE_KEY = "cs2-relic-hall:halls-memory";
+
+  function readStorageJson(key, fallback) {
+    try {
+      const raw = localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : fallback;
+    } catch {
+      return fallback;
+    }
+  }
+
+  function writeStorageJson(key, value) {
+    try {
+      localStorage.setItem(key, JSON.stringify(value));
+    } catch {}
+  }
+
+  function persistHallDirectoryState() {
+    writeStorageJson(HALL_STATE_KEY, {
+      bucket: String(hallState.bucket || "collection"),
+      query: String(hallState.query || ""),
+      sort: String(hallState.sort || "az"),
+      type: String(hallState.type || "all"),
+      page: Math.max(1, Number(hallState.page) || 1),
+      selectedName: String(hallState.selectedName || ""),
+      touched: Boolean(hallState.touched),
+      scrollX: Number(globalThis.scrollX || globalThis.pageXOffset || 0),
+      scrollY: Number(globalThis.scrollY || globalThis.pageYOffset || 0),
+      capturedAt: Date.now()
+    });
+  }
+
+  function restoreHallDirectoryState() {
+    const saved = readStorageJson(HALL_STATE_KEY, {});
+    hallState.bucket = String(saved.bucket || hallState.bucket || "collection");
+    hallState.query = String(saved.query || "");
+    hallState.sort = String(saved.sort || "az");
+    hallState.type = String(saved.type || "all");
+    hallState.page = Math.max(1, Number(saved.page) || 1);
+    hallState.selectedName = String(saved.selectedName || "");
+    hallState.touched = Boolean(saved.touched);
+  }
+
+  function restoreHallDirectoryScroll() {
+    const saved = readStorageJson(HALL_STATE_KEY, {});
+    const x = Number(saved.scrollX || 0);
+    const y = Number(saved.scrollY || 0);
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return;
+    const token = `${String(saved.bucket || "")}|${String(saved.query || "")}|${String(saved.type || "")}|${String(saved.sort || "")}|${Number(saved.page) || 1}|${y}`;
+    if (hallState.restoreToken === token) return;
+    hallState.restoreToken = token;
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        scrollTo(x, y);
+      });
+    });
+  }
 
   const PREVIEW_HALL_ROWS = [
     { name: "Ancient Collection", collectionEn: "Ancient Collection", count: 32, bucket: "collection", types: ["rifle", "pistol", "smg"], cover: "assets/halls/map-ancient.png", sublabel: "Field Wings", category: "Map Collections", lastViewed: "2 Days Ago", coverage: "92%", href: "catalog.html?collection=The%20Ancient%20Collection" },
@@ -962,8 +1024,8 @@
     return `
       <section class="halls-directory-hero" data-motion-intro>
         <div class="halls-directory-title">
-          <p class="eyebrow">${escapeHtml(text("Halls", "展区"))}</p>
-          <h1>${escapeHtml(text("Halls", "展区"))}</h1>
+          <p class="eyebrow">${escapeHtml(text("Halls", "Halls"))}</p>
+          <h1>${escapeHtml(text("Halls", "Halls"))}</h1>
           <p>${escapeHtml(text("Browse exhibition halls by group. Jump into collections, cases, capsules, and souvenir wings.", "按分组浏览展区，可进入收藏品、武器箱、胶囊和纪念包。"))}</p>
         </div>
         <div class="halls-weapon-rail" aria-hidden="true">
@@ -1038,6 +1100,10 @@
     document.body.classList.add("halls-directory-page");
     main.innerHTML = buildHallsDirectoryMarkup();
     renderHallRows(main);
+    restoreHallDirectoryScroll();
+    if (document.documentElement?.dataset) {
+      document.documentElement.dataset.uiReady = "true";
+    }
   }
 
   function bindHallsDirectoryEvents() {
@@ -1050,6 +1116,7 @@
         hallState.page = 1;
         hallState.selectedName = "";
         hallState.touched = true;
+        persistHallDirectoryState();
         renderHallsDirectory();
         return;
       }
@@ -1058,6 +1125,7 @@
         event.preventDefault();
         hallState.page = Math.max(1, Number(pageButton.dataset.hallsPage) || 1);
         hallState.touched = true;
+        persistHallDirectoryState();
         renderHallRows(document.querySelector("main.collections-page") || document);
         return;
       }
@@ -1066,6 +1134,7 @@
         event.preventDefault();
         hallState.selectedName = row.dataset.hallsSelect || "";
         hallState.touched = true;
+        persistHallDirectoryState();
         renderHallRows(document.querySelector("main.collections-page") || document);
       }
     });
@@ -1076,6 +1145,7 @@
       hallState.query = target.value;
       hallState.page = 1;
       hallState.touched = true;
+      persistHallDirectoryState();
       renderHallRows(document.querySelector("main.collections-page") || document);
     });
 
@@ -1086,12 +1156,14 @@
         hallState.sort = target.value;
         hallState.page = 1;
         hallState.touched = true;
+        persistHallDirectoryState();
         renderHallRows(document.querySelector("main.collections-page") || document);
       }
       if (target.matches("[data-halls-type]")) {
         hallState.type = target.value;
         hallState.page = 1;
         hallState.touched = true;
+        persistHallDirectoryState();
         renderHallRows(document.querySelector("main.collections-page") || document);
       }
       if (target.matches(".lang-switch")) {
@@ -1106,13 +1178,13 @@
       event.preventDefault();
       hallState.selectedName = row.dataset.hallsSelect || "";
       hallState.touched = true;
+      persistHallDirectoryState();
       renderHallRows(document.querySelector("main.collections-page") || document);
     });
   }
 
   function boot() {
-    const item = currentItem();
-    state.diyOpen = Boolean(item && stickerDiyEnabled(item));
+    state.diyOpen = false;
     normalizeVisibleMojibake();
     ensureMojibakeCleanupObserver();
     bindEvents();
@@ -1122,11 +1194,17 @@
     syncWearVisibility();
     syncDetailUi();
     syncDiyLayoutState();
+    restoreHallDirectoryState();
     bindHallsDirectoryEvents();
+    window.addEventListener("pagehide", persistHallDirectoryState);
+    window.addEventListener("beforeunload", persistHallDirectoryState);
     renderHallsDirectory();
-    window.setTimeout(renderHallsDirectory, 80);
     window.setTimeout(renderOpeningFallback, 1200);
   }
+
+  try {
+    globalThis.renderHallsDirectory = renderHallsDirectory;
+  } catch {}
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", boot, { once: true });

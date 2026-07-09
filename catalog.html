@@ -17,7 +17,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>目录 | CS Exhibition</title>
-  <link rel="stylesheet" href="styles.css?v=20260708immersive27" />
+  <link rel="stylesheet" href="styles.css?v=20260709smooth4" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%23050505'/%3E%3Cpath d='M10 44V20h44v8H22v8h24v8H10Z' fill='%23d71920'/%3E%3C/svg%3E" />
 </head>
 <body>
   <header class="site-header">
@@ -29,6 +30,7 @@
       <a data-nav-key="Favorites" href="favorites.html"></a>
       <a data-nav-key="Recent" href="recent.html"></a>
       <a data-nav-key="Unbox" href="openings.html">Drop Theatre</a>
+      <a data-nav-key="Related" href="related.html"></a>
       <a data-nav-key="Account" href="account.html"></a>
       <a data-nav-key="Inventory" href="inventory.html"></a>
       <a data-nav-key="Loadout" href="loadout.html">Curator</a>
@@ -41,70 +43,70 @@
   <main class="catalog-page"></main>
 
   <div class="collection-picker" id="collectionPicker" hidden>
-    <button class="picker-backdrop" type="button" data-picker-close aria-label="锟截憋拷锟秸诧拷筛选"></button>
+    <button class="picker-backdrop" type="button" data-picker-close aria-label="关闭收藏品筛选"></button>
     <div class="picker-dialog">
       <div class="picker-header">
-        <h2>选锟斤拷锟秸诧拷品</h2>
-        <button class="picker-close" type="button" id="closeCollectionPicker">锟截憋拷</button>
+        <h2>选择收藏品</h2>
+        <button class="picker-close" type="button" id="closeCollectionPicker">关闭</button>
       </div>
       <div class="picker-search">
-        <input id="collectionSearch" type="search" placeholder="锟斤拷锟斤拷锟秸诧拷品" />
+        <input id="collectionSearch" type="search" placeholder="搜索收藏品" />
       </div>
       <div class="picker-groups">
         <div class="picker-option-grid" id="collectionOptions"></div>
       </div>
       <div class="picker-actions">
-        <button class="secondary-action" id="clearCollection" type="button">锟斤拷锟?/button>
-        <button class="primary-action" id="confirmCollection" type="button">确锟斤拷</button>
+        <button class="secondary-action" id="clearCollection" type="button">清空</button>
+        <button class="primary-action" id="confirmCollection" type="button">确认</button>
       </div>
     </div>
   </div>
 
   <div class="collection-picker" id="typePicker" hidden>
-    <button class="picker-backdrop" type="button" data-type-picker-close aria-label="锟截憋拷锟斤拷锟斤拷锟斤拷锟斤拷筛选"></button>
+    <button class="picker-backdrop" type="button" data-type-picker-close aria-label="关闭武器类型筛选"></button>
     <div class="picker-dialog">
       <div class="picker-header">
-        <h2>选锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷</h2>
-        <button class="picker-close" type="button" id="closeTypePicker">锟截憋拷</button>
+        <h2>选择武器类型</h2>
+        <button class="picker-close" type="button" id="closeTypePicker">关闭</button>
       </div>
       <div class="picker-search">
-        <input id="typeSearch" type="search" placeholder="锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷" />
+        <input id="typeSearch" type="search" placeholder="搜索武器类型" />
       </div>
       <div class="picker-groups">
         <div class="picker-option-grid" id="typeOptions"></div>
       </div>
       <div class="picker-actions">
-        <button class="secondary-action" id="clearType" type="button">锟斤拷锟?/button>
-        <button class="primary-action" id="confirmType" type="button">确锟斤拷</button>
+        <button class="secondary-action" id="clearType" type="button">清空</button>
+        <button class="primary-action" id="confirmType" type="button">确认</button>
       </div>
     </div>
   </div>
 
   <div class="collection-picker" id="rarityPicker" hidden>
-    <button class="picker-backdrop" type="button" data-rarity-picker-close aria-label="锟截憋拷稀锟叫讹拷筛选"></button>
+    <button class="picker-backdrop" type="button" data-rarity-picker-close aria-label="关闭稀有度筛选"></button>
     <div class="picker-dialog">
       <div class="picker-header">
-        <h2>选锟斤拷稀锟叫讹拷</h2>
-        <button class="picker-close" type="button" id="closeRarityPicker">锟截憋拷</button>
+        <h2>选择稀有度</h2>
+        <button class="picker-close" type="button" id="closeRarityPicker">关闭</button>
       </div>
       <div class="picker-search">
-        <input id="raritySearch" type="search" placeholder="锟斤拷锟斤拷稀锟叫讹拷" />
+        <input id="raritySearch" type="search" placeholder="搜索稀有度" />
       </div>
       <div class="picker-groups">
         <div class="picker-option-grid" id="rarityOptions"></div>
       </div>
       <div class="picker-actions">
-        <button class="secondary-action" id="clearRarity" type="button">锟斤拷锟?/button>
-        <button class="primary-action" id="confirmRarity" type="button">确锟斤拷</button>
+        <button class="secondary-action" id="clearRarity" type="button">清空</button>
+        <button class="primary-action" id="confirmRarity" type="button">确认</button>
       </div>
     </div>
   </div>
 
   <script src="catalog-meta.js?v=20260629b"></script>
   <script src="data.js?v=20260707b"></script>
-<script src="language-runtime.js?v=20260708immersive27"></script>
-<script src="app.js?v=20260709stable2"></script>
-<script src="app-overrides.js?v=20260709stable2"></script>
+<script src="language-runtime.js?v=20260709smooth4"></script>
+<script src="app.js?v=20260709smooth4"></script>
+<script src="app-overrides.js?v=20260709smooth4"></script>
 </body>
 </html>
 

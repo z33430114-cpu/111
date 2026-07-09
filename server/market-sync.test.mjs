@@ -251,3 +251,23 @@ test("summarizeOpeningAnalysis calculates EV and ROI from drops", () => {
   assert.equal(payload.roi, -36.67);
   assert.equal(payload.topDrops.length, 2);
 });
+
+test("summarizeOpeningAnalysis emits clean zh-CN commentary and insights", () => {
+  const payload = summarizeOpeningAnalysis({
+    openingId: "crate-1",
+    openingName: "Gallery Case",
+    locale: "zh-CN",
+    openingPrice: 12,
+    keyPrice: 18,
+    entries: [
+      { id: "skin-1", name: "Item 1", price: 100, probability: 0.1 },
+      { id: "skin-2", name: "Item 2", price: 10, probability: 0.9 },
+      { id: "skin-3", name: "Item 3", price: 6, probability: 0.2 }
+    ]
+  });
+
+  assert.match(payload.commentary, /理论回报|入场成本/);
+  assert.ok(payload.insights.length >= 2);
+  payload.insights.forEach((entry) => assert.doesNotMatch(entry, /\?{3,}|�|鎸夊綋|鐞嗚|楂樹环/));
+  assert.doesNotMatch(payload.commentary, /\?{3,}|�|鎸夊綋|鐞嗚|楂樹环/);
+});

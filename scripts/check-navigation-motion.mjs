@@ -12,13 +12,13 @@ assert.ok(Number(motionFastMatch[1]) <= 140, "styles.css should keep --motion-fa
 
 const introMotionMatch = stylesCss.match(/\[data-motion-intro\] \[data-motion-part\]\s*\{[\s\S]*?opacity\s+(\d+)ms[\s\S]*?transform\s+(\d+)ms/);
 assert.ok(introMotionMatch, "styles.css should define timed intro motion transitions");
-assert.ok(Number(introMotionMatch[1]) >= 180, "intro opacity transition should be long enough to feel smooth");
-assert.ok(Number(introMotionMatch[2]) >= 220, "intro transform transition should be long enough to feel smooth");
+assert.ok(Number(introMotionMatch[1]) >= 120 && Number(introMotionMatch[1]) <= 180, "intro opacity transition should stay light but visible");
+assert.ok(Number(introMotionMatch[2]) >= 140 && Number(introMotionMatch[2]) <= 210, "intro transform transition should stay light but visible");
 
 const mainMotionMatch = stylesCss.match(/main\s*\{[\s\S]*?opacity\s+(\d+)ms[\s\S]*?transform\s+(\d+)ms/);
 assert.ok(mainMotionMatch, "styles.css should define timed main page transitions");
-assert.ok(Number(mainMotionMatch[1]) >= 130, "main opacity transition should avoid abrupt page exits");
-assert.ok(Number(mainMotionMatch[2]) >= 170, "main transform transition should avoid abrupt page exits");
+assert.ok(Number(mainMotionMatch[1]) >= 90 && Number(mainMotionMatch[1]) <= 140, "main opacity transition should be quick but visible");
+assert.ok(Number(mainMotionMatch[2]) >= 110 && Number(mainMotionMatch[2]) <= 170, "main transform transition should be quick but visible");
 
 assert.match(stylesCss, /\.top-nav a::after/, "styles.css should define nav energy-line pseudo-element");
 assert.match(stylesCss, /html\.is-navigating main/, "styles.css should keep page exit state");
@@ -49,7 +49,7 @@ assert.match(appJs, /classList\.add\("is-pressing"\)/, "app.js should mark the c
 
 const navigationDelayMatch = appJs.match(/appState\.navigationTimer\s*=\s*window\.setTimeout\([\s\S]*?,\s*(\d+)\s*\);/);
 assert.ok(navigationDelayMatch, "app.js should delay navigation long enough for the exit motion to register");
-assert.ok(Number(navigationDelayMatch[1]) >= 90, "navigation exit delay should be at least 90ms for smoother page switching");
+assert.ok(Number(navigationDelayMatch[1]) >= 50 && Number(navigationDelayMatch[1]) <= 90, "navigation exit delay should keep switching responsive");
 
 assert.match(appJs, /data-motion-part="eyebrow"/, "app.js should label eyebrow motion parts");
 assert.match(appJs, /data-motion-part="title"/, "app.js should label title motion parts");

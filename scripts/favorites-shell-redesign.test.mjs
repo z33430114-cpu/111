@@ -40,8 +40,8 @@ function extractFunctionSource(sourceText, name) {
 test("favorites page renders the new exhibition shell while reusing saved-item and DIY content", () => {
   const root = { innerHTML: "" };
   const items = new Map([
-    ["ak-inheritance", { id: "ak-inheritance", name: "AK-47 | 传承" }],
-    ["knife-fade", { id: "knife-fade", name: "爪子刀 | 渐变大理石" }]
+    ["ak-inheritance", { id: "ak-inheritance", name: "AK-47 | Legacy" }],
+    ["knife-fade", { id: "knife-fade", name: "Karambit | Fade" }]
   ]);
   const context = {
     document: {
@@ -58,24 +58,61 @@ test("favorites page renders the new exhibition shell while reusing saved-item a
       compare: ["ak-inheritance"]
     }),
     resolveDisplayItemById: (id) => items.get(id) || null,
+    DEFAULT_DETAIL_ALIAS: "ak-inheritance",
+    URLSearchParams,
+    effectiveCatalogPriceRecord: () => ({ price: 882 }),
+    formatPrice: (value) => `$${value}`,
+    collectionLabel: () => "Gallery Collection",
+    itemTitle: (item) => item.name,
     favoriteCardMarkup: (item) => `<article class="favorite-card" data-item-id="${item.id}">${item.name}</article>`,
     getDiyDesigns: () => [
-      { id: "design-1", baseName: "AK-47 | 传承", createdAt: "2026-07-09T10:00:00.000Z", stickers: [{}, {}] }
+      { id: "design-1", baseName: "AK-47 | Legacy", createdAt: "2026-07-09T10:00:00.000Z", stickers: [{}, {}] }
     ]
   };
 
   vm.createContext(context);
-  const source = `${extractFunctionSource(appSource, "renderFavorites")};\nrenderFavorites();`;
+  const source = `${extractFunctionSource(appSource, "diyDesignInspectHref")}\n${extractFunctionSource(appSource, "renderFavorites")};\nrenderFavorites();`;
   vm.runInContext(source, context);
 
   assert.match(root.innerHTML, /class="favorites-shell"/);
   assert.match(root.innerHTML, /class="favorites-hero"/);
   assert.match(root.innerHTML, /class="favorites-stats-grid"/);
-  assert.match(root.innerHTML, /class="favorites-scope-rail"/);
+  assert.match(root.innerHTML, /class="favorites-toolbar"/);
+  assert.match(root.innerHTML, /class="favorites-spotlight"/);
   assert.match(root.innerHTML, /class="favorites-section favorites-collection-section"/);
   assert.match(root.innerHTML, /class="favorites-grid favorites-main-grid"/);
   assert.match(root.innerHTML, /class="favorites-section favorites-diy-section"/);
+  assert.match(root.innerHTML, /class="diy-favorite-canvas"/);
+  assert.match(root.innerHTML, /Open Inspector|打开检视器/);
+  assert.match(root.innerHTML, /data-diy-favorite-id="design-1"/);
+  assert.match(root.innerHTML, /Remove Favorite|取消收藏/);
   assert.match(root.innerHTML, /data-item-id="ak-inheritance"/);
   assert.match(root.innerHTML, /data-item-id="knife-fade"/);
   assert.match(root.innerHTML, /Sticker Gallery|贴纸画廊/);
+});
+
+test("removeDiyDesign persists the filtered gallery and refreshes the favorites page", () => {
+  const writes = [];
+  let renderCount = 0;
+  const context = {
+    getDiyDesigns: () => [
+      { id: "design-1", createdAt: "2026-07-09T10:00:00.000Z", stickers: [{}, {}] },
+      { id: "design-2", createdAt: "2026-07-09T11:00:00.000Z", stickers: [{}, {}, {}] }
+    ],
+    setDiyDesigns: (designs) => {
+      writes.push(designs);
+    },
+    renderFavorites: () => {
+      renderCount += 1;
+    }
+  };
+
+  vm.createContext(context);
+  const source = `${extractFunctionSource(appSource, "removeDiyDesign")};\nremoveDiyDesign("design-1");`;
+  vm.runInContext(source, context);
+
+  assert.deepEqual(writes.at(-1), [
+    { id: "design-2", createdAt: "2026-07-09T11:00:00.000Z", stickers: [{}, {}, {}] }
+  ]);
+  assert.equal(renderCount, 1);
 });

@@ -55,6 +55,9 @@ test("archive shell keeps original functional controls inside the new exhibition
   const markup = buildCatalogShell();
 
   assert.match(markup, /class="catalog-shell exhibition-console archive-console-shell"/);
+  assert.match(markup, /class="archive-intro-stage"/);
+  assert.match(markup, /class="archive-intro-grid"/);
+  assert.match(markup, /class="archive-status-chip"/);
   assert.match(markup, /class="archive-results-head"/);
   assert.match(markup, /id="catalogResultSummary"/);
   assert.match(markup, /id="catalogSelectionTitle"/);
@@ -70,4 +73,5 @@ test("archive shell keeps original functional controls inside the new exhibition
   assert.match(markup, /id="itemGrid"/);
   assert.match(markup, /id="loadMore"/);
   assert.match(markup, /id="compareTray"/);
+  assert.doesNotMatch(markup, /\?{3,}|甯傚満|娴佸姩|鎼滅储|�/);
 });

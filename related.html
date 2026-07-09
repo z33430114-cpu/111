@@ -1,0 +1,51 @@
+﻿<!doctype html>
+<html lang="zh-CN" data-ui-ready="false" data-nav-ready="false">
+<head>
+  <script src="site-guard.js"></script>
+  <script>
+    (() => {
+      try {
+        const lang = localStorage.getItem("cs2-relic-hall:language") || "zh-CN";
+        document.documentElement.lang = lang === "en" ? "en" : lang;
+        document.documentElement.dataset.uiLang = lang;
+      } catch {
+        document.documentElement.lang = "zh-CN";
+        document.documentElement.dataset.uiLang = "zh-CN";
+      }
+    })();
+  </script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>&#30456;&#20851;&#36164;&#35759; | CS Exhibition</title>
+  <link rel="stylesheet" href="styles.css?v=20260709smooth4" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%23050505'/%3E%3Cpath d='M10 44V20h44v8H22v8h24v8H10Z' fill='%23d71920'/%3E%3C/svg%3E" />
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="index.html"></a>
+    <nav class="top-nav" id="primaryNav" aria-label="">
+      <a data-nav-key="Catalog" href="catalog.html"></a>
+      <a data-nav-key="Collections" href="collections.html"></a>
+      <a data-nav-key="Inspector" href="item.html?id=ak-inheritance"></a>
+      <a data-nav-key="Favorites" href="favorites.html"></a>
+      <a data-nav-key="Recent" href="recent.html"></a>
+      <a data-nav-key="Unbox" href="openings.html">Drop Theatre</a>
+      <a data-nav-key="Related" class="active" href="related.html"></a>
+      <a data-nav-key="Account" href="account.html"></a>
+      <a data-nav-key="Inventory" href="inventory.html"></a>
+      <a data-nav-key="Loadout" href="loadout.html">Curator</a>
+    </nav>
+    <select class="secondary-action lang-switch" aria-label="Language"></select>
+    <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="primaryNav">MENU +</button>
+  </header>
+  <button class="nav-scrim" type="button" aria-label="Close menu" hidden></button>
+
+  <main></main>
+
+  <script src="catalog-meta.js?v=20260629b"></script>
+  <script src="data.js?v=20260707b"></script>
+  <script src="language-runtime.js?v=20260709smooth4"></script>
+  <script src="app.js?v=20260709smooth4"></script>
+  <script src="app-overrides.js?v=20260709smooth4"></script>
+</body>
+</html>

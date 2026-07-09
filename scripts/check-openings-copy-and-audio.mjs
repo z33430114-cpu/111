@@ -91,13 +91,33 @@ for (const [label, block] of inspectedBlocks) {
 const requiredAudioSnippets = [
   'localPageUrl("assets/cs2-case-unlock.wav")',
   'localPageUrl("assets/cs2-case-scroll.wav")',
+  'const OPENING_REEL_DURATION_MS = 6800;',
   'playOpeningSample(OPENING_SFX.unlock, 0, 0.62);',
-  'playOpeningLoopedSample(OPENING_SFX.scroll, { startDelayMs: 120, durationMs: 5400, intervalMs: 520, volume: 0.48 });'
+  'const scrollCueTimings = openingScrollCueTimings({',
+  'targetDistancePx: target,',
+  'stepDistancePx: cardWidth + gap,',
+  'function openingScrollCueTimings(config = OPENING_REEL_DURATION_MS)',
+  'playOpeningSfx(winner, { simplified: simplifiedAudio, scrollCueTimings });',
+  'track.style.transition = `transform ${OPENING_REEL_DURATION_MS / 1000}s cubic-bezier(0.08, 0.75, 0.08, 1)`;'
 ];
 
 for (const snippet of requiredAudioSnippets) {
   if (!source.includes(snippet)) {
     console.error(`Opening audio snippet is missing: ${snippet}`);
+    process.exit(1);
+  }
+}
+
+const forbiddenAudioSnippets = [
+  'localPageUrl("assets/opening-spin.wav")',
+  'localPageUrl("assets/opening-land.wav")',
+  'playOpeningSample(OPENING_SFX.spin,',
+  'playOpeningSample(OPENING_SFX.land,'
+];
+
+for (const snippet of forbiddenAudioSnippets) {
+  if (source.includes(snippet)) {
+    console.error(`Legacy opening audio snippet is still present: ${snippet}`);
     process.exit(1);
   }
 }

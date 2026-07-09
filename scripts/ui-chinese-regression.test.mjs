@@ -5,6 +5,7 @@ import vm from "node:vm";
 import { join } from "node:path";
 
 const appSource = await readFile(join(process.cwd(), "app.js"), "utf8");
+const BAD_TEXT = /\?{3,}|甯傚満|娴佸姩|鎼滅储|閹|濮|娑|鐎|绛|棰|闂|婵|灞犲か|鍥|鈧|锟|�/;
 
 function extractConstObjectSource(sourceText, name) {
   const marker = `const ${name} = {`;
@@ -40,16 +41,32 @@ function extractFunctionSource(sourceText, name) {
   throw new Error(`Unable to find end of ${name}`);
 }
 
-test("uiText uses clean zh-CN overrides for visible site copy", () => {
+function evaluateChineseResult(body) {
   const context = {
     runtimeUiText: null,
     currentLanguage: () => "zh-CN"
   };
   vm.createContext(context);
-  const source = `
+  return vm.runInContext(`
     ${extractConstObjectSource(appSource, "ZH_CN_UI_OVERRIDES")}
+    ${extractConstObjectSource(appSource, "ITEM_VARIANTS")}
     ${extractFunctionSource(appSource, "looksLikeMojibake")}
     ${extractFunctionSource(appSource, "uiText")}
+    ${extractFunctionSource(appSource, "localizedTerm")}
+    ${extractFunctionSource(appSource, "itemVariantLabel")}
+    ${extractFunctionSource(appSource, "firstSaleLabel")}
+    ${body}
+  `, context);
+}
+
+function assertCleanValues(values) {
+  Object.values(values).forEach((value) => {
+    assert.doesNotMatch(String(value), BAD_TEXT);
+  });
+}
+
+test("uiText returns clean zh-CN overrides for visible site copy", () => {
+  const result = evaluateChineseResult(`
     result = {
       interactiveUnbox: uiText("Interactive Unbox", "broken"),
       openThisCase: uiText("Open This Case", "broken"),
@@ -57,70 +74,60 @@ test("uiText uses clean zh-CN overrides for visible site copy", () => {
       inventoryGallery: uiText("Inventory Gallery", "broken"),
       loadoutStudio: uiText("AI Loadout Studio", "broken")
     };
-  `;
-  const result = vm.runInContext(source, context);
-  assert.equal(result.interactiveUnbox, "互动开箱");
-  assert.equal(result.openThisCase, "开启这个箱子");
-  assert.equal(result.accountCenter, "账号中心");
-  assert.equal(result.inventoryGallery, "库存展厅");
-  assert.equal(result.loadoutStudio, "AI 饰品搭配工作室");
+  `);
+
+  assert.deepEqual(JSON.parse(JSON.stringify(result)), {
+    interactiveUnbox: "互动开箱",
+    openThisCase: "开启这个箱子",
+    accountCenter: "账号中心",
+    inventoryGallery: "库存展厅",
+    loadoutStudio: "AI 饰品搭配工作室"
+  });
+  assertCleanValues(result);
 });
 
 test("inspector labels use clean zh-CN overrides for controls and price hints", () => {
-  const context = {
-    runtimeUiText: null,
-    currentLanguage: () => "zh-CN"
-  };
-  vm.createContext(context);
-  const source = `
-    ${extractConstObjectSource(appSource, "ZH_CN_UI_OVERRIDES")}
-    ${extractFunctionSource(appSource, "looksLikeMojibake")}
-    ${extractFunctionSource(appSource, "uiText")}
+  const result = evaluateChineseResult(`
     result = {
       version: uiText("Version", "broken"),
       specialTemplate: uiText("Special Template", "broken"),
       reference: uiText("Reference", "broken"),
       checkingWearPrice: uiText("Checking the selected wear tier price.", "broken")
     };
-  `;
-  const result = vm.runInContext(source, context);
-  assert.equal(result.version, "版本");
-  assert.equal(result.specialTemplate, "特殊模板");
-  assert.equal(result.reference, "参考价");
-  assert.equal(result.checkingWearPrice, "正在检查所选磨损等级价格。");
+  `);
+
+  assert.deepEqual(JSON.parse(JSON.stringify(result)), {
+    version: "版本",
+    specialTemplate: "特殊模板",
+    reference: "参考价",
+    checkingWearPrice: "正在检查所选磨损等级价格。"
+  });
+  assertCleanValues(result);
 });
 
 test("itemVariantLabel returns clean zh-CN labels for inspector version choices", () => {
-  const context = {
-    currentLanguage: () => "zh-CN"
-  };
-  vm.createContext(context);
-  const source = `
-    ${extractConstObjectSource(appSource, "ITEM_VARIANTS")}
-    ${extractFunctionSource(appSource, "localizedTerm")}
-    ${extractFunctionSource(appSource, "itemVariantLabel")}
+  const result = evaluateChineseResult(`
     result = {
       standard: itemVariantLabel("standard"),
       stattrak: itemVariantLabel("stattrak"),
       souvenir: itemVariantLabel("souvenir")
     };
-  `;
-  const result = vm.runInContext(source, context);
-  assert.equal(result.standard, "标准");
-  assert.equal(result.stattrak, "StatTrak");
-  assert.equal(result.souvenir, "纪念品");
+  `);
+
+  assert.deepEqual(JSON.parse(JSON.stringify(result)), {
+    standard: "标准",
+    stattrak: "StatTrak",
+    souvenir: "纪念品"
+  });
+  assertCleanValues(result);
 });
 
 test("firstSaleLabel formats the date instead of leaking a placeholder", () => {
-  const context = {
-    currentLanguage: () => "zh-CN"
-  };
-  vm.createContext(context);
-  const source = `
-    ${extractFunctionSource(appSource, "firstSaleLabel")}
-    result = firstSaleLabel("2013-08-14");
-  `;
-  const result = vm.runInContext(source, context);
-  assert.equal(result, "首次发售：2013-08-14");
-  assert.doesNotMatch(result, /\{dateText\}/);
+  const result = evaluateChineseResult(`
+    result = { firstSale: firstSaleLabel("2013-08-14") };
+  `);
+
+  assert.equal(result.firstSale, "首次发售：2013-08-14");
+  assert.doesNotMatch(result.firstSale, /\{dateText\}/);
+  assertCleanValues(result);
 });

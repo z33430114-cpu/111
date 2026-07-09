@@ -85,6 +85,21 @@ test("openingInspectLinkMarkup can render a fallback button when only name data 
   assert.match(markup, /<button /);
 });
 
+test("openingInspectLinkMarkup preserves multiple name candidates for fallback matching", () => {
+  const openingInspectLinkMarkup = buildAppFunction("openingInspectLinkMarkup");
+  const markup = openingInspectLinkMarkup({
+    id: "legacy-id",
+    displayName: "MP7 | 骷髅",
+    nameEn: "MP7 | Skulls",
+    nameZh: "MP7 | 骷髅",
+    name: "MP7 | Skulls"
+  }, true);
+
+  assert.match(markup, /data-opening-inspect-name="MP7 \| 骷髅"/);
+  assert.match(markup, /data-opening-inspect-name-en="MP7 \| Skulls"/);
+  assert.match(markup, /data-opening-inspect-name-zh="MP7 \| 骷髅"/);
+});
+
 test("openingLootPoolMarkup passes inspectable cards through the pool renderer", () => {
   const calls = [];
   const openingLootPoolMarkup = buildAppFunction("openingLootPoolMarkup", {
@@ -104,7 +119,14 @@ test("openingLootPoolMarkup passes inspectable cards through the pool renderer",
 
 test("opening inspect links are exempt from result-selection click interception", () => {
   assert.match(appSource, /target\.closest\("\[data-opening-inspect-link\]"\)/);
-  assert.match(appSource, /resolveDisplayItemByName\(openingInspectTrigger\.dataset\.openingInspectName \|\| ""\)/);
+  assert.match(appSource, /inspectNameCandidates/);
+  assert.match(appSource, /inspectNameCandidates\.map\(\(name\) => resolveDisplayItemByName\(name\)\)\.find\(Boolean\)/);
+});
+
+test("opening inspect fallback tries multiple name variants before giving up", () => {
+  assert.match(appSource, /openingInspectNameEn/);
+  assert.match(appSource, /openingInspectNameZh/);
+  assert.match(appSource, /inspectNameCandidates/);
 });
 
 test("localizeOpeningEntry falls back to catalog name matching when opening ids drift", () => {
@@ -132,4 +154,29 @@ test("localizeOpeningEntry falls back to catalog name matching when opening ids 
 
   assert.equal(localized?.href, "item.html?id=skin-matched");
   assert.equal(localized?.image, "img.png");
+});
+
+test("localizeOpeningEntry preserves variant in inspect links for opening drops", () => {
+  const catalogItem = { id: "skin-variant", image: "variant.png" };
+  const localizeOpeningEntry = buildAppFunction("localizeOpeningEntry", {
+    itemMap: new Map([["skin-variant", catalogItem]]),
+    resolveWearIdByFloat: () => "",
+    openingResultQualityLabel: () => "StatTrak",
+    effectiveCatalogPriceRecordForSelection: () => ({ price: 88 }),
+    itemTitle: () => "AK-47 | Redline",
+    rarityLabel: () => "Classified",
+    itemHref: () => "item.html?id=skin-variant",
+    itemWeapon: () => "AK-47",
+    collectionLabel: () => "The Phoenix Collection",
+    itemDescription: () => "desc",
+    currentLanguage: () => "en",
+    firstNonEmpty: (...values) => values.find(Boolean) || "",
+    formatFloatValue: () => "",
+    wearLabel: () => "",
+    uiText: (en) => en
+  });
+
+  const localized = localizeOpeningEntry({ id: "skin-variant", variantId: "stattrak" });
+
+  assert.equal(localized?.href, "item.html?id=skin-variant&variant=stattrak");
 });

@@ -8,10 +8,13 @@ const indexHtml = await readFile(join(process.cwd(), "index.html"), "utf8");
 const runtimeSource = await readFile(join(process.cwd(), "language-runtime.js"), "utf8");
 
 test("home redesign boots from the latest app runtime", () => {
-  assert.match(indexHtml, /app\.js\?v=20260709stable2/);
-  assert.match(indexHtml, /app-overrides\.js\?v=20260709stable2/);
+  assert.match(indexHtml, /app\.js\?v=20260709stable6/);
+  assert.match(indexHtml, /app-overrides\.js\?v=20260709stable6/);
   assert.doesNotMatch(indexHtml, /page-rescue\.js/);
   assert.match(appSource, /function buildHomeMarkup/);
+  assert.match(appSource, /const HOME_FEATURED_GLOVE_LIMIT = 1;/);
+  assert.match(appSource, /function featuredHomeItems\(limit = HOME_FEATURED_LIMIT\)/);
+  assert.match(appSource, /if \(gloveCount >= HOME_FEATURED_GLOVE_LIMIT\) continue;/);
 
   [
     "home-hero",
@@ -28,6 +31,9 @@ test("home redesign boots from the latest app runtime", () => {
   ].forEach((token) => {
     assert.match(appSource, new RegExp(token.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
   });
+
+  assert.doesNotMatch(appSource, /\?{3,}/);
+  assert.doesNotMatch(appSource, /甯傚満|娴佸姩|鎼滅储|閹|濮|娑|鐎|绛|棰|闂|婵|灞|鍥|鈧|锟|�/);
 });
 
 test("language runtime uses CS Exhibition as the site brand", () => {

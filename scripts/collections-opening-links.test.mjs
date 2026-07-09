@@ -9,8 +9,8 @@ const openingsHtml = await readFile(join(process.cwd(), "openings.html"), "utf8"
 
 test("collections and openings boot from the latest app runtime", () => {
   for (const html of [collectionsHtml, openingsHtml]) {
-    assert.match(html, /app\.js\?v=20260709stable2/);
-    assert.match(html, /app-overrides\.js\?v=20260709stable2/);
+    assert.match(html, /app\.js\?v=20260709stable5/);
+    assert.match(html, /app-overrides\.js\?v=20260709stable5/);
     assert.doesNotMatch(html, /page-rescue\.js/);
   }
 });
