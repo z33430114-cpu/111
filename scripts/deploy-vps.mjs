@@ -20,42 +20,25 @@ if (!password) {
   throw new Error("Missing VPS_PASSWORD environment variable.");
 }
 
-const uploadItems = [
-  "index.html",
-  "catalog.html",
-  "collections.html",
-  "item.html",
-  "favorites.html",
-  "recent.html",
-  "account.html",
-  "inventory.html",
-  "loadout.html",
-  "openings.html",
-  "app.js",
-  "app-overrides.js",
-  "styles.css",
-  "catalog-data.js",
-  "catalog-meta.js",
-  "data.js",
-  "viewer-3d.js",
-  "site-guard.js",
-  "language-runtime.js",
-  "package.json",
-  "pnpm-lock.yaml",
-  "pnpm-workspace.yaml",
-  "ecosystem.config.cjs",
-  "AI-RECOMMENDER.md",
-  "DEPLOYMENT.md",
-  "scripts/serve.mjs",
-  "scripts/fetch-prices.mjs",
-  "scripts/ai-data.mjs",
-  "scripts/reset-account-data.mjs",
-  "server/recommendation-engine.mjs",
-  "server/openai-recommender.mjs",
-  "server/loadout-chat.mjs",
-  ".data/market-prices.js",
-  ".data/market-prices.json"
+const excludePathPatterns = [
+  /^\.git(?:\/|$)/u,
+  /^\.agents(?:\/|$)/u,
+  /^\.codex-logs(?:\/|$)/u,
+  /^\.tmp-/u,
+  /^\.worktrees(?:\/|$)/u,
+  /^design-previews(?:\/|$)/u,
+  /^intro-film(?:\/|$)/u,
+  /^node_modules(?:\/|$)/u,
+  /(?:^|\/)\.DS_Store$/u,
+  /(?:^|\/)Thumbs\.db$/u,
+  /\.log$/u
 ];
+const forceIncludeDataFiles = new Set([
+  ".data/market-prices.js",
+  ".data/market-prices.json",
+  ".data/buff-links.json",
+  ".data/youpin-links.json"
+]);
 
 function shellQuote(value) {
   return `'${String(value).replace(/'/g, `'\\''`)}'`;
@@ -135,6 +118,29 @@ function uploadFile(session, localPath, remotePath) {
   });
 }
 
+function shouldUpload(relativePath) {
+  const normalized = relativePath.replace(/\\/g, "/");
+  if (forceIncludeDataFiles.has(normalized)) return true;
+  if (normalized.startsWith(".data/")) return false;
+  return !excludePathPatterns.some((pattern) => pattern.test(normalized));
+}
+
+function collectUploadItems(directory = repoRoot, prefix = "") {
+  const entries = fs.readdirSync(directory, { withFileTypes: true });
+  const items = [];
+  for (const entry of entries) {
+    const relativePath = prefix ? `${prefix}/${entry.name}` : entry.name;
+    if (!shouldUpload(relativePath)) continue;
+    const localPath = path.join(directory, entry.name);
+    if (entry.isDirectory()) {
+      items.push(...collectUploadItems(localPath, relativePath));
+      continue;
+    }
+    if (entry.isFile()) items.push(relativePath);
+  }
+  return items;
+}
+
 async function uploadText(session, remotePath, content) {
   await ensureRemoteDir(session, path.posix.dirname(remotePath));
   return new Promise((resolve, reject) => {
@@ -146,6 +152,7 @@ async function uploadText(session, remotePath, content) {
 }
 
 async function uploadAll(session) {
+  const uploadItems = collectUploadItems().sort();
   for (const item of uploadItems) {
     const localPath = path.join(repoRoot, item);
     if (!fs.existsSync(localPath)) {
@@ -157,6 +164,7 @@ async function uploadAll(session) {
     await uploadFile(session, localPath, remotePath);
     console.log(`Uploaded ${item}`);
   }
+  console.log(`Uploaded ${uploadItems.length} files total`);
 }
 
 function envFile() {
