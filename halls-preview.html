@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Halls Preview</title>
+  <link rel="stylesheet" href="styles.css?v=20260708immersive27" />
+  <style>
+    .preview-shell .brand::after {
+      content: "CS EXHIBITION";
+    }
+
+    .preview-shell .top-nav a,
+    .preview-shell .lang-switch {
+      pointer-events: none;
+    }
+
+    .preview-shell .brand,
+    .preview-shell .top-nav a,
+    .preview-shell .lang-switch {
+      opacity: 1;
+    }
+
+    .preview-shell .top-nav a {
+      color: rgba(255, 255, 255, 0.66);
+    }
+
+    .preview-shell .top-nav a.active {
+      color: #f5f5f2;
+    }
+
+    .preview-shell main.collections-page {
+      padding-bottom: 36px;
+    }
+  </style>
+</head>
+<body class="halls-exhibition-page preview-shell">
+  <header class="site-header">
+    <a class="brand" href="#"></a>
+    <nav class="top-nav" id="primaryNav" aria-label="Primary">
+      <a href="#">Archive</a>
+      <a class="active" href="#">Halls</a>
+      <a href="#">Inspect</a>
+      <a href="#">Saved</a>
+      <a href="#">Trail</a>
+      <a href="#">Drop Theatre</a>
+      <a href="#">Pass</a>
+      <a href="#">Vault</a>
+      <a href="#">Curator</a>
+    </nav>
+    <select class="secondary-action lang-switch" aria-label="Language">
+      <option>ZH</option>
+    </select>
+    <button class="menu-toggle" type="button">MENU +</button>
+  </header>
+
+  <main class="collections-page">
+    <section class="page-intro archive-console-intro halls-console-intro">
+      <div class="halls-hero-grid">
+        <div class="halls-hero-copy">
+          <p class="eyebrow">Halls</p>
+          <h1>Halls</h1>
+          <p class="halls-subtitle">Browse the exhibition by series, map collections, cases, capsules, and souvenir wings.</p>
+          <div class="hero-actions halls-hero-actions">
+            <a class="primary-link" href="#">Enter Archive</a>
+            <a class="secondary-link" href="#">View Featured Hall</a>
+          </div>
+        </div>
+        <div class="halls-hero-media" aria-label="Ancient Collection">
+          <img class="halls-hero-image" src="assets/home-awp-exhibit-render.png" alt="Ancient Collection" />
+          <div class="halls-hero-plaque">
+            <span>Now highlighting</span>
+            <strong>Ancient Collection</strong>
+            <small>32 items</small>
+          </div>
+        </div>
+      </div>
+      <div class="archive-top-strip halls-top-strip" aria-label="Hall status">
+        <div class="archive-top-cell">
+          <span>Active halls</span>
+          <strong>186</strong>
+        </div>
+        <div class="archive-top-cell">
+          <span>Grouped wings</span>
+          <strong>5</strong>
+        </div>
+        <div class="archive-top-cell">
+          <span>Indexed exhibits</span>
+          <strong>4,912</strong>
+        </div>
+      </div>
+    </section>
+
+    <div class="collection-index halls-index">
+      <section class="collection-index-group halls-index-group">
+        <div class="halls-group-copy">
+          <p class="eyebrow">Map collections</p>
+          <h2>Field Wings</h2>
+          <p>Map-bound collections and long-form exhibit groups, reframed as browseable wings inside the exhibition.</p>
+          <span>24 halls</span>
+        </div>
+        <div class="collection-grid">
+          <article class="collection-card hall-card">
+            <div class="collection-cover hall-card-visual">
+              <img class="hall-card-image" src="assets/archive-hero-illustration-a.png" alt="Mirage Collection" />
+              <div class="hall-card-overlay">
+                <p class="eyebrow">Map collections</p>
+                <strong>18 items</strong>
+              </div>
+            </div>
+            <div class="collection-copy hall-card-copy">
+              <div class="hall-card-heading">
+                <h3>Mirage Collection</h3>
+                <span>Field Wings</span>
+              </div>
+              <p>Jump into the filtered archive view for this hall and continue browsing inside the full exhibition system.</p>
+              <a class="hall-card-link" href="#">View Hall</a>
+            </div>
+          </article>
+
+          <article class="collection-card hall-card">
+            <div class="collection-cover hall-card-visual">
+              <img class="hall-card-image" src="assets/archive-hero-illustration-b.png" alt="Inferno Collection" />
+              <div class="hall-card-overlay">
+                <p class="eyebrow">Map collections</p>
+                <strong>22 items</strong>
+              </div>
+            </div>
+            <div class="collection-copy hall-card-copy">
+              <div class="hall-card-heading">
+                <h3>Inferno Collection</h3>
+                <span>Field Wings</span>
+              </div>
+              <p>Curated as a darker route with immediate handoff into the archive, rather than a generic grid bucket.</p>
+              <a class="hall-card-link" href="#">View Hall</a>
+            </div>
+          </article>
+
+          <article class="collection-card hall-card">
+            <div class="collection-cover hall-card-visual">
+              <img class="hall-card-image" src="assets/archive-hero-illustration-c.png" alt="Nuke Collection" />
+              <div class="hall-card-overlay">
+                <p class="eyebrow">Map collections</p>
+                <strong>17 items</strong>
+              </div>
+            </div>
+            <div class="collection-copy hall-card-copy">
+              <div class="hall-card-heading">
+                <h3>Nuke Collection</h3>
+                <span>Field Wings</span>
+              </div>
+              <p>Preserves the original collection access pattern while visually matching the homepage exhibition language.</p>
+              <a class="hall-card-link" href="#">View Hall</a>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="collection-index-group halls-index-group">
+        <div class="halls-group-copy">
+          <p class="eyebrow">Cases and capsules</p>
+          <h2>Container Wing</h2>
+          <p>Weapon cases, souvenir packages, and capsules become a separate wing with stronger object-led presentation.</p>
+          <span>31 halls</span>
+        </div>
+        <div class="collection-grid">
+          <article class="collection-card hall-card">
+            <div class="collection-cover hall-card-visual">
+              <img class="hall-card-image" src="assets/home-awp-exhibit-render.webp" alt="Spectrum Case" />
+              <div class="hall-card-overlay">
+                <p class="eyebrow">Cases</p>
+                <strong>28 items</strong>
+              </div>
+            </div>
+            <div class="collection-copy hall-card-copy">
+              <div class="hall-card-heading">
+                <h3>Spectrum Case</h3>
+                <span>Container Wing</span>
+              </div>
+              <p>Container halls feel closer to featured exhibits and can branch into opening-detail flows without changing the page language.</p>
+              <a class="hall-card-link" href="#">View Details</a>
+            </div>
+          </article>
+
+          <article class="collection-card hall-card">
+            <div class="collection-cover hall-card-visual">
+              <img class="hall-card-image" src="assets/archive-hero-stage-wide.png" alt="Bravo Case" />
+              <div class="hall-card-overlay">
+                <p class="eyebrow">Capsules</p>
+                <strong>19 items</strong>
+              </div>
+            </div>
+            <div class="collection-copy hall-card-copy">
+              <div class="hall-card-heading">
+                <h3>Operation Bravo</h3>
+                <span>Container Wing</span>
+              </div>
+              <p>The visual treatment stays sparse and cinematic, keeping the red accent thin and the hierarchy calm.</p>
+              <a class="hall-card-link" href="#">View Details</a>
+            </div>
+          </article>
+        </div>
+      </section>
+    </div>
+  </main>
+</body>
+</html>

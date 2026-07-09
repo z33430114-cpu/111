@@ -1,0 +1,87 @@
+﻿<!doctype html>
+<html lang="zh-CN" data-ui-ready="false" data-nav-ready="false">
+<head>
+  <script src="site-guard.js"></script>
+  <script>
+    (() => {
+      try {
+        const lang = localStorage.getItem("cs2-relic-hall:language") || "zh-CN";
+        document.documentElement.lang = lang === "en" ? "en" : lang;
+        document.documentElement.dataset.uiLang = lang;
+      } catch {
+        document.documentElement.lang = "zh-CN";
+        document.documentElement.dataset.uiLang = "zh-CN";
+      }
+    })();
+  </script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI 饰品搭配 | CS Exhibition</title>
+  <link rel="stylesheet" href="styles.css?v=20260708immersive27" />
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="index.html"></a>
+    <nav class="top-nav" id="primaryNav" aria-label="">
+      <a data-nav-key="Catalog" href="catalog.html"></a>
+      <a data-nav-key="Collections" href="collections.html"></a>
+      <a data-nav-key="Inspector" href="item.html?id=ak-inheritance"></a>
+      <a data-nav-key="Favorites" href="favorites.html"></a>
+      <a data-nav-key="Recent" href="recent.html"></a>
+      <a data-nav-key="Unbox" href="openings.html">Drop Theatre</a>
+      <a data-nav-key="Account" href="account.html"></a>
+      <a data-nav-key="Inventory" href="inventory.html"></a>
+      <a data-nav-key="Loadout" class="active" href="loadout.html">Curator</a>
+    </nav>
+    <select class="secondary-action lang-switch" aria-label="Language"></select>
+    <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="primaryNav">MENU +</button>
+  </header>
+  <button class="nav-scrim" type="button" aria-label="Close menu" hidden></button>
+
+  <main class="account-page" id="loadoutRoot"></main>
+
+  <script src="catalog-meta.js?v=20260629b"></script>
+  <script src="catalog-data.js?v=20260630g"></script>
+  <script src="data.js?v=20260707b"></script>
+  <script src="language-runtime.js?v=20260708immersive27"></script>
+<script src="app.js?v=20260709stable2"></script>
+<script src="app-overrides.js?v=20260709stable2"></script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

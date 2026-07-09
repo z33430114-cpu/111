@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 224 56">
+  <defs><linearGradient id="sky" x1="0" x2="0" y1="0" y2="1"><stop stop-color="#cab98d"/><stop offset=".5" stop-color="#967750"/><stop offset="1" stop-color="#3d2f24"/></linearGradient><filter id="grain"><feTurbulence baseFrequency=".86" numOctaves="3" seed="77"/><feColorMatrix type="saturate" values=".2"/><feComponentTransfer><feFuncA type="table" tableValues="0 .16"/></feComponentTransfer></filter></defs>
+  <rect width="224" height="56" fill="url(#sky)"/>
+  <rect y="37" width="224" height="19" fill="#4d3727"/>
+  <rect x="0" y="24" width="44" height="21" fill="#b08a5c"/>
+  <rect x="51" y="15" width="52" height="30" fill="#d0aa72"/>
+  <rect x="112" y="23" width="31" height="22" fill="#8c6242"/>
+  <rect x="151" y="16" width="73" height="29" fill="#c29964"/>
+  <path d="M57 45V29c0-8 9-14 20-14s20 6 20 14v16" fill="none" stroke="#68482e" stroke-width="5"/>
+  <path d="M8 32h28M116 31h21M158 25h52" stroke="#5f422f" stroke-width="2"/>
+  <rect x="118" y="33" width="20" height="12" fill="#3f2b20"/>
+  <path d="M0 49c29-6 69-6 103-3 39 3 75-1 121-9v19H0z" fill="#2c231c" opacity=".78"/>
+  <circle cx="202" cy="12" r="7" fill="#f0d990" opacity=".45"/>
+  <rect width="224" height="56" filter="url(#grain)"/>
+  <rect width="224" height="56" fill="#000" opacity=".16"/>
+</svg>

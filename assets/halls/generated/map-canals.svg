@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 180" role="img" aria-label="Canals map collection cover">
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#050606"/>
+      <stop offset=".55" stop-color="#111315"/>
+      <stop offset="1" stop-color="#2b4f5b"/>
+    </linearGradient>
+    <radialGradient id="pulse" cx=".18" cy=".25" r=".85">
+      <stop offset="0" stop-color="#5ba3b0" stop-opacity=".42"/>
+      <stop offset="1" stop-color="#5ba3b0" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="soft">
+      <feGaussianBlur stdDeviation="7"/>
+    </filter>
+  </defs>
+  <rect width="640" height="180" fill="url(#bg)"/>
+  <rect width="640" height="180" fill="url(#pulse)"/>
+  <path d="M-20 145 C 110 98, 166 170, 294 124 S 500 70, 668 106" fill="none" stroke="#5ba3b0" stroke-width="38" stroke-opacity=".08" filter="url(#soft)"/>
+  <g opacity=".95">
+    <polygon points="62,38 136,20 195,55 168,104 83,98" fill="#5ba3b0" opacity=".20" stroke="#5ba3b0" stroke-opacity=".46"/>
+    <polygon points="398,42 520,28 572,72 510,125 406,110" fill="#d7a15f" opacity=".18" stroke="#d7a15f" stroke-opacity=".42"/>
+    <path d="M76 87 C 173 87, 173 101, 270 101" fill="none" stroke="#5ba3b0" stroke-width="7" stroke-linecap="round" opacity=".38"/><path d="M386 49 C 402 49, 402 31, 418 31" fill="none" stroke="#5ba3b0" stroke-width="8" stroke-linecap="round" opacity=".38"/><path d="M46 115 C 119 115, 119 39, 193 39" fill="none" stroke="#5ba3b0" stroke-width="5" stroke-linecap="round" opacity=".38"/><path d="M131 100 C 206 100, 206 81, 281 81" fill="none" stroke="#5ba3b0" stroke-width="5" stroke-linecap="round" opacity=".38"/><path d="M247 87 C 195 87, 195 37, 143 37" fill="none" stroke="#5ba3b0" stroke-width="5" stroke-linecap="round" opacity=".38"/>
+    <rect x="149" y="79" width="127" height="28" rx="5" transform="rotate(0.14 212.5 93)" fill="#5ba3b0" opacity="0.28935580782592296" stroke="#5ba3b0" stroke-opacity=".24"/><rect x="44" y="111" width="107" height="54" rx="5" transform="rotate(0.27 97.5 138)" fill="#2b4f5b" opacity="0.34539736367762086" stroke="#5ba3b0" stroke-opacity=".24"/><rect x="380" y="102" width="103" height="44" rx="5" transform="rotate(1.90 431.5 124)" fill="#d7a15f" opacity="0.32853984769433736" stroke="#5ba3b0" stroke-opacity=".24"/><rect x="194" y="124" width="48" height="41" rx="5" transform="rotate(1.01 218 144.5)" fill="#5ba3b0" opacity="0.2673345002904534" stroke="#5ba3b0" stroke-opacity=".24"/><rect x="232" y="59" width="79" height="54" rx="5" transform="rotate(0.82 271.5 86)" fill="#2b4f5b" opacity="0.29037691716104747" stroke="#5ba3b0" stroke-opacity=".24"/><rect x="438" y="74" width="56" height="43" rx="5" transform="rotate(-3.28 466 95.5)" fill="#d7a15f" opacity="0.37638927437365055" stroke="#5ba3b0" stroke-opacity=".24"/><rect x="342" y="70" width="58" height="18" rx="5" transform="rotate(-2.33 371 79)" fill="#5ba3b0" opacity="0.23158865012228488" stroke="#5ba3b0" stroke-opacity=".24"/>
+  </g>
+  <g font-family="Rajdhani, Teko, Arial, sans-serif" text-anchor="start">
+    <text x="35" y="151" fill="#f7efe4" font-size="44" font-weight="800" letter-spacing="4">CANALS</text>
+    <text x="38" y="166" fill="#5ba3b0" font-size="13" font-weight="700" letter-spacing="3">TACTICAL MAP COLLECTION</text>
+  </g>
+  <circle cx="167" cy="20" r="2" fill="#f4efe4" opacity="0.3092499406449497"/><circle cx="302" cy="64" r="1" fill="#f4efe4" opacity="0.2520741757005453"/><circle cx="142" cy="92" r="1" fill="#f4efe4" opacity="0.3816002476587892"/><circle cx="300" cy="122" r="1" fill="#f4efe4" opacity="0.35992215406149625"/><circle cx="531" cy="34" r="2" fill="#f4efe4" opacity="0.3769720437563956"/><circle cx="71" cy="22" r="2" fill="#f4efe4" opacity="0.2771775227412582"/><circle cx="56" cy="61" r="2" fill="#f4efe4" opacity="0.3753241223655641"/><circle cx="68" cy="29" r="1" fill="#f4efe4" opacity="0.1938818228058517"/><circle cx="151" cy="140" r="1" fill="#f4efe4" opacity="0.3545142893865705"/><circle cx="170" cy="101" r="1" fill="#f4efe4" opacity="0.26620366549119356"/><circle cx="162" cy="48" r="1" fill="#f4efe4" opacity="0.3075578704290092"/><circle cx="352" cy="29" r="1" fill="#f4efe4" opacity="0.26478511745110156"/><circle cx="277" cy="67" r="2" fill="#f4efe4" opacity="0.35201241673901673"/><circle cx="546" cy="56" r="1" fill="#f4efe4" opacity="0.3527420992963016"/><circle cx="50" cy="108" r="1" fill="#f4efe4" opacity="0.36574858656153086"/><circle cx="304" cy="81" r="2" fill="#f4efe4" opacity="0.32518797915428876"/><circle cx="253" cy="146" r="1" fill="#f4efe4" opacity="0.19455626415088773"/><circle cx="43" cy="148" r="1" fill="#f4efe4" opacity="0.21299156174063683"/>
+  <rect x="1" y="1" width="638" height="178" fill="none" stroke="#5ba3b0" stroke-opacity=".25"/>
+</svg>

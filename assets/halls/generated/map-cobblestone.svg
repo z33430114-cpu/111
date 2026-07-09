@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 180" role="img" aria-label="Cobblestone map collection cover">
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#050606"/>
+      <stop offset=".55" stop-color="#111315"/>
+      <stop offset="1" stop-color="#3e4d61"/>
+    </linearGradient>
+    <radialGradient id="pulse" cx=".18" cy=".25" r=".85">
+      <stop offset="0" stop-color="#7b8fa8" stop-opacity=".42"/>
+      <stop offset="1" stop-color="#7b8fa8" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="soft">
+      <feGaussianBlur stdDeviation="7"/>
+    </filter>
+  </defs>
+  <rect width="640" height="180" fill="url(#bg)"/>
+  <rect width="640" height="180" fill="url(#pulse)"/>
+  <path d="M-20 145 C 110 98, 166 170, 294 124 S 500 70, 668 106" fill="none" stroke="#7b8fa8" stroke-width="38" stroke-opacity=".08" filter="url(#soft)"/>
+  <g opacity=".95">
+    <polygon points="62,38 136,20 195,55 168,104 83,98" fill="#7b8fa8" opacity=".20" stroke="#7b8fa8" stroke-opacity=".46"/>
+    <polygon points="398,42 520,28 572,72 510,125 406,110" fill="#c7b27b" opacity=".18" stroke="#c7b27b" stroke-opacity=".42"/>
+    <path d="M422 95 C 474 95, 474 120, 527 120" fill="none" stroke="#7b8fa8" stroke-width="6" stroke-linecap="round" opacity=".38"/><path d="M495 54 C 288 54, 288 64, 81 64" fill="none" stroke="#7b8fa8" stroke-width="8" stroke-linecap="round" opacity=".38"/><path d="M155 61 C 225 61, 225 40, 296 40" fill="none" stroke="#7b8fa8" stroke-width="6" stroke-linecap="round" opacity=".38"/><path d="M295 64 C 233 64, 233 100, 172 100" fill="none" stroke="#7b8fa8" stroke-width="7" stroke-linecap="round" opacity=".38"/><path d="M484 72 C 332 72, 332 128, 181 128" fill="none" stroke="#7b8fa8" stroke-width="8" stroke-linecap="round" opacity=".38"/>
+    <rect x="95" y="83" width="107" height="24" rx="5" transform="rotate(-2.31 148.5 95)" fill="#7b8fa8" opacity="0.3494417446479201" stroke="#7b8fa8" stroke-opacity=".24"/><rect x="412" y="35" width="94" height="47" rx="5" transform="rotate(1.55 459 58.5)" fill="#3e4d61" opacity="0.32503866199404" stroke="#7b8fa8" stroke-opacity=".24"/><rect x="466" y="32" width="131" height="30" rx="5" transform="rotate(-0.14 531.5 47)" fill="#c7b27b" opacity="0.2965796194598079" stroke="#7b8fa8" stroke-opacity=".24"/><rect x="353" y="35" width="60" height="24" rx="5" transform="rotate(-2.75 383 47)" fill="#7b8fa8" opacity="0.3247157134860754" stroke="#7b8fa8" stroke-opacity=".24"/><rect x="256" y="86" width="55" height="26" rx="5" transform="rotate(-1.86 283.5 99)" fill="#3e4d61" opacity="0.36756941430270673" stroke="#7b8fa8" stroke-opacity=".24"/><rect x="427" y="106" width="94" height="39" rx="5" transform="rotate(-3.43 474 125.5)" fill="#c7b27b" opacity="0.3726958490163088" stroke="#7b8fa8" stroke-opacity=".24"/><rect x="469" y="108" width="102" height="31" rx="5" transform="rotate(-2.01 520 123.5)" fill="#7b8fa8" opacity="0.25389743838459256" stroke="#7b8fa8" stroke-opacity=".24"/>
+  </g>
+  <g font-family="Rajdhani, Teko, Arial, sans-serif" text-anchor="start">
+    <text x="35" y="151" fill="#f7efe4" font-size="44" font-weight="800" letter-spacing="4">COBBLESTONE</text>
+    <text x="38" y="166" fill="#7b8fa8" font-size="13" font-weight="700" letter-spacing="3">TACTICAL MAP COLLECTION</text>
+  </g>
+  <circle cx="558" cy="120" r="2" fill="#f4efe4" opacity="0.27402088783681394"/><circle cx="357" cy="105" r="2" fill="#f4efe4" opacity="0.16280020626261832"/><circle cx="81" cy="109" r="2" fill="#f4efe4" opacity="0.3211484511755407"/><circle cx="238" cy="27" r="2" fill="#f4efe4" opacity="0.30170217810198663"/><circle cx="569" cy="60" r="2" fill="#f4efe4" opacity="0.29899417372420434"/><circle cx="399" cy="34" r="2" fill="#f4efe4" opacity="0.1607538848556578"/><circle cx="430" cy="95" r="2" fill="#f4efe4" opacity="0.30663398046046497"/><circle cx="244" cy="31" r="1" fill="#f4efe4" opacity="0.3048845743387938"/><circle cx="148" cy="109" r="1" fill="#f4efe4" opacity="0.3547286409698427"/><circle cx="263" cy="90" r="1" fill="#f4efe4" opacity="0.349461082816124"/><circle cx="386" cy="67" r="1" fill="#f4efe4" opacity="0.2659610993042588"/><circle cx="105" cy="93" r="1" fill="#f4efe4" opacity="0.2558610062301159"/><circle cx="478" cy="44" r="1" fill="#f4efe4" opacity="0.2615935241430998"/><circle cx="315" cy="99" r="2" fill="#f4efe4" opacity="0.33241096602752807"/><circle cx="237" cy="40" r="2" fill="#f4efe4" opacity="0.25887520259246233"/><circle cx="123" cy="42" r="2" fill="#f4efe4" opacity="0.26240921910852194"/><circle cx="196" cy="138" r="2" fill="#f4efe4" opacity="0.18398833129554987"/><circle cx="430" cy="66" r="2" fill="#f4efe4" opacity="0.22916335264220833"/>
+  <rect x="1" y="1" width="638" height="178" fill="none" stroke="#7b8fa8" stroke-opacity=".25"/>
+</svg>

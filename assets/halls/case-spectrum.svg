@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 112 68">
+  <rect width="112" height="68" fill="#080808"/>
+  <defs>
+    <radialGradient id="glow" cx="50%" cy="22%" r="58%">
+      <stop offset="0" stop-color="#ffffff" stop-opacity=".13"/>
+      <stop offset=".48" stop-color="#d71920" stop-opacity=".12"/>
+      <stop offset="1" stop-color="#d71920" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="112" height="68" fill="url(#glow)"/>
+  <g transform="translate(28 17) rotate(-4 28 21)">
+    <rect width="58" height="42" fill="#171717" stroke="#ffffff" stroke-opacity=".18"/>
+    <rect width="12" height="42" fill="#d71920" fill-opacity=".72"/>
+    <rect x="16" y="9" width="34" height="9" fill="#070707" stroke="#ffffff" stroke-opacity=".18"/>
+    <rect y="31" width="58" height="11" fill="#000" fill-opacity=".2"/>
+  </g>
+  <text x="8" y="61" fill="#fff" fill-opacity=".9" font-family="Bahnschrift, Arial Narrow, sans-serif" font-size="9" font-weight="900" letter-spacing="1.2">SPECTRUM</text>
+</svg>

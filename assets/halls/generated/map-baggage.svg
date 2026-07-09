@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 180" role="img" aria-label="Baggage map collection cover">
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#050606"/>
+      <stop offset=".55" stop-color="#111315"/>
+      <stop offset="1" stop-color="#55453a"/>
+    </linearGradient>
+    <radialGradient id="pulse" cx=".18" cy=".25" r=".85">
+      <stop offset="0" stop-color="#d77b34" stop-opacity=".42"/>
+      <stop offset="1" stop-color="#d77b34" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="soft">
+      <feGaussianBlur stdDeviation="7"/>
+    </filter>
+  </defs>
+  <rect width="640" height="180" fill="url(#bg)"/>
+  <rect width="640" height="180" fill="url(#pulse)"/>
+  <path d="M-20 145 C 110 98, 166 170, 294 124 S 500 70, 668 106" fill="none" stroke="#d77b34" stroke-width="38" stroke-opacity=".08" filter="url(#soft)"/>
+  <g opacity=".95">
+    <polygon points="62,38 136,20 195,55 168,104 83,98" fill="#d77b34" opacity=".20" stroke="#d77b34" stroke-opacity=".46"/>
+    <polygon points="398,42 520,28 572,72 510,125 406,110" fill="#b8c1c8" opacity=".18" stroke="#b8c1c8" stroke-opacity=".42"/>
+    <path d="M332 129 C 244 129, 244 37, 157 37" fill="none" stroke="#d77b34" stroke-width="8" stroke-linecap="round" opacity=".38"/><path d="M398 128 C 263 128, 263 99, 129 99" fill="none" stroke="#d77b34" stroke-width="5" stroke-linecap="round" opacity=".38"/><path d="M301 86 C 197 86, 197 126, 93 126" fill="none" stroke="#d77b34" stroke-width="7" stroke-linecap="round" opacity=".38"/><path d="M317 69 C 439 69, 439 125, 562 125" fill="none" stroke="#d77b34" stroke-width="8" stroke-linecap="round" opacity=".38"/><path d="M376 53 C 238 53, 238 34, 101 34" fill="none" stroke="#d77b34" stroke-width="8" stroke-linecap="round" opacity=".38"/>
+    <rect x="405" y="88" width="126" height="33" rx="5" transform="rotate(2.48 468 104.5)" fill="#d77b34" opacity="0.37638445846736435" stroke="#d77b34" stroke-opacity=".24"/><rect x="428" y="108" width="121" height="57" rx="5" transform="rotate(-2.72 488.5 136.5)" fill="#55453a" opacity="0.305475378446281" stroke="#d77b34" stroke-opacity=".24"/><rect x="98" y="59" width="100" height="31" rx="5" transform="rotate(-0.97 148 74.5)" fill="#b8c1c8" opacity="0.3412562623247504" stroke="#d77b34" stroke-opacity=".24"/><rect x="198" y="28" width="101" height="39" rx="5" transform="rotate(3.42 248.5 47.5)" fill="#d77b34" opacity="0.2728587608411908" stroke="#d77b34" stroke-opacity=".24"/><rect x="173" y="64" width="52" height="58" rx="5" transform="rotate(-1.05 199 93)" fill="#55453a" opacity="0.29343047764152286" stroke="#d77b34" stroke-opacity=".24"/><rect x="91" y="33" width="113" height="44" rx="5" transform="rotate(2.09 147.5 55)" fill="#b8c1c8" opacity="0.31469713047146797" stroke="#d77b34" stroke-opacity=".24"/><rect x="182" y="120" width="113" height="35" rx="5" transform="rotate(-3.26 238.5 137.5)" fill="#d77b34" opacity="0.25055453911423686" stroke="#d77b34" stroke-opacity=".24"/>
+  </g>
+  <g font-family="Rajdhani, Teko, Arial, sans-serif" text-anchor="start">
+    <text x="35" y="151" fill="#f7efe4" font-size="44" font-weight="800" letter-spacing="4">BAGGAGE</text>
+    <text x="38" y="166" fill="#d77b34" font-size="13" font-weight="700" letter-spacing="3">TACTICAL MAP COLLECTION</text>
+  </g>
+  <circle cx="451" cy="124" r="2" fill="#f4efe4" opacity="0.23240051025524736"/><circle cx="165" cy="48" r="1" fill="#f4efe4" opacity="0.2531811614148319"/><circle cx="300" cy="37" r="1" fill="#f4efe4" opacity="0.26210450440645217"/><circle cx="496" cy="115" r="1" fill="#f4efe4" opacity="0.33412950757890936"/><circle cx="84" cy="78" r="2" fill="#f4efe4" opacity="0.35384417986497285"/><circle cx="387" cy="97" r="2" fill="#f4efe4" opacity="0.3727546049654484"/><circle cx="416" cy="79" r="2" fill="#f4efe4" opacity="0.32849976800382136"/><circle cx="436" cy="131" r="2" fill="#f4efe4" opacity="0.2530284130200744"/><circle cx="212" cy="46" r="2" fill="#f4efe4" opacity="0.2778352529741824"/><circle cx="212" cy="29" r="1" fill="#f4efe4" opacity="0.2512369266152382"/><circle cx="313" cy="43" r="2" fill="#f4efe4" opacity="0.32909521052613855"/><circle cx="568" cy="91" r="2" fill="#f4efe4" opacity="0.1655729378759861"/><circle cx="461" cy="111" r="2" fill="#f4efe4" opacity="0.383911290243268"/><circle cx="317" cy="38" r="1" fill="#f4efe4" opacity="0.24549254233017564"/><circle cx="266" cy="32" r="1" fill="#f4efe4" opacity="0.17435417838394643"/><circle cx="439" cy="132" r="2" fill="#f4efe4" opacity="0.19584841186180713"/><circle cx="383" cy="129" r="1" fill="#f4efe4" opacity="0.34342945624142884"/><circle cx="497" cy="83" r="2" fill="#f4efe4" opacity="0.24688664097338914"/>
+  <rect x="1" y="1" width="638" height="178" fill="none" stroke="#d77b34" stroke-opacity=".25"/>
+</svg>

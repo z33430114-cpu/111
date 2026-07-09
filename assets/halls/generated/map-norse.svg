@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 180" role="img" aria-label="Norse map collection cover">
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#050606"/>
+      <stop offset=".55" stop-color="#111315"/>
+      <stop offset="1" stop-color="#2e4e61"/>
+    </linearGradient>
+    <radialGradient id="pulse" cx=".18" cy=".25" r=".85">
+      <stop offset="0" stop-color="#7fa6b8" stop-opacity=".42"/>
+      <stop offset="1" stop-color="#7fa6b8" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="soft">
+      <feGaussianBlur stdDeviation="7"/>
+    </filter>
+  </defs>
+  <rect width="640" height="180" fill="url(#bg)"/>
+  <rect width="640" height="180" fill="url(#pulse)"/>
+  <path d="M-20 145 C 110 98, 166 170, 294 124 S 500 70, 668 106" fill="none" stroke="#7fa6b8" stroke-width="38" stroke-opacity=".08" filter="url(#soft)"/>
+  <g opacity=".95">
+    <polygon points="62,38 136,20 195,55 168,104 83,98" fill="#7fa6b8" opacity=".20" stroke="#7fa6b8" stroke-opacity=".46"/>
+    <polygon points="398,42 520,28 572,72 510,125 406,110" fill="#d3d9d4" opacity=".18" stroke="#d3d9d4" stroke-opacity=".42"/>
+    <path d="M207 50 C 253 50, 253 78, 300 78" fill="none" stroke="#7fa6b8" stroke-width="5" stroke-linecap="round" opacity=".38"/><path d="M517 49 C 327 49, 327 74, 138 74" fill="none" stroke="#7fa6b8" stroke-width="7" stroke-linecap="round" opacity=".38"/><path d="M334 51 C 399 51, 399 66, 464 66" fill="none" stroke="#7fa6b8" stroke-width="8" stroke-linecap="round" opacity=".38"/><path d="M278 37 C 381 37, 381 114, 484 114" fill="none" stroke="#7fa6b8" stroke-width="8" stroke-linecap="round" opacity=".38"/><path d="M540 99 C 439 99, 439 94, 339 94" fill="none" stroke="#7fa6b8" stroke-width="8" stroke-linecap="round" opacity=".38"/>
+    <rect x="170" y="114" width="58" height="32" rx="5" transform="rotate(-3.49 199 130)" fill="#7fa6b8" opacity="0.23802587173879147" stroke="#7fa6b8" stroke-opacity=".24"/><rect x="349" y="55" width="87" height="20" rx="5" transform="rotate(-1.19 392.5 65)" fill="#2e4e61" opacity="0.3406775733828545" stroke="#7fa6b8" stroke-opacity=".24"/><rect x="243" y="69" width="121" height="44" rx="5" transform="rotate(2.47 303.5 91)" fill="#d3d9d4" opacity="0.36604172486811876" stroke="#7fa6b8" stroke-opacity=".24"/><rect x="75" y="54" width="88" height="24" rx="5" transform="rotate(2.20 119 66)" fill="#7fa6b8" opacity="0.2949626349285245" stroke="#7fa6b8" stroke-opacity=".24"/><rect x="320" y="105" width="60" height="51" rx="5" transform="rotate(1.64 350 130.5)" fill="#2e4e61" opacity="0.28711358379572627" stroke="#7fa6b8" stroke-opacity=".24"/><rect x="226" y="80" width="53" height="18" rx="5" transform="rotate(1.86 252.5 89)" fill="#d3d9d4" opacity="0.2298241337761283" stroke="#7fa6b8" stroke-opacity=".24"/><rect x="251" y="100" width="81" height="43" rx="5" transform="rotate(1.28 291.5 121.5)" fill="#7fa6b8" opacity="0.2229811593145132" stroke="#7fa6b8" stroke-opacity=".24"/>
+  </g>
+  <g font-family="Rajdhani, Teko, Arial, sans-serif" text-anchor="start">
+    <text x="35" y="151" fill="#f7efe4" font-size="44" font-weight="800" letter-spacing="4">NORSE</text>
+    <text x="38" y="166" fill="#7fa6b8" font-size="13" font-weight="700" letter-spacing="3">TACTICAL MAP COLLECTION</text>
+  </g>
+  <circle cx="304" cy="129" r="2" fill="#f4efe4" opacity="0.22268102107569576"/><circle cx="460" cy="144" r="2" fill="#f4efe4" opacity="0.24596620976924896"/><circle cx="567" cy="137" r="2" fill="#f4efe4" opacity="0.22344923362135888"/><circle cx="523" cy="51" r="2" fill="#f4efe4" opacity="0.38882280096411703"/><circle cx="300" cy="74" r="1" fill="#f4efe4" opacity="0.2495070251263678"/><circle cx="546" cy="37" r="1" fill="#f4efe4" opacity="0.32992237953469156"/><circle cx="95" cy="113" r="1" fill="#f4efe4" opacity="0.20793143881484866"/><circle cx="413" cy="23" r="1" fill="#f4efe4" opacity="0.2289797816425562"/><circle cx="182" cy="86" r="2" fill="#f4efe4" opacity="0.3767353578656912"/><circle cx="502" cy="48" r="2" fill="#f4efe4" opacity="0.2832209350541234"/><circle cx="556" cy="47" r="1" fill="#f4efe4" opacity="0.24949191166087986"/><circle cx="183" cy="67" r="2" fill="#f4efe4" opacity="0.29439162090420723"/><circle cx="359" cy="144" r="2" fill="#f4efe4" opacity="0.37896354360505935"/><circle cx="454" cy="63" r="1" fill="#f4efe4" opacity="0.2217293420806527"/><circle cx="436" cy="130" r="2" fill="#f4efe4" opacity="0.32435667607933283"/><circle cx="178" cy="77" r="2" fill="#f4efe4" opacity="0.29151624796912073"/><circle cx="340" cy="143" r="2" fill="#f4efe4" opacity="0.20384456180036067"/><circle cx="573" cy="129" r="2" fill="#f4efe4" opacity="0.3032106921263039"/>
+  <rect x="1" y="1" width="638" height="178" fill="none" stroke="#7fa6b8" stroke-opacity=".25"/>
+</svg>

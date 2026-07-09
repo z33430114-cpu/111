@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 180" role="img" aria-label="Safehouse map collection cover">
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#050606"/>
+      <stop offset=".55" stop-color="#111315"/>
+      <stop offset="1" stop-color="#4e3d35"/>
+    </linearGradient>
+    <radialGradient id="pulse" cx=".18" cy=".25" r=".85">
+      <stop offset="0" stop-color="#b58558" stop-opacity=".42"/>
+      <stop offset="1" stop-color="#b58558" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="soft">
+      <feGaussianBlur stdDeviation="7"/>
+    </filter>
+  </defs>
+  <rect width="640" height="180" fill="url(#bg)"/>
+  <rect width="640" height="180" fill="url(#pulse)"/>
+  <path d="M-20 145 C 110 98, 166 170, 294 124 S 500 70, 668 106" fill="none" stroke="#b58558" stroke-width="38" stroke-opacity=".08" filter="url(#soft)"/>
+  <g opacity=".95">
+    <polygon points="62,38 136,20 195,55 168,104 83,98" fill="#b58558" opacity=".20" stroke="#b58558" stroke-opacity=".46"/>
+    <polygon points="398,42 520,28 572,72 510,125 406,110" fill="#7ea06a" opacity=".18" stroke="#7ea06a" stroke-opacity=".42"/>
+    <path d="M113 121 C 304 121, 304 80, 495 80" fill="none" stroke="#b58558" stroke-width="7" stroke-linecap="round" opacity=".38"/><path d="M533 92 C 445 92, 445 107, 358 107" fill="none" stroke="#b58558" stroke-width="5" stroke-linecap="round" opacity=".38"/><path d="M393 58 C 390 58, 390 94, 388 94" fill="none" stroke="#b58558" stroke-width="7" stroke-linecap="round" opacity=".38"/><path d="M155 59 C 150 59, 150 78, 146 78" fill="none" stroke="#b58558" stroke-width="5" stroke-linecap="round" opacity=".38"/><path d="M482 70 C 495 70, 495 128, 508 128" fill="none" stroke="#b58558" stroke-width="8" stroke-linecap="round" opacity=".38"/>
+    <rect x="125" y="79" width="112" height="51" rx="5" transform="rotate(0.28 181 104.5)" fill="#b58558" opacity="0.2293816390261054" stroke="#b58558" stroke-opacity=".24"/><rect x="266" y="104" width="114" height="57" rx="5" transform="rotate(3.13 323 132.5)" fill="#4e3d35" opacity="0.24084779512137175" stroke="#b58558" stroke-opacity=".24"/><rect x="434" y="105" width="98" height="25" rx="5" transform="rotate(-1.95 483 117.5)" fill="#7ea06a" opacity="0.23083750549703835" stroke="#b58558" stroke-opacity=".24"/><rect x="235" y="38" width="117" height="33" rx="5" transform="rotate(2.33 293.5 54.5)" fill="#b58558" opacity="0.32889793761074543" stroke="#b58558" stroke-opacity=".24"/><rect x="492" y="53" width="86" height="53" rx="5" transform="rotate(1.27 535 79.5)" fill="#4e3d35" opacity="0.2943083855882287" stroke="#b58558" stroke-opacity=".24"/><rect x="485" y="40" width="72" height="26" rx="5" transform="rotate(-1.35 521 53)" fill="#7ea06a" opacity="0.2738031968101859" stroke="#b58558" stroke-opacity=".24"/><rect x="176" y="124" width="54" height="22" rx="5" transform="rotate(-2.07 203 135)" fill="#b58558" opacity="0.3556761714443565" stroke="#b58558" stroke-opacity=".24"/>
+  </g>
+  <g font-family="Rajdhani, Teko, Arial, sans-serif" text-anchor="start">
+    <text x="35" y="151" fill="#f7efe4" font-size="44" font-weight="800" letter-spacing="4">SAFEHOUSE</text>
+    <text x="38" y="166" fill="#b58558" font-size="13" font-weight="700" letter-spacing="3">TACTICAL MAP COLLECTION</text>
+  </g>
+  <circle cx="139" cy="147" r="1" fill="#f4efe4" opacity="0.2803660526312888"/><circle cx="294" cy="70" r="2" fill="#f4efe4" opacity="0.3653426148928702"/><circle cx="227" cy="105" r="2" fill="#f4efe4" opacity="0.16911699786782264"/><circle cx="438" cy="54" r="1" fill="#f4efe4" opacity="0.3962224167212844"/><circle cx="488" cy="54" r="1" fill="#f4efe4" opacity="0.2701153260841966"/><circle cx="404" cy="70" r="1" fill="#f4efe4" opacity="0.3376175997592509"/><circle cx="97" cy="51" r="2" fill="#f4efe4" opacity="0.21525317378342151"/><circle cx="320" cy="134" r="1" fill="#f4efe4" opacity="0.1914213995076716"/><circle cx="562" cy="58" r="2" fill="#f4efe4" opacity="0.23695958809927106"/><circle cx="186" cy="39" r="2" fill="#f4efe4" opacity="0.3510778281651437"/><circle cx="64" cy="62" r="1" fill="#f4efe4" opacity="0.3165304856561124"/><circle cx="423" cy="122" r="2" fill="#f4efe4" opacity="0.16736601930111647"/><circle cx="117" cy="142" r="2" fill="#f4efe4" opacity="0.1642189883813262"/><circle cx="488" cy="79" r="2" fill="#f4efe4" opacity="0.3240579705871641"/><circle cx="62" cy="40" r="1" fill="#f4efe4" opacity="0.3968116741813719"/><circle cx="581" cy="43" r="2" fill="#f4efe4" opacity="0.16098243292421102"/><circle cx="247" cy="51" r="1" fill="#f4efe4" opacity="0.20520771300420165"/><circle cx="377" cy="84" r="1" fill="#f4efe4" opacity="0.37972780162468556"/>
+  <rect x="1" y="1" width="638" height="178" fill="none" stroke="#b58558" stroke-opacity=".25"/>
+</svg>

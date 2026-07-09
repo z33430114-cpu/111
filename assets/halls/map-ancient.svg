@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 224 56">
+  <defs>
+    <linearGradient id="sky" x1="0" x2="0" y1="0" y2="1"><stop stop-color="#879085"/><stop offset=".45" stop-color="#596054"/><stop offset="1" stop-color="#292d27"/></linearGradient>
+    <linearGradient id="stone" x1="0" x2="1"><stop stop-color="#4b4537"/><stop offset=".45" stop-color="#a79873"/><stop offset="1" stop-color="#5e5644"/></linearGradient>
+    <filter id="grain"><feTurbulence baseFrequency=".9" numOctaves="3" seed="11" type="fractalNoise"/><feColorMatrix type="saturate" values="0"/><feComponentTransfer><feFuncA type="table" tableValues="0 .18"/></feComponentTransfer></filter>
+  </defs>
+  <rect width="224" height="56" fill="url(#sky)"/>
+  <path d="M0 39c24-8 57-8 87-3 28 4 49 2 76-8 22-8 41-7 61-3v31H0z" fill="#1d211d"/>
+  <path d="M0 46h224v10H0z" fill="#111411"/>
+  <rect x="8" y="24" width="31" height="19" fill="#655d4a"/>
+  <rect x="43" y="13" width="44" height="30" fill="url(#stone)"/>
+  <rect x="96" y="19" width="32" height="24" fill="#756b54"/>
+  <rect x="141" y="10" width="56" height="33" fill="url(#stone)"/>
+  <path d="M47 43V27c0-9 9-16 20-16s19 7 19 16v16M151 43V25c0-8 8-14 19-14s19 6 19 14v18" fill="none" stroke="#27241d" stroke-width="5"/>
+  <path d="M12 24h28M42 13h47M94 19h36M139 10h60" stroke="#d5c79d" stroke-opacity=".55" stroke-width="2"/>
+  <path d="M18 34h15M101 30h17M157 21h26" stroke="#28251e" stroke-width="2"/>
+  <path d="M37 43l24 13h72l23-13z" fill="#2e332c"/>
+  <circle cx="205" cy="13" r="7" fill="#e1d28d" opacity=".42"/>
+  <rect width="224" height="56" filter="url(#grain)"/>
+  <rect width="224" height="56" fill="#000" opacity=".2"/>
+</svg>

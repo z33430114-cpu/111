@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 112 68">
+  <rect width="112" height="68" fill="#080808"/>
+  <defs>
+    <pattern id="grid" width="18" height="18" patternUnits="userSpaceOnUse">
+      <path d="M18 0H0V18" fill="none" stroke="#ffffff" stroke-opacity=".075" stroke-width="1"/>
+    </pattern>
+    <radialGradient id="glow" cx="38%" cy="35%" r="58%">
+      <stop offset="0" stop-color="#d71920" stop-opacity=".31"/>
+      <stop offset=".5" stop-color="#d71920" stop-opacity=".1"/>
+      <stop offset="1" stop-color="#d71920" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="112" height="68" fill="url(#grid)"/>
+  <rect width="112" height="68" fill="url(#glow)"/>
+  <polygon points="25,7 78,8 101,22 92,53 52,62 13,49 9,20" fill="#0e0e0f" stroke="#ffffff" stroke-opacity=".18"/>
+  <path d="M18 28L80 55M25 52L86 14" stroke="#ffffff" stroke-opacity=".2" stroke-width="3"/>
+  <path d="M25 52L86 14" stroke="#d71920" stroke-opacity=".78" stroke-width="3"/>
+  <path d="M37 11V55M70 10V59" stroke="#ffffff" stroke-opacity=".1" stroke-width="1"/>
+  <text x="8" y="61" fill="#fff" fill-opacity=".9" font-family="Bahnschrift, Arial Narrow, sans-serif" font-size="9" font-weight="900" letter-spacing="1.2">NUKE</text>
+</svg>

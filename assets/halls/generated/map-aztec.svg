@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 180" role="img" aria-label="Aztec map collection cover">
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#050606"/>
+      <stop offset=".55" stop-color="#111315"/>
+      <stop offset="1" stop-color="#2d4b37"/>
+    </linearGradient>
+    <radialGradient id="pulse" cx=".18" cy=".25" r=".85">
+      <stop offset="0" stop-color="#78a15a" stop-opacity=".42"/>
+      <stop offset="1" stop-color="#78a15a" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="soft">
+      <feGaussianBlur stdDeviation="7"/>
+    </filter>
+  </defs>
+  <rect width="640" height="180" fill="url(#bg)"/>
+  <rect width="640" height="180" fill="url(#pulse)"/>
+  <path d="M-20 145 C 110 98, 166 170, 294 124 S 500 70, 668 106" fill="none" stroke="#78a15a" stroke-width="38" stroke-opacity=".08" filter="url(#soft)"/>
+  <g opacity=".95">
+    <polygon points="62,38 136,20 195,55 168,104 83,98" fill="#78a15a" opacity=".20" stroke="#78a15a" stroke-opacity=".46"/>
+    <polygon points="398,42 520,28 572,72 510,125 406,110" fill="#d1b16c" opacity=".18" stroke="#d1b16c" stroke-opacity=".42"/>
+    <path d="M159 95 C 272 95, 272 106, 385 106" fill="none" stroke="#78a15a" stroke-width="7" stroke-linecap="round" opacity=".38"/><path d="M460 53 C 495 53, 495 127, 531 127" fill="none" stroke="#78a15a" stroke-width="8" stroke-linecap="round" opacity=".38"/><path d="M47 87 C 136 87, 136 36, 226 36" fill="none" stroke="#78a15a" stroke-width="6" stroke-linecap="round" opacity=".38"/><path d="M438 59 C 440 59, 440 35, 442 35" fill="none" stroke="#78a15a" stroke-width="8" stroke-linecap="round" opacity=".38"/><path d="M296 117 C 389 117, 389 50, 482 50" fill="none" stroke="#78a15a" stroke-width="5" stroke-linecap="round" opacity=".38"/>
+    <rect x="189" y="95" width="132" height="38" rx="5" transform="rotate(1.63 255 114)" fill="#78a15a" opacity="0.24134899500757456" stroke="#78a15a" stroke-opacity=".24"/><rect x="291" y="73" width="131" height="34" rx="5" transform="rotate(2.26 356.5 90)" fill="#2d4b37" opacity="0.2910162355005741" stroke="#78a15a" stroke-opacity=".24"/><rect x="126" y="99" width="51" height="53" rx="5" transform="rotate(0.22 151.5 125.5)" fill="#d1b16c" opacity="0.25596138764172793" stroke="#78a15a" stroke-opacity=".24"/><rect x="301" y="69" width="93" height="18" rx="5" transform="rotate(1.23 347.5 78)" fill="#78a15a" opacity="0.37454718325287106" stroke="#78a15a" stroke-opacity=".24"/><rect x="300" y="125" width="81" height="50" rx="5" transform="rotate(1.35 340.5 150)" fill="#2d4b37" opacity="0.25454548496752977" stroke="#78a15a" stroke-opacity=".24"/><rect x="179" y="89" width="84" height="35" rx="5" transform="rotate(-2.87 221 106.5)" fill="#d1b16c" opacity="0.37084625553339723" stroke="#78a15a" stroke-opacity=".24"/><rect x="220" y="99" width="61" height="24" rx="5" transform="rotate(2.95 250.5 111)" fill="#78a15a" opacity="0.32215284984558823" stroke="#78a15a" stroke-opacity=".24"/>
+  </g>
+  <g font-family="Rajdhani, Teko, Arial, sans-serif" text-anchor="start">
+    <text x="35" y="151" fill="#f7efe4" font-size="44" font-weight="800" letter-spacing="4">AZTEC</text>
+    <text x="38" y="166" fill="#78a15a" font-size="13" font-weight="700" letter-spacing="3">TACTICAL MAP COLLECTION</text>
+  </g>
+  <circle cx="509" cy="112" r="1" fill="#f4efe4" opacity="0.3820104256458581"/><circle cx="503" cy="141" r="2" fill="#f4efe4" opacity="0.39283901926130055"/><circle cx="603" cy="75" r="2" fill="#f4efe4" opacity="0.2604357472807169"/><circle cx="159" cy="50" r="1" fill="#f4efe4" opacity="0.2548083129525185"/><circle cx="86" cy="49" r="2" fill="#f4efe4" opacity="0.21170118115842343"/><circle cx="514" cy="102" r="1" fill="#f4efe4" opacity="0.2609495691768825"/><circle cx="145" cy="116" r="1" fill="#f4efe4" opacity="0.3798151399940252"/><circle cx="343" cy="124" r="2" fill="#f4efe4" opacity="0.2685529389977455"/><circle cx="125" cy="84" r="1" fill="#f4efe4" opacity="0.28689524468034505"/><circle cx="559" cy="63" r="1" fill="#f4efe4" opacity="0.3335679962299764"/><circle cx="262" cy="46" r="1" fill="#f4efe4" opacity="0.31363799173384904"/><circle cx="137" cy="106" r="1" fill="#f4efe4" opacity="0.3190633943118155"/><circle cx="377" cy="90" r="1" fill="#f4efe4" opacity="0.3711895152181387"/><circle cx="209" cy="44" r="2" fill="#f4efe4" opacity="0.2712099211104214"/><circle cx="52" cy="75" r="1" fill="#f4efe4" opacity="0.3700048298761248"/><circle cx="75" cy="84" r="1" fill="#f4efe4" opacity="0.2528699241951108"/><circle cx="294" cy="115" r="2" fill="#f4efe4" opacity="0.3496811089478433"/><circle cx="522" cy="20" r="1" fill="#f4efe4" opacity="0.3206055279821157"/>
+  <rect x="1" y="1" width="638" height="178" fill="none" stroke="#78a15a" stroke-opacity=".25"/>
+</svg>
