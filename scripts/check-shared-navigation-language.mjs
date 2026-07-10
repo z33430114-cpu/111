@@ -12,7 +12,8 @@ const pages = [
   "openings.html",
   "account.html",
   "inventory.html",
-  "loadout.html"
+  "loadout.html",
+  "tools.html"
 ];
 
 const legacyMarkers = [
@@ -30,7 +31,7 @@ for (const page of pages) {
     failures.push(`${page}: missing shared language switch control`);
   }
 
-  if (!html.includes('<script src="language-runtime.js')) {
+  if (!/<script\b[^>]*\bsrc="language-runtime\.js[^"]*"/u.test(html)) {
     failures.push(`${page}: missing shared language runtime include`);
   }
 

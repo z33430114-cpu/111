@@ -51,6 +51,8 @@ function buildAppFunction(name, overrides = {}) {
     resolveDisplayItemById: () => null,
     openingDataAvailable: () => false,
     pageName: () => "openings.html",
+    restoreCurrentPageMemory: () => {},
+    restoreCurrentPageScroll: () => {},
     prepareDeferredImageState: () => {},
     renderPageContent: () => {},
     markActiveNavigation: () => {},
@@ -73,7 +75,7 @@ function buildAppFunction(name, overrides = {}) {
   };
 }
 
-test("renderCurrentPage waits for both catalog and opening data on openings page", async () => {
+test("renderCurrentPage waits for opening data on openings page", async () => {
   const calls = [];
   const { fn } = buildAppFunction("renderCurrentPage", {
     ensureCatalogDataLoaded: async () => { calls.push("catalog"); },
@@ -82,7 +84,20 @@ test("renderCurrentPage waits for both catalog and opening data on openings page
 
   await fn();
 
-  assert.deepEqual(calls, ["catalog", "opening"]);
+  assert.deepEqual(calls, ["opening"]);
+});
+
+test("renderCurrentPage renders loadout page without waiting for catalog data", async () => {
+  const calls = [];
+  const { fn } = buildAppFunction("renderCurrentPage", {
+    pageName: () => "loadout.html",
+    ensureCatalogDataLoaded: async () => { calls.push("catalog"); },
+    renderPageContent: () => { calls.push("render"); }
+  });
+
+  await fn();
+
+  assert.deepEqual(calls, ["render"]);
 });
 
 test("opening loot cache is invalidated when catalog state is rebuilt", () => {

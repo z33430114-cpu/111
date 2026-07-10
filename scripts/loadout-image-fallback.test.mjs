@@ -55,6 +55,7 @@ function buildAppFunction(name, overrides = {}, dependencies = []) {
       .replace(/\"/g, "&quot;")
       .replace(/'/g, "&#39;"),
     uiText: (en, zh) => zh || en,
+    uiTemplate: (template, values = {}) => String(template || "").replace(/\{(\w+)\}/g, (_, key) => String(values[key] ?? "")),
     formatPrice: (value) => `CNY ${Number(value || 0).toFixed(2)}`,
     itemTitle: (item) => item?.title || item?.name || "",
     itemWeapon: (item) => item?.weapon || "",
@@ -65,6 +66,12 @@ function buildAppFunction(name, overrides = {}, dependencies = []) {
     lazyImageMarkup: ({ src = "", alt = "" } = {}) => `<img src="${src}" alt="${alt}" />`,
     resolveDisplayItemById: () => null,
     resolveDisplayItemByName: () => null,
+    LOADOUT_ZH: {
+      proLoading: "正在加载职业搭配...",
+      proTitle: "职业选手搭配",
+      proUnavailable: "职业选手搭配暂时不可用。",
+      loadMoreTeams: "加载更多战队"
+    },
     LOADOUT_CACHE_MAX_TEAMS: 18,
     PRO_LOADOUT_TEAM_PAGE_SIZE: 6,
     appState: {},
@@ -164,9 +171,12 @@ test("aiProLoadoutsMarkup renders local-toggle bodies and readable Chinese label
         }]
       }
     }
-  }, ["proVisualFallbackUrl", "proImageMarkup", "proAvatarMarkup", "proTeamLogoMarkup", "proLoadoutItemMarkup", "proLoadoutGroupMarkup", "proPlayerKey", "proPlayerLoadoutMarkup"]);
+  }, ["normalizeProIdentity", "proTeamKey", "proVisualFallbackUrl", "proImageMarkup", "proAvatarMarkup", "proTeamLogoMarkup", "proLoadoutItemMarkup", "proLoadoutGroupMarkup", "proPlayerKey", "proPlayerLoadoutMarkup"]);
 
   const markup = aiProLoadoutsMarkup();
+  assert.match(markup, /data-pro-team="teamalpha"/);
+  assert.match(markup, /curator-pro-team-card/);
+  assert.match(markup, /pro-team-logo/);
 
   assert.match(markup, /职业选手搭配/);
   assert.match(markup, /按战队/);

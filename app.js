@@ -1,6 +1,7 @@
-  const STATE_KEY = "cs2-relic-hall:state";
+﻿  const STATE_KEY = "cs2-relic-hall:state";
   const PAGE_MEMORY_KEY = "cs2-relic-hall:page-memory";
   const DIY_KEY = "cs2-relic-hall:diy-designs";
+  const LOADOUT_FAVORITES_KEY = "cs2-relic-hall:favorite-loadouts";
   const OPENING_STATE_KEY = "cs2-relic-hall:openings";
   const INSPECTOR_STATE_KEY = "cs2-relic-hall:inspector";
   const AI_LOADOUT_STATE_KEY = "cs2-relic-hall:ai-loadout";
@@ -268,12 +269,17 @@
     aiLoadoutPreset: "auto",
     aiLoadoutColorFilter: "",
     aiLoadoutStyleFilter: "",
+    aiLoadoutSelectedKeys: [],
+    aiLoadoutSelectionTouched: false,
+    aiLoadoutCollapsedGroups: {},
     aiInventoryCategory: "all",
     aiLoadoutCategory: "all",
     loadoutHydrationStarted: false,
     loadoutFrameReady: false,
     loadoutInventoryOverviewCache: { source: null, value: null },
+    loadoutWorkbenchCache: { key: "", value: null },
     aiProTeamsRenderedCount: PRO_LOADOUT_TEAM_PAGE_SIZE,
+    activeProTeamKey: "",
     activeProPlayerKey: "",
     inventoryMarketPricesRequested: false,
     aiItemAnalyses: {},
@@ -281,6 +287,18 @@
     aiOpeningAnalyses: {},
     aiOpeningAnalysisRequests: {},
     openingHistoryPage: 0,
+    relatedNewsFilter: "all",
+    practicalToolsPurchasePriceDraft: "1000",
+    practicalToolsFeeRateDraft: "2.5",
+    practicalToolsDiscountDraft: "0",
+    practicalToolsTargetBudgetDraft: "1000",
+    practicalToolsWishlistText: "",
+    practicalToolsSavedDraft: "0",
+    practicalToolsMonthlyDraft: "500",
+    practicalToolsTradeSaleText: "",
+    practicalToolsTradeFeeRateDraft: "2.5",
+    practicalToolsTradeAddCashDraft: "0",
+    practicalToolsTradeTargetDraft: "2000",
     deferredImagePage: "",
     deferredImageReady: true,
     deferredImageHydrationScheduled: false
@@ -289,7 +307,9 @@
   const openingLootCache = new Map();
   let catalogDataPromise = null;
   let catalogAssetsPromise = null;
+  let loadoutCatalogAdditionPromise = null;
   let loadoutProHydrationObserver = null;
+  let loadoutRenderScheduled = false;
   const relatedDataPromises = new Map();
   let openingDataPromise = null;
   let accountOverviewUnavailableUntil = 0;
@@ -297,6 +317,7 @@
   const runtimeUiText = typeof globalThis.uiText === "function" && globalThis.uiText.name !== "uiText" ? globalThis.uiText.bind(globalThis) : null;
   const runtimeUiTemplate = typeof globalThis.uiTemplate === "function" && globalThis.uiTemplate.name !== "uiTemplate" ? globalThis.uiTemplate.bind(globalThis) : null;
   const ZH_CN_UI_OVERRIDES = {
+    "Desert Eagle": "沙漠之鹰",
     "Curator": "策展室",
     "AI Loadout Studio": "AI 饰品搭配工作室",
     "AI Loadout Chat": "AI 搭配对话",
@@ -717,7 +738,7 @@
   const LOCAL_API_ORIGIN = LOCAL_API_CANDIDATES[0] || "http://127.0.0.1:4173";
   const CATALOG_DATA_SCRIPT = "catalog-data.js?v=20260630g";
   const ITEM_DATA_VERSION = "20260707a";
-  const RELATED_DATA_VERSION = "20260707a";
+  const RELATED_DATA_VERSION = "20260710b";
   const OPENING_DATA_SCRIPT = "catalog-data.js?v=20260707b";
   const OPENING_DATA_JSON = "opening-data.json?v=20260707a";
   const MARKET_PRICES_SCRIPT = ".data/market-prices.js";
@@ -767,6 +788,26 @@
   function localPageUrl(path = "") {
     const normalized = String(path || "").replace(/^\/+/, "");
     return `${LOCAL_API_ORIGIN}/${normalized}`;
+  }
+
+  function localApiUrl(path = "") {
+    const normalized = String(path || "");
+    const apiPath = normalized.startsWith("/") ? normalized : `/${normalized}`;
+    if (globalThis.CS2_ENABLE_SAME_ORIGIN_API === true && location.protocol !== "file:") return apiPath;
+    return `${LOCAL_API_ORIGIN}${apiPath}`;
+  }
+
+  function hltvAssetProxyUrl(value = "") {
+    const raw = String(value || "").trim();
+    if (!raw) return "";
+    try {
+      const url = new URL(raw);
+      if (!/(\.|^)img-cdn\.hltv\.org$/i.test(url.hostname)) return raw;
+      if (url.searchParams.has("s")) return raw;
+      return localApiUrl(`/api/asset-proxy?url=${encodeURIComponent(url.toString())}`);
+    } catch {
+      return raw;
+    }
   }
 
   function detectLocalApiOrigins() {
@@ -930,6 +971,23 @@
     return `<img ${attributes.join(" ")} />`;
   }
 
+  function curatorImageMarkup({ src = "", alt = "", loading = "lazy", className = "", id = "" } = {}) {
+    const label = String(alt || "?").split("|")[0].trim().slice(0, 12) || "?";
+    const fallback = `<span class="curator-image-fallback" hidden>${escapeHtml(label)}</span>`;
+    if (!String(src || "").trim()) return fallback;
+    const attributes = [
+      id ? `id="${escapeHtml(id)}"` : "",
+      className ? `class="${escapeHtml(className)}"` : "",
+      `src="${escapeHtml(String(src).trim())}"`,
+      `alt="${escapeHtml(alt)}"`,
+      `loading="${escapeHtml(loading)}"`,
+      `decoding="async"`,
+      `fetchpriority="${loading === "eager" ? "high" : "low"}"`,
+      `onerror="this.onerror=null;this.hidden=true;this.nextElementSibling.hidden=false;"`
+    ].filter(Boolean);
+    return `<img ${attributes.join(" ")} />${fallback}`;
+  }
+
   function loadLazyImage(node) {
     if (!(node instanceof HTMLImageElement)) return;
     const nextSrc = String(node.dataset.src || "").trim();
@@ -976,7 +1034,10 @@
           });
         });
       });
-      appState.lazyImageMutationObserver.observe(document.body, { childList: true, subtree: true });
+      const mutationRoot = document.body;
+      if (mutationRoot instanceof Node) {
+        appState.lazyImageMutationObserver.observe(mutationRoot, { childList: true, subtree: true });
+      }
     }
     observeLazyImagesIn(document);
   }
@@ -1273,6 +1334,7 @@
   function looksLikeMojibake(value) {
     const text = String(value || "");
     if (/\?{3,}/.test(text)) return true;
+    if (/(鍏ㄩ儴|鍐查攱|闇板脊|娌欓拱|娣锋惌|鍒€鍏|鎵嬪|鎵嬫灙)/.test(text)) return true;
     const mojibakeCodePoints = new Set([0x20ac, 0xfffd, 0xe749, 0xe100, 0xe1c0, 0xe21a, 0xe21b, 0xe21c, 0xfe40]);
     return Array.from(text).some((char) => mojibakeCodePoints.has(char.codePointAt(0)));
   }
@@ -1606,13 +1668,12 @@
     const text = inventoryEntryText(entry);
     if (resolvedType === "knife" || /knife|bayonet|daggers|karambit|shadow daggers|huntsman|falchion|bowie|butterfly|navaja|ursus|talon|stiletto|skeleton|nomad|paracord|survival|kukri/i.test(text)) return 0;
     if (resolvedType === "glove" || /glove|hand wraps|moto gloves|driver gloves|specialist gloves|sport gloves|bloodhound gloves|hydra gloves|broken fang gloves|\u624b\u5957/i.test(text)) return 1;
-    if (resolvedType === "glove" || /glove|hand wraps|moto gloves|driver gloves|specialist gloves|sport gloves|bloodhound gloves|hydra gloves|broken fang gloves|\u624b\u5957/i.test(text)) return 1;
+    if (inventoryLooksLikeWeapon(entry, resolved, text) && !/weapon case|case|capsule|collectible|music kit/i.test(text)) return 2;
     if (resolvedType === "music-box" || /music kit/i.test(text)) return 3;
     if (resolvedType === "agent" || /agent/i.test(text)) return 4;
     if (resolvedType === "sticker" || /sticker|patch/i.test(text)) return 5;
     if (/collectible|capsule/i.test(text)) return 6;
     if (/weapon case|case/i.test(text)) return 7;
-    if (resolvedType === "equipment" || /equipment|tool|graffiti|spray|\u88c5\u5907|\u5de5\u5177|\u6d82\u9e26|\u55b7\u6f06/i.test(text)) return 8;
     if (resolvedType === "equipment" || /equipment|tool|graffiti|spray|\u88c5\u5907|\u5de5\u5177|\u6d82\u9e26|\u55b7\u6f06/i.test(text)) return 8;
     return 8;
   }
@@ -1760,6 +1821,11 @@
     if (page === "inventory.html") {
       memory.inventoryRenderedCount = Math.max(INVENTORY_PAGE_SIZE, Number(appState.inventoryRenderedCount) || INVENTORY_PAGE_SIZE);
     }
+    if (page === "loadout.html") {
+      memory.activeProTeamKey = String(appState.activeProTeamKey || "");
+      memory.activeProPlayerKey = String(appState.activeProPlayerKey || "");
+      memory.aiProTeamsRenderedCount = Math.max(PRO_LOADOUT_TEAM_PAGE_SIZE, Number(appState.aiProTeamsRenderedCount) || PRO_LOADOUT_TEAM_PAGE_SIZE);
+    }
     writePageMemory(page, memory);
   }
 
@@ -1788,9 +1854,23 @@
     return true;
   }
 
+  function restoreLoadoutPageMemory() {
+    if (pageName() !== "loadout.html") return false;
+    const memory = readPageMemory("loadout.html");
+    if (!memory) return false;
+    appState.activeProTeamKey = String(memory.activeProTeamKey || appState.activeProTeamKey || "");
+    appState.activeProPlayerKey = String(memory.activeProPlayerKey || appState.activeProPlayerKey || "");
+    appState.aiProTeamsRenderedCount = Math.max(
+      PRO_LOADOUT_TEAM_PAGE_SIZE,
+      Number(memory.aiProTeamsRenderedCount) || Number(appState.aiProTeamsRenderedCount) || PRO_LOADOUT_TEAM_PAGE_SIZE
+    );
+    return true;
+  }
+
   function restoreCurrentPageMemory() {
     if (pageName() === "catalog.html") restoreCatalogPageMemory();
     if (pageName() === "inventory.html") restoreInventoryPageMemory();
+    if (pageName() === "loadout.html") restoreLoadoutPageMemory();
   }
 
   function restoreCurrentPageScroll() {
@@ -1829,6 +1909,15 @@
 
   function setDiyDesigns(designs) {
     writeLocalJson(DIY_KEY, designs);
+  }
+
+  function getFavoriteLoadouts() {
+    const parsed = readLocalJson(LOADOUT_FAVORITES_KEY, []);
+    return Array.isArray(parsed) ? parsed : [];
+  }
+
+  function setFavoriteLoadouts(loadouts) {
+    writeLocalJson(LOADOUT_FAVORITES_KEY, loadouts);
   }
 
   function getInspectorState() {
@@ -2017,6 +2106,13 @@
     appState.aiLoadoutPreset = String(parsed.aiLoadoutPreset || "auto") || "auto";
     appState.aiLoadoutColorFilter = String(parsed.aiLoadoutColorFilter || "");
     appState.aiLoadoutStyleFilter = String(parsed.aiLoadoutStyleFilter || "");
+    appState.aiLoadoutSelectedKeys = Array.isArray(parsed.aiLoadoutSelectedKeys)
+      ? parsed.aiLoadoutSelectedKeys.map((entry) => String(entry || "").trim()).filter(Boolean).slice(0, 12)
+      : [];
+    appState.aiLoadoutSelectionTouched = Boolean(parsed.aiLoadoutSelectionTouched);
+    appState.aiLoadoutCollapsedGroups = parsed.aiLoadoutCollapsedGroups && typeof parsed.aiLoadoutCollapsedGroups === "object"
+      ? parsed.aiLoadoutCollapsedGroups
+      : {};
     appState.aiInventoryCategory = String(parsed.aiInventoryCategory || "all") || "all";
     appState.aiLoadoutCategory = String(parsed.aiLoadoutCategory || "all") || "all";
     const schemaVersion = Number(parsed.aiProLoadoutsSchemaVersion) || 0;
@@ -2029,6 +2125,7 @@
       PRO_LOADOUT_TEAM_PAGE_SIZE,
       Number(parsed.aiProTeamsRenderedCount) || PRO_LOADOUT_TEAM_PAGE_SIZE
     );
+    appState.activeProTeamKey = String(parsed.activeProTeamKey || "");
     appState.activeProPlayerKey = String(parsed.activeProPlayerKey || "");
     appState.loadoutFrameReady = Boolean(
       appState.aiLoadoutChatMessages.length
@@ -2049,6 +2146,9 @@
       aiLoadoutPreset: String(appState.aiLoadoutPreset || "auto") || "auto",
       aiLoadoutColorFilter: String(appState.aiLoadoutColorFilter || ""),
       aiLoadoutStyleFilter: String(appState.aiLoadoutStyleFilter || ""),
+      aiLoadoutSelectedKeys: (appState.aiLoadoutSelectedKeys || []).map((entry) => String(entry || "").trim()).filter(Boolean).slice(0, 12),
+      aiLoadoutSelectionTouched: Boolean(appState.aiLoadoutSelectionTouched),
+      aiLoadoutCollapsedGroups: appState.aiLoadoutCollapsedGroups && typeof appState.aiLoadoutCollapsedGroups === "object" ? appState.aiLoadoutCollapsedGroups : {},
       aiInventoryCategory: String(appState.aiInventoryCategory || "all") || "all",
       aiLoadoutCategory: String(appState.aiLoadoutCategory || "all") || "all",
       aiInventoryRecommendations: sanitizeAiInventoryRecommendationsCache(appState.aiInventoryRecommendations),
@@ -2056,6 +2156,7 @@
       aiProLoadoutsFetchedAt: Number(appState.aiProLoadoutsFetchedAt) || 0,
       aiProLoadoutsSchemaVersion: AI_LOADOUT_SCHEMA_VERSION,
       aiProTeamsRenderedCount: Math.max(PRO_LOADOUT_TEAM_PAGE_SIZE, Number(appState.aiProTeamsRenderedCount) || PRO_LOADOUT_TEAM_PAGE_SIZE),
+      activeProTeamKey: String(appState.activeProTeamKey || ""),
       activeProPlayerKey: String(appState.activeProPlayerKey || "")
     });
   }
@@ -2205,6 +2306,7 @@
   }
 
   function localeText(item, field) {
+    if (!item || typeof item !== "object") return "";
     const lang = currentLanguage();
     const entry = item.translations?.[lang];
     if (entry?.[field]) return entry[field];
@@ -2240,6 +2342,7 @@
   }
 
   function itemTitle(item) {
+    if (!item || typeof item !== "object") return "";
     const localized = localeText(item, "name");
     if (localized && !(currentLanguage() === "zh-CN" && looksLikeMojibake(localized))) return localized;
     if (currentLanguage() === "zh-CN") return firstNonEmpty(item.nameZh, item.name, item.nameEn, item.id);
@@ -2251,6 +2354,9 @@
   }
 
   function itemWeapon(item) {
+    if (!item || typeof item !== "object") return "";
+    const title = itemTitle(item);
+    if (/沙漠之鹰|desert eagle/i.test(title)) return uiText("Desert Eagle", "沙漠之鹰");
     const localized = localeText(item, "weapon");
     if (localized && !(currentLanguage() === "zh-CN" && looksLikeMojibake(localized))) return localized;
     if (currentLanguage() === "zh-CN") return firstNonEmpty(item.weaponZh, item.weapon, categoryLabel(item.type), item.weaponEn);
@@ -2305,6 +2411,7 @@
   function localizedWeaponName(value = "") {
     const raw = String(value || "").trim();
     if (!raw) return "";
+    if (/娌欓拱|娌欐紶涔嬮拱|desert eagle/i.test(raw)) return uiText("Desert Eagle", "沙漠之鹰");
     const matched = resolveDisplayItemByWeaponName(raw) || resolveDisplayItemByName(raw);
     return matched ? itemWeapon(matched) : raw;
   }
@@ -2853,6 +2960,7 @@
     openingItems = Array.isArray(globalThis.CS2_UNBOXING) ? globalThis.CS2_UNBOXING : [];
     inventoryInspectorTarget.nameMap = null;
     catalogOptionsCache.clear();
+    openingLootCache.clear();
     globalThis.items = items;
   }
 
@@ -2902,13 +3010,14 @@
   }
 
   async function ensureCatalogDataLoaded() {
-    if (Array.isArray(globalThis.CS2_CATALOG) && globalThis.CS2_CATALOG.length) {
+    if (Array.isArray(globalThis.CS2_CATALOG) && globalThis.CS2_CATALOG.length && !globalThis.CS2_CATALOG_PARTIAL) {
       if (!items.length) rebuildCatalogState();
       return;
     }
     if (catalogDataPromise) return catalogDataPromise;
     catalogDataPromise = (async () => {
       await loadScriptOnce(CATALOG_DATA_SCRIPT);
+      globalThis.CS2_CATALOG_PARTIAL = false;
       rebuildCatalogState();
     })().finally(() => {
       catalogDataPromise = null;
@@ -2949,6 +3058,7 @@
     });
     inventoryInspectorTarget.nameMap = null;
     catalogOptionsCache.clear();
+    openingLootCache.clear();
     globalThis.items = items;
   }
 
@@ -3049,7 +3159,7 @@
   }
 
   function pageNeedsCatalogData(targetPage = pageName()) {
-    return ["index.html", "catalog.html", "collections.html", "favorites.html", "recent.html", "item.html", "openings.html", "loadout.html"].includes(targetPage);
+    return ["catalog.html", "collections.html", "favorites.html", "recent.html", "item.html", "openings.html"].includes(targetPage);
   }
 
   rebuildCatalogState();
@@ -4276,10 +4386,10 @@
   }
 
   function shouldShowHomeIntro() {
+    if (pageName() !== "index.html") return false;
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches) return false;
     try {
       if (new URLSearchParams(location.search).get("intro") === "1") return true;
-      if (location.pathname === "/" || /\/index\.html$/i.test(location.pathname)) return true;
       if (sessionStorage.getItem("cs-exhibition:intro-seen") === "true") return false;
       sessionStorage.setItem("cs-exhibition:intro-seen", "true");
       return true;
@@ -4383,23 +4493,31 @@
           <footer><span>${escapeHtml(uiText("Curator line warm", "策展线路已预热"))}</span><i aria-hidden="true"></i></footer>
         </article>
       </section>
-      <section class="home-subscribe-strip">
-        <h2>${escapeHtml(uiText("Keep The Exhibition Rail In Reach", "让展览轨道保持触手可及"))}</h2>
-        <p>${escapeHtml(uiText("Jump back into archive review, inspection, and synchronized inventory work without losing context.", "随时回到馆藏复核、单品检视和同步库存工作，不丢失上下文。"))}</p>
-        <form>
-          <input type="email" value="curator@cs-exhibition.local" aria-label="${escapeHtml(uiText("Subscription email", "订阅邮箱"))}" />
-          <button type="button">${escapeHtml(uiText("Pin Access", "固定入口"))}</button>
-        </form>
-        <a href="account.html">${escapeHtml(uiText("Manage Pass", "管理通行证"))}</a>
+      <section class="home-subscribe-strip home-quick-actions">
+        <div>
+          <h2>${escapeHtml(uiText("Continue Your CS2 Research", "继续你的 CS2 研究"))}</h2>
+          <p>${escapeHtml(uiText("Jump straight back into prices, saved objects, inventory, or a curated loadout.", "直接回到价格、收藏、库存或 AI 搭配工作流。"))}</p>
+        </div>
+        <nav aria-label="${escapeHtml(uiText("Quick actions", "快捷操作"))}">
+          <a href="recent.html"><strong>${escapeHtml(uiText("Recent", "最近浏览"))}</strong><span>${escapeHtml(uiText("Resume inspection", "继续检视"))}</span></a>
+          <a href="inventory.html"><strong>${escapeHtml(uiText("Inventory", "库存"))}</strong><span>${escapeHtml(uiText("Sync Steam", "同步 Steam"))}</span></a>
+          <a href="loadout.html"><strong>${escapeHtml(uiText("Curator", "AI 搭配"))}</strong><span>${escapeHtml(uiText("Build by budget", "按预算生成"))}</span></a>
+          <button type="button" data-intro-replay><strong>${escapeHtml(uiText("Entrance", "入场动画"))}</strong><span>${escapeHtml(uiText("Replay film", "重新播放"))}</span></button>
+        </nav>
       </section>
       ${featured.length ? `<section class="featured-section"><div class="section-heading"><p class="eyebrow">${escapeHtml(uiText("Objects in View", "视野中的展品"))}</p><h2>${escapeHtml(uiText("Selected Exhibits", "精选展品"))}</h2></div><div class="item-grid">${featured.map(cardMarkup).join("")}</div></section>` : ""}
     `;
+  }
+
+  function catalogIsLoadoutPicker() {
+    return pageName() === "catalog.html" && new URLSearchParams(location.search).get("from") === "loadout";
   }
 
   function cardMarkup(item) {
     const includeImages = shouldRenderDeferredImages("catalog.html");
     const itemWear = defaultWearForItem(item);
     const priceRecord = effectiveCatalogPriceRecord(item);
+    const loadoutPicker = catalogIsLoadoutPicker();
     return `
       <article class="item-card">
         <button class="card-favorite-button" type="button" data-favorite-id="${escapeHtml(item.id)}" aria-pressed="${isFavorite(item.id)}">${escapeHtml(isFavorite(item.id) ? uiText("Saved", "已收藏") : uiText("Save", "收藏"))}</button>
@@ -4424,6 +4542,7 @@
           </div>
         </a>
         <div class="item-card-actions">
+          ${loadoutPicker ? `<button class="secondary-action compact-action" type="button" data-catalog-loadout-add="${escapeHtml(item.id)}">${escapeHtml(uiText("Add to loadout", "加入搭配"))}</button>` : ""}
         </div>
       </article>
     `;
@@ -4762,12 +4881,19 @@
       id: String(entry.id || `${category}-${title}`).trim(),
       category,
       source,
+      sourceZh: String(entry.sourceZh || source).trim(),
       title,
+      titleZh: String(entry.titleZh || title).trim(),
       summary,
+      summaryZh: String(entry.summaryZh || summary).trim(),
+      body: String(entry.body || "").trim(),
+      bodyZh: String(entry.bodyZh || entry.body || "").trim(),
       url,
       publishedAt: /^\d{4}-\d{2}-\d{2}$/.test(publishedAt) ? publishedAt : "",
       image: String(entry.image || "").trim(),
-      tags: Array.isArray(entry.tags) ? entry.tags.map((tag) => String(tag || "").trim()).filter(Boolean).slice(0, 4) : []
+      tags: Array.isArray(entry.tags) ? entry.tags.map((tag) => String(tag || "").trim()).filter(Boolean).slice(0, 4) : [],
+      tagsZh: Array.isArray(entry.tagsZh) ? entry.tagsZh.map((tag) => String(tag || "").trim()).filter(Boolean).slice(0, 4) : [],
+      bulletsZh: Array.isArray(entry.bulletsZh) ? entry.bulletsZh.map((item) => String(item || "").trim()).filter(Boolean).slice(0, 5) : []
     };
   }
 
@@ -4779,29 +4905,103 @@
       .slice(0, 30);
   }
 
+  function relatedNewsDetailRecord(id = "") {
+    const detailMap = window.RELATED_NEWS_DETAIL;
+    if (!detailMap || typeof detailMap !== "object") return null;
+    const detail = detailMap[id];
+    if (!detail || typeof detail !== "object") return null;
+    return {
+      body: String(detail.body || "").trim(),
+      bodyZh: String(detail.bodyZh || detail.body || "").trim()
+    };
+  }
+
+  function relatedNewsEntryWithDetail(entry) {
+    if (!entry?.id) return entry;
+    const detail = relatedNewsDetailRecord(entry.id);
+    if (!detail) return entry;
+    return {
+      ...entry,
+      body: detail.body || entry.body,
+      bodyZh: detail.bodyZh || entry.bodyZh || detail.body || entry.body
+    };
+  }
+
+  function activeRelatedNewsFilter() {
+    return ["all", "official", "esports", "market"].includes(appState.relatedNewsFilter) ? appState.relatedNewsFilter : "all";
+  }
+
+  function preferredRelatedNewsFeatured(news) {
+    return news.find((entry) => (entry.category === "official" || entry.category === "market") && entry.image) || news[0];
+  }
+
   function relatedNewsDateLabel(entry) {
     return entry.publishedAt || uiText("Curated note", "策展笔记");
   }
 
+  function relatedNewsLocalizedField(entry, key) {
+    const zhKey = `${key}Zh`;
+    return currentLanguage() === "zh-CN" && entry[zhKey] ? entry[zhKey] : entry[key];
+  }
+
+  function relatedNewsVisualMarkup(entry, className = "related-news-visual", options = {}) {
+    if (!entry.image) return "";
+    const loading = options.loading || "lazy";
+    const fetchpriority = options.fetchpriority ? ` fetchpriority="${escapeHtml(options.fetchpriority)}"` : "";
+    const sizes = options.sizes || (className.includes("featured") ? "(min-width: 900px) 42vw, 100vw" : "(min-width: 900px) 33vw, 100vw");
+    const imageSrc = hltvAssetProxyUrl(entry.image);
+    return `
+      <figure class="${escapeHtml(className)}">
+        <img src="${escapeHtml(imageSrc)}" alt="" loading="${escapeHtml(loading)}" decoding="async" sizes="${escapeHtml(sizes)}"${fetchpriority} />
+      </figure>
+    `;
+  }
+
   function relatedNewsTagsMarkup(entry) {
-    if (!entry.tags?.length) return "";
-    return `<div class="related-news-tags">${entry.tags.map((tag) => `<span>${escapeHtml(tag)}</span>`).join("")}</div>`;
+    const tags = currentLanguage() === "zh-CN" && entry.tagsZh?.length ? entry.tagsZh : entry.tags;
+    if (!tags?.length) return "";
+    return `<div class="related-news-tags">${tags.map((tag) => `<span>${escapeHtml(tag)}</span>`).join("")}</div>`;
   }
 
   function relatedNewsCardMarkup(entry, index) {
     const isExternal = /^https?:\/\//i.test(entry.url);
+    const detailUrl = `related-detail.html?id=${encodeURIComponent(entry.id)}`;
+    const prioritized = index < 4;
     return `
-      <article class="related-news-card" data-related-news-card="${escapeHtml(entry.category)}">
+      <article class="related-news-card${entry.image ? "" : " is-text-only"}" data-related-news-card="${escapeHtml(entry.category)}">
+        ${relatedNewsVisualMarkup(entry, "related-news-visual", { loading: prioritized ? "eager" : "lazy", fetchpriority: prioritized ? "high" : "auto" })}
         <div class="related-news-copy">
           <div class="related-news-meta">
             <span>${escapeHtml(relatedNewsCategoryLabel(entry.category))}</span>
-            <span>${escapeHtml(entry.source)}</span>
+            <span>${escapeHtml(relatedNewsLocalizedField(entry, "source"))}</span>
             <time datetime="${escapeHtml(entry.publishedAt || "")}">${escapeHtml(relatedNewsDateLabel(entry))}</time>
           </div>
-          <h2>${escapeHtml(entry.title)}</h2>
-          <p>${escapeHtml(entry.summary)}</p>
+          <h2>${escapeHtml(relatedNewsLocalizedField(entry, "title"))}</h2>
+          <p>${escapeHtml(relatedNewsLocalizedField(entry, "summary"))}</p>
           ${relatedNewsTagsMarkup(entry)}
-          <a class="action-link" href="${escapeHtml(entry.url)}"${isExternal ? ` target="_blank" rel="noopener noreferrer"` : ""}>${escapeHtml(isExternal ? uiText("Open original article", "查看原文") : uiText("Open related page", "打开相关页面"))}</a>
+          <div class="related-news-actions">
+            <a class="action-link" href="${escapeHtml(detailUrl)}">${escapeHtml(uiText("Read local brief", "阅读本地简报"))}</a>
+            <a class="action-link" href="${escapeHtml(entry.url)}"${isExternal ? ` target="_blank" rel="noopener noreferrer"` : ""}>${escapeHtml(uiText("Source article", "原文来源"))}</a>
+          </div>
+        </div>
+      </article>
+    `;
+  }
+
+  function favoriteLoadoutCardMarkup(loadout = {}) {
+    const items = Array.isArray(loadout.items) ? loadout.items : [];
+    const total = Number(loadout.totalPrice || items.reduce((sum, item) => sum + (Number(item?.price) || 0), 0));
+    return `
+      <article class="collection-card favorite-loadout-card">
+        <div class="favorite-preview favorite-loadout-preview">
+          ${items.slice(0, 6).map((item) => item?.image ? `<img src="${escapeHtml(item.image)}" alt="${escapeHtml(item.name || "")}" loading="lazy" decoding="async" />` : "").join("") || `<div class="empty-state">${escapeHtml(uiText("No image", "暂无图片"))}</div>`}
+        </div>
+        <p class="eyebrow">${escapeHtml(uiText("Saved Loadout", "已保存搭配"))}</p>
+        <h3>${escapeHtml(loadout.title || uiText("Curator Loadout", "策展搭配"))}</h3>
+        <p>${escapeHtml(uiTemplate("{count} items", { count: items.length }))} · ${escapeHtml(formatPrice(total))}</p>
+        <div class="steam-bind-actions">
+          <a href="loadout.html">${escapeHtml(uiText("Open Loadout Studio", "打开饰品搭配"))}</a>
+          <button class="secondary-action compact-action" type="button" data-loadout-favorite-id="${escapeHtml(String(loadout.id || ""))}">${escapeHtml(uiText("Remove Favorite", "取消收藏"))}</button>
         </div>
       </article>
     `;
@@ -4812,18 +5012,122 @@
     const isExternal = /^https?:\/\//i.test(entry.url);
     return `
       <article class="related-news-featured" data-related-news-card="${escapeHtml(entry.category)}">
+        ${relatedNewsVisualMarkup(entry, "related-news-featured-visual", { loading: "eager", fetchpriority: "high" })}
         <div>
           <p class="eyebrow">${escapeHtml(uiText("Featured Brief", "重点简报"))}</p>
-          <h2>${escapeHtml(entry.title)}</h2>
-          <p>${escapeHtml(entry.summary)}</p>
+          <h2>${escapeHtml(relatedNewsLocalizedField(entry, "title"))}</h2>
+          <p>${escapeHtml(relatedNewsLocalizedField(entry, "summary"))}</p>
         </div>
         <div class="related-news-featured-meta">
           <span>${escapeHtml(relatedNewsCategoryLabel(entry.category))}</span>
-          <strong>${escapeHtml(entry.source)}</strong>
+          <strong>${escapeHtml(relatedNewsLocalizedField(entry, "source"))}</strong>
           <time datetime="${escapeHtml(entry.publishedAt || "")}">${escapeHtml(relatedNewsDateLabel(entry))}</time>
-          <a class="primary-action" href="${escapeHtml(entry.url)}"${isExternal ? ` target="_blank" rel="noopener noreferrer"` : ""}>${escapeHtml(isExternal ? uiText("Open original article", "查看原文") : uiText("Open related page", "打开相关页面"))}</a>
+          <a class="primary-action" href="${escapeHtml(`related-detail.html?id=${encodeURIComponent(entry.id)}`)}">${escapeHtml(uiText("Read local brief", "阅读本地简报"))}</a>
+          <a class="action-link" href="${escapeHtml(entry.url)}"${isExternal ? ` target="_blank" rel="noopener noreferrer"` : ""}>${escapeHtml(uiText("Source article", "原文来源"))}</a>
         </div>
       </article>
+      `;
+  }
+
+  function relatedNewsRankingSnapshot() {
+    const snapshot = window.HLTV_TEAM_RANKING_SNAPSHOT;
+    if (!snapshot || !Array.isArray(snapshot.teams) || !snapshot.teams.length) return null;
+    return snapshot;
+  }
+
+  function relatedNewsRankingTeamColor(name) {
+    const colors = {
+      aurora: "#7cffb2",
+      betboom: "#ffdd35",
+      falcons: "#f2b84b",
+      furia: "#f6f2df",
+      g2: "#f06d2f",
+      legacy: "#52e06f",
+      mouz: "#e43a44",
+      "natus vincere": "#ffd438",
+      spirit: "#6fb7ff",
+      vitality: "#ffe95c"
+    };
+    return colors[String(name || "").trim().toLowerCase()] || "#d71920";
+  }
+
+  function relatedNewsRankingTeamLogoMarkup(team) {
+    const name = String(team?.name || "?").trim();
+    const fallback = name
+      .split(/\s+/)
+      .map((part) => part.slice(0, 1))
+      .join("")
+      .slice(0, 3)
+      .toUpperCase() || "?";
+    const logo = String(team?.logo || "").trim();
+    if (logo) {
+      const logoSrc = hltvAssetProxyUrl(logo);
+      return `
+        <span class="related-news-ranking-logo" aria-hidden="true" title="${escapeHtml(name)}">
+          <img src="${escapeHtml(logoSrc)}" alt="" loading="eager" decoding="async" fetchpriority="high" onerror="this.parentElement.classList.add('is-broken'); this.remove();" />
+          <span class="related-news-ranking-logo-fallback">${escapeHtml(fallback)}</span>
+        </span>
+      `;
+    }
+    const gradientId = `teamLogoGradient-${String(team?.rank || fallback).replace(/[^a-z0-9_-]/gi, "")}`;
+    return `
+      <span class="related-news-ranking-logo is-emblem is-fallback" aria-hidden="true" title="${escapeHtml(name)}" style="--team-accent: ${escapeHtml(relatedNewsRankingTeamColor(name))}">
+        <svg viewBox="0 0 64 64" focusable="false">
+          <defs>
+            <linearGradient id="${escapeHtml(gradientId)}" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="var(--team-accent)" stop-opacity="0.95" />
+              <stop offset="1" stop-color="#111" stop-opacity="0.95" />
+            </linearGradient>
+          </defs>
+          <path d="M32 5 55 16v17c0 14-9.4 23.5-23 26C18.4 56.5 9 47 9 33V16L32 5Z" fill="url(#${escapeHtml(gradientId)})" />
+          <path d="M32 10 50 18.6V33c0 10.6-6.8 18.1-18 20.7C20.8 51.1 14 43.6 14 33V18.6L32 10Z" fill="rgba(5,5,5,0.58)" stroke="rgba(255,255,255,0.18)" stroke-width="1.5" />
+          <text x="32" y="38" text-anchor="middle" dominant-baseline="middle">${escapeHtml(fallback)}</text>
+        </svg>
+      </span>
+    `;
+  }
+
+  function relatedNewsRankingDateLabel(snapshot) {
+    return snapshot?.date || uiText("latest available update", "最新可用更新");
+  }
+
+  function relatedNewsRankingMarkup() {
+    const snapshot = relatedNewsRankingSnapshot();
+    if (!snapshot) return "";
+    const sourceUrl = snapshot.url || "https://www.hltv.org/ranking/teams";
+    const isZh = currentLanguage() === "zh-CN";
+    const rankingCopy = isZh
+      ? `收录截至 ${relatedNewsRankingDateLabel(snapshot)} 的 HLTV 世界排名前十，方便在浏览资讯时同步查看当前战队强度与积分差距。`
+      : `A quick look at the latest HLTV top 10 so you can compare team form and point gaps while scanning the news feed.`;
+    const rankingMeta = isZh
+      ? `榜单日期：${relatedNewsRankingDateLabel(snapshot)}`
+      : `Ranking date: ${relatedNewsRankingDateLabel(snapshot)}`;
+    return `
+      <section class="related-news-ranking">
+        <div class="related-news-ranking-head">
+          <div>
+            <p class="eyebrow">${escapeHtml(uiText("HLTV Ranking", "HLTV 排名"))}</p>
+            <h2>${escapeHtml(uiText("HLTV Team Points Ranking", "HLTV 战队积分排名"))}</h2>
+            <p>${escapeHtml(rankingCopy)}</p>
+          </div>
+          <div class="related-news-ranking-meta">
+            <span>${escapeHtml(rankingMeta)}</span>
+            <a class="action-link" href="${escapeHtml(sourceUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(uiText("Open full ranking", "打开完整排名"))}</a>
+          </div>
+        </div>
+        <div class="related-news-ranking-list">
+          ${snapshot.teams.map((team) => `
+            <article class="related-news-ranking-item">
+              <span class="related-news-ranking-position">#${escapeHtml(String(team.rank))}</span>
+              <div class="related-news-ranking-team">
+                ${relatedNewsRankingTeamLogoMarkup(team)}
+                <strong>${escapeHtml(team.name)}</strong>
+              </div>
+              <span>${escapeHtml(String(team.points))} pts</span>
+            </article>
+          `).join("")}
+        </div>
+      </section>
     `;
   }
 
@@ -4832,22 +5136,31 @@
     if (!main) return;
     document.body.classList.remove("home-exhibition-page", "halls-directory-page", "is-inspector-page");
     const news = relatedNewsItems();
-    const featured = news.find((entry) => entry.category === "official" || entry.category === "market") || news[0];
-    const cardNews = news.filter((entry) => entry !== featured);
+    const featured = preferredRelatedNewsFeatured(news);
+    const activeFilter = activeRelatedNewsFilter();
+    const filterCounts = news.reduce((counts, entry) => {
+      counts.all += 1;
+      counts[entry.category] = (counts[entry.category] || 0) + 1;
+      return counts;
+    }, { all: 0, official: 0, esports: 0, market: 0 });
+    const cardNews = news
+      .filter((entry) => entry !== featured)
+      .filter((entry) => activeFilter === "all" || entry.category === activeFilter);
     const filters = ["all", "official", "esports", "market"];
     main.innerHTML = `
-      <section class="related-news-page">
-        <section class="related-news-hero page-intro" data-motion-intro>
-          <p class="eyebrow" data-motion-part="eyebrow">${escapeHtml(uiText("Related News", "相关资讯"))}</p>
-          <h1 data-motion-part="title">${escapeHtml(uiText("CS Intelligence Desk", "CS 情报台"))}</h1>
-          <p data-motion-part="copy">${escapeHtml(uiText("Official updates, competitive Counter-Strike, and skin-market signals for collectors and loadout builders.", "汇集官方更新、赛事动态和饰品市场信号，服务收藏、检视与搭配决策。"))}</p>
-        </section>
-        ${relatedNewsFeaturedMarkup(featured)}
-        <div class="related-news-filter-bar" role="toolbar" aria-label="${escapeHtml(uiText("News filters", "资讯筛选"))}">
-          ${filters.map((filter, index) => `<button type="button" class="secondary-action compact-action${index === 0 ? " is-active" : ""}" data-related-news-filter="${escapeHtml(filter)}" aria-pressed="${index === 0 ? "true" : "false"}">${escapeHtml(relatedNewsCategoryLabel(filter))}</button>`).join("")}
-        </div>
+        <section class="related-news-page">
+          <section class="related-news-hero page-intro" data-motion-intro>
+            <p class="eyebrow" data-motion-part="eyebrow">${escapeHtml(uiText("Related News", "相关资讯"))}</p>
+            <h1 data-motion-part="title">${escapeHtml(uiText("CS Intelligence Desk", "CS 情报台"))}</h1>
+            <p data-motion-part="copy">${escapeHtml(uiText("Official updates, competitive Counter-Strike, and skin-market signals for collectors and loadout builders.", "汇集官方更新、赛事动态和饰品市场信号，服务收藏、检视与搭配决策。"))}</p>
+          </section>
+          ${relatedNewsFeaturedMarkup(featured)}
+          ${relatedNewsRankingMarkup()}
+          <div class="related-news-filter-bar" role="toolbar" aria-label="${escapeHtml(uiText("News filters", "资讯筛选"))}">
+            ${filters.map((filter) => `<button type="button" class="secondary-action compact-action${filter === activeFilter ? " is-active" : ""}" data-related-news-filter="${escapeHtml(filter)}" aria-pressed="${filter === activeFilter ? "true" : "false"}">${escapeHtml(relatedNewsCategoryLabel(filter))} ${escapeHtml(String(filterCounts[filter] || 0))}</button>`).join("")}
+          </div>
         <section class="related-news-grid">
-          ${cardNews.map(relatedNewsCardMarkup).join("")}
+          ${cardNews.map(relatedNewsCardMarkup).join("") || `<div class="related-news-empty-state">${escapeHtml(uiText("No stories in this category yet", "这个分类暂无资讯"))}</div>`}
         </section>
         <section class="related-news-brief">
           <div>
@@ -4857,6 +5170,51 @@
           <a class="primary-action" href="loadout.html">${escapeHtml(uiText("Open Loadout Studio", "打开饰品搭配"))}</a>
         </section>
       </section>
+    `;
+    main.querySelectorAll("[data-related-news-filter]").forEach((button) => {
+      button.addEventListener("click", () => {
+        appState.relatedNewsFilter = button.dataset.relatedNewsFilter || "all";
+        renderRelatedNews();
+      });
+    });
+  }
+
+  function renderRelatedNewsDetail() {
+    const main = document.querySelector("main");
+    if (!main) return;
+    document.body.classList.remove("home-exhibition-page", "halls-directory-page", "is-inspector-page");
+    const id = new URLSearchParams(window.location.search).get("id") || "";
+    const news = relatedNewsItems();
+    const entry = relatedNewsEntryWithDetail(news.find((item) => item.id === id) || news[0]);
+    if (!entry) {
+      main.innerHTML = `<section class="related-news-page"><div class="related-news-empty-state">${escapeHtml(uiText("No stories in this category yet", "暂无资讯"))}</div></section>`;
+      return;
+    }
+    const body = relatedNewsLocalizedField(entry, "body") || relatedNewsLocalizedField(entry, "summary");
+    const bullets = currentLanguage() === "zh-CN" && entry.bulletsZh?.length ? entry.bulletsZh : [];
+    main.innerHTML = `
+      <article class="related-news-article">
+        <a class="action-link" href="related.html">${escapeHtml(uiText("Back to related news", "返回相关资讯"))}</a>
+        <header class="related-news-article-head">
+          <div>
+            <p class="eyebrow">${escapeHtml(relatedNewsCategoryLabel(entry.category))}</p>
+            <h1>${escapeHtml(relatedNewsLocalizedField(entry, "title"))}</h1>
+            <div class="related-news-meta">
+              <span>${escapeHtml(relatedNewsLocalizedField(entry, "source"))}</span>
+              <time datetime="${escapeHtml(entry.publishedAt || "")}">${escapeHtml(relatedNewsDateLabel(entry))}</time>
+            </div>
+          </div>
+          ${relatedNewsVisualMarkup(entry, "related-news-article-visual", { loading: "eager", fetchpriority: "high" })}
+        </header>
+        <section class="related-news-article-body">
+          ${String(body || "").split(/\n{2,}/).map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`).join("")}
+          ${bullets.length ? `<ul>${bullets.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>` : ""}
+        </section>
+        <div class="related-news-actions">
+          <a class="primary-action" href="${escapeHtml(entry.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(uiText("Source article", "原文来源"))}</a>
+          <a class="action-link" href="loadout.html">${escapeHtml(uiText("Turn news context into a loadout route", "把资讯线索转成搭配路线"))}</a>
+        </div>
+      </article>
     `;
   }
 
@@ -4958,9 +5316,202 @@
       renderInventory();
     } else if (targetPage === "loadout.html") {
       renderLoadout();
+    } else if (targetPage === "tools.html") {
+      renderPracticalTools();
     } else if (targetPage === "related.html") {
       renderRelatedNews();
+    } else if (targetPage === "related-detail.html") {
+      renderRelatedNewsDetail();
     }
+  }
+
+  function setPageChromeInert(isInert) {
+    [document.querySelector(".site-header"), document.querySelector("main"), document.querySelector(".command-trigger")].forEach((node) => {
+      if (node instanceof HTMLElement) node.inert = Boolean(isInert);
+    });
+  }
+
+  function dismissHomeIntro() {
+    const intro = document.querySelector(".site-intro-film");
+    if (!(intro instanceof HTMLElement) || intro.classList.contains("is-dismissing")) return;
+    intro.classList.add("is-dismissing");
+    document.body.classList.remove("intro-open");
+    setPageChromeInert(false);
+    window.setTimeout(() => intro.remove(), 520);
+  }
+
+  function mountHomeIntro() {
+    if (!shouldShowHomeIntro() || document.querySelector(".site-intro-film")) return;
+    const useDesktopFilm = window.matchMedia?.("(min-width: 641px)")?.matches !== false;
+    const introVisual = useDesktopFilm
+      ? `<iframe class="site-intro-embed" src="intro-film/index.html" title="${escapeHtml(uiText("CS Exhibition entrance animation", "CS Exhibition 入场动画"))}" tabindex="-1"></iframe>`
+      : `<div class="site-intro-mobile-art" aria-hidden="true">
+          <span>${escapeHtml(uiText("Counter-Strike Digital Exhibition", "Counter-Strike 数字展馆"))}</span>
+          <img src="assets/home-awp-exhibit-render.webp" alt="" decoding="async" fetchpriority="high" />
+          <strong>CS<br />EXHIBITION</strong>
+          <small>${escapeHtml(uiText("Inspect · Compare · Curate", "检视 · 对比 · 搭配"))}</small>
+        </div>`;
+    const intro = document.createElement("section");
+    intro.className = "site-intro-film";
+    intro.setAttribute("role", "dialog");
+    intro.setAttribute("aria-modal", "true");
+    intro.setAttribute("aria-label", uiText("CS Exhibition entrance film", "CS Exhibition 入场动画"));
+    intro.innerHTML = `
+      ${introVisual}
+      <div class="site-intro-shade" aria-hidden="true"></div>
+      <div class="site-intro-controls">
+        <span>${escapeHtml(uiText("Interactive entrance · move your pointer", "互动入场 · 移动指针探索"))}</span>
+        <button type="button" data-intro-dismiss>${escapeHtml(uiText("Enter exhibition", "进入展馆"))}</button>
+      </div>
+      <div class="site-intro-progress" aria-hidden="true"><i></i></div>
+    `;
+    document.body.appendChild(intro);
+    document.body.classList.add("intro-open");
+    setPageChromeInert(true);
+
+    let pointerFrame = 0;
+    let pointerX = 0;
+    let pointerY = 0;
+    intro.addEventListener("pointermove", (event) => {
+      pointerX = ((event.clientX / Math.max(1, window.innerWidth)) - 0.5) * 2;
+      pointerY = ((event.clientY / Math.max(1, window.innerHeight)) - 0.5) * 2;
+      if (pointerFrame) return;
+      pointerFrame = window.requestAnimationFrame(() => {
+        pointerFrame = 0;
+        intro.style.setProperty("--intro-shift-x", `${(pointerX * -10).toFixed(1)}px`);
+        intro.style.setProperty("--intro-shift-y", `${(pointerY * -8).toFixed(1)}px`);
+      });
+    });
+    intro.addEventListener("pointerleave", () => {
+      intro.style.setProperty("--intro-shift-x", "0px");
+      intro.style.setProperty("--intro-shift-y", "0px");
+    });
+    intro.querySelector("[data-intro-dismiss]")?.addEventListener("click", dismissHomeIntro);
+    window.setTimeout(dismissHomeIntro, 6200);
+  }
+
+  function replayHomeIntro() {
+    try {
+      sessionStorage.removeItem("cs-exhibition:intro-seen");
+    } catch {}
+    document.querySelector(".site-intro-film")?.remove();
+    mountHomeIntro();
+  }
+
+  function commandPaletteEntries() {
+    return [
+      ["catalog.html", uiText("Search the full archive", "搜索完整馆藏"), "catalog archive skin search 饰品 目录"],
+      ["collections.html", uiText("Browse collection halls", "浏览系列展区"), "collections halls 收藏品 系列"],
+      ["item.html?id=ak-inheritance", uiText("Open the item inspector", "打开饰品检视器"), "inspect wear float price 检视 磨损 价格"],
+      ["favorites.html", uiText("Review saved items", "查看收藏夹"), "favorites saved 收藏"],
+      ["recent.html", uiText("Continue recent research", "继续最近浏览"), "recent history 最近 历史"],
+      ["openings.html", uiText("Run a case-opening simulation", "运行开箱模拟"), "case opening roi 开箱 回报"],
+      ["related.html", uiText("Read CS2 market intelligence", "查看 CS2 市场资讯"), "news related market 资讯 市场"],
+      ["inventory.html", uiText("Sync and inspect inventory", "同步并检视库存"), "steam inventory sync 库存 同步"],
+      ["loadout.html", uiText("Ask the AI loadout curator", "询问 AI 饰品搭配"), "ai loadout curator budget 搭配 预算"],
+      ["account.html", uiText("Manage account connections", "管理账号连接"), "account buff youpin steam 账号 登录"],
+      ["index.html?intro=1", uiText("Replay the entrance film", "重播入场动画"), "intro film replay 开场 动画"]
+    ];
+  }
+
+  function mountCommandPalette() {
+    if (document.querySelector("[data-command-palette]")) return;
+    const entries = commandPaletteEntries();
+    const shell = document.createElement("div");
+    shell.innerHTML = `
+      <button class="command-trigger" type="button" data-command-trigger aria-label="${escapeHtml(uiText("Open quick search", "打开快捷检索"))}">
+        <span>${escapeHtml(uiText("Quick search", "快捷检索"))}</span><kbd>Ctrl K</kbd>
+      </button>
+      <div class="command-palette" data-command-palette hidden>
+        <button class="command-palette-backdrop" type="button" data-command-close aria-label="${escapeHtml(uiText("Close quick search", "关闭快捷检索"))}"></button>
+        <section class="command-palette-panel" role="dialog" aria-modal="true" aria-label="${escapeHtml(uiText("Quick search", "快捷检索"))}">
+          <label class="command-palette-search">
+            <span>${escapeHtml(uiText("Find a CS2 tool or page", "查找 CS2 工具或页面"))}</span>
+            <input type="search" data-command-input autocomplete="off" placeholder="${escapeHtml(uiText("Try inventory, price, loadout...", "试试：库存、价格、搭配..."))}" />
+          </label>
+          <div class="command-palette-results" data-command-results>
+            ${entries.map(([href, label, keywords], index) => `<a href="${escapeHtml(href)}" data-command-item data-command-keywords="${escapeHtml(`${label} ${keywords}`.toLowerCase())}"${index === 0 ? " class=\"is-active\"" : ""}><span>${escapeHtml(label)}</span><small>${escapeHtml(href.split("?")[0].replace(".html", "") || "home")}</small></a>`).join("")}
+          </div>
+          <footer><span>↑↓ ${escapeHtml(uiText("Choose", "选择"))}</span><span>Enter ${escapeHtml(uiText("Open", "打开"))}</span><span>Esc ${escapeHtml(uiText("Close", "关闭"))}</span></footer>
+        </section>
+      </div>
+    `;
+    while (shell.firstChild) document.body.appendChild(shell.firstChild);
+
+    const palette = document.querySelector("[data-command-palette]");
+    const trigger = document.querySelector("[data-command-trigger]");
+    const input = palette?.querySelector("[data-command-input]");
+    const allItems = [...(palette?.querySelectorAll("[data-command-item]") || [])];
+    let activeIndex = 0;
+
+    const visibleItems = () => allItems.filter((item) => !item.hidden);
+    const setActive = (nextIndex) => {
+      const visible = visibleItems();
+      if (!visible.length) return;
+      activeIndex = (nextIndex + visible.length) % visible.length;
+      allItems.forEach((item) => item.classList.remove("is-active"));
+      visible[activeIndex].classList.add("is-active");
+    };
+    const close = () => {
+      if (!(palette instanceof HTMLElement)) return;
+      palette.hidden = true;
+      document.body.classList.remove("command-palette-open");
+      setPageChromeInert(false);
+      if (trigger instanceof HTMLButtonElement) trigger.focus();
+    };
+    const open = () => {
+      if (!(palette instanceof HTMLElement)) return;
+      palette.hidden = false;
+      document.body.classList.add("command-palette-open");
+      setPageChromeInert(true);
+      if (input instanceof HTMLInputElement) {
+        input.value = "";
+        allItems.forEach((item) => { item.hidden = false; });
+        setActive(0);
+        window.requestAnimationFrame(() => input.focus());
+      }
+    };
+    trigger?.addEventListener("click", open);
+    palette?.querySelector("[data-command-close]")?.addEventListener("click", close);
+    input?.addEventListener("input", () => {
+      const query = String(input.value || "").trim().toLowerCase();
+      allItems.forEach((item) => {
+        item.hidden = query && !String(item.dataset.commandKeywords || "").includes(query);
+      });
+      setActive(0);
+    });
+    document.addEventListener("keydown", (event) => {
+      const target = event.target instanceof HTMLElement ? event.target : null;
+      const editing = target?.matches("input, textarea, select, [contenteditable=true]");
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        if (palette instanceof HTMLElement && palette.hidden) open(); else close();
+        return;
+      }
+      if (event.key === "/" && !editing && palette instanceof HTMLElement && palette.hidden) {
+        event.preventDefault();
+        open();
+        return;
+      }
+      if (!(palette instanceof HTMLElement) || palette.hidden) return;
+      if (event.key === "Escape") {
+        event.preventDefault();
+        close();
+      } else if (event.key === "ArrowDown") {
+        event.preventDefault();
+        setActive(activeIndex + 1);
+      } else if (event.key === "ArrowUp") {
+        event.preventDefault();
+        setActive(activeIndex - 1);
+      } else if (event.key === "Enter") {
+        const active = visibleItems()[activeIndex];
+        if (active instanceof HTMLAnchorElement) {
+          event.preventDefault();
+          close();
+          navigateSmoothly(active.href, active);
+        }
+      }
+    });
   }
 
   function hydrateDeferredImagesForPage(targetPage = pageName()) {
@@ -5295,6 +5846,8 @@
   function updateQueryString(filters) {
     if (pageName() !== "catalog.html") return;
     const params = new URLSearchParams();
+    const cameFromLoadout = new URLSearchParams(location.search).get("from") === "loadout";
+    if (cameFromLoadout) params.set("from", "loadout");
     if (filters.query) params.set("q", filters.query);
     if (filters.type) params.set("type", filters.type);
     if (filters.rarity) params.set("rarity", filters.rarity);
@@ -5826,6 +6379,7 @@
             <div class="viewer-toolbar obsidian-stage-top">
               <span>${escapeHtml(`${uiText("Inspector", "检视器")} / ${categoryLabel(resolvedItem.type)} / ${itemWeapon(resolvedItem)}`)}</span>
               <button class="favorite-button" type="button" data-favorite-id="${escapeHtml(resolvedItem.id)}" aria-pressed="${isFavorite(resolvedItem.id)}">${escapeHtml(isFavorite(resolvedItem.id) ? uiText("Saved", "已收藏") : uiText("Save", "收藏"))}</button>
+              <button class="secondary-action compact-action" type="button" data-item-add-loadout="${escapeHtml(resolvedItem.id)}">${escapeHtml(uiText("Add to loadout", "加入搭配"))}</button>
             </div>
             <div class="obsidian-title-block">
               <p class="eyebrow">${escapeHtml(categoryLabel(resolvedItem.type))}</p>
@@ -5836,7 +6390,7 @@
               <div class="stage-glow"></div>
               <div class="inspect-depth-card" id="inspectDepthCard">
                 <div class="inspect-stage-light"></div>
-                ${pricedItem.image ? `<img id="inspectImage" class="skin-image inspect-image" src="${escapeHtml(pricedItem.image)}" alt="${escapeHtml(itemTitle(resolvedItem))}" loading="eager" />` : `<div class="empty-state">${escapeHtml(uiText("No image", "暂无图片"))}</div>`}
+                ${pricedItem.image ? curatorImageMarkup({ id: "inspectImage", className: "skin-image inspect-image", src: pricedItem.image, alt: itemTitle(resolvedItem), loading: "eager" }) : `<div class="empty-state">${escapeHtml(uiText("No image", "暂无图片"))}</div>`}
                 <div class="inspect-patina"></div>
                 <div class="inspect-edgewear"></div>
                 <div class="inspect-scratches"></div>
@@ -6028,6 +6582,7 @@
     const favorites = userState.favorites.map((id) => resolveDisplayItemById(id)).filter(Boolean);
     const compareCount = Array.isArray(userState.compare) ? userState.compare.length : 0;
     const diyDesigns = getDiyDesigns();
+    const loadoutFavorites = getFavoriteLoadouts();
     const spotlightItem = favorites[0] || null;
     const spotlightPriceRecord = spotlightItem ? effectiveCatalogPriceRecord(spotlightItem) : null;
     const spotlightCollection = spotlightItem ? collectionLabel(spotlightItem) : uiText("Private case display", "私人展柜展示");
@@ -6061,7 +6616,7 @@
             <div class="favorites-stats-grid">
               <article class="favorites-stat-card"><div class="favorites-stat-top"><i class="favorites-stat-icon favorites-stat-icon-saved" aria-hidden="true"></i><small>${escapeHtml(uiText("Saved Exhibits", "已收藏展品"))}</small></div><strong>${favorites.length}</strong><span>${escapeHtml(uiText("Private case objects", "私人展柜对象"))}</span></article>
               <article class="favorites-stat-card"><div class="favorites-stat-top"><i class="favorites-stat-icon favorites-stat-icon-compare" aria-hidden="true"></i><small>${escapeHtml(uiText("Compare Queue", "对比候选"))}</small></div><strong>${compareCount}</strong><span>${escapeHtml(uiText("Candidates ready", "候选项就绪"))}</span></article>
-              <article class="favorites-stat-card"><div class="favorites-stat-top"><i class="favorites-stat-icon favorites-stat-icon-diy" aria-hidden="true"></i><small>${escapeHtml(uiText("DIY Schemes", "DIY 方案"))}</small></div><strong>${diyDesigns.length}</strong><span>${escapeHtml(uiText("Sticker schemes saved", "已保存贴纸方案"))}</span></article>
+              <article class="favorites-stat-card"><div class="favorites-stat-top"><i class="favorites-stat-icon favorites-stat-icon-diy" aria-hidden="true"></i><small>${escapeHtml(uiText("Saved Loadouts", "已保存搭配"))}</small></div><strong>${loadoutFavorites.length}</strong><span>${escapeHtml(uiText("Curator builds saved", "策展搭配已收藏"))}</span></article>
               <article class="favorites-stat-card"><div class="favorites-stat-top"><i class="favorites-stat-icon favorites-stat-icon-sync" aria-hidden="true"></i><small>${escapeHtml(uiText("Latest Status", "最近状态"))}</small></div><strong>${escapeHtml(uiText("Local", "本地"))}</strong><span>${escapeHtml(uiText("Stored in this browser", "保存在当前浏览器"))}</span></article>
             </div>
           </div>
@@ -6073,6 +6628,7 @@
             <span class="favorites-filter-chip">${escapeHtml(uiTemplate("{count} knives", { count: knifeCount }))}</span>
             <span class="favorites-filter-chip">${escapeHtml(uiTemplate("{count} gloves", { count: gloveCount }))}</span>
             <span class="favorites-filter-chip">${escapeHtml(uiTemplate("{count} DIY plans", { count: diyDesigns.length }))}</span>
+            <span class="favorites-filter-chip">${escapeHtml(uiTemplate("{count} loadouts", { count: loadoutFavorites.length }))}</span>
           </div>
           <div class="favorites-filter-fields">
             <span class="favorites-filter-field">${escapeHtml(uiText("Sort: Latest Saved", "排序: 最近收藏"))}</span>
@@ -6086,6 +6642,14 @@
             <p>${escapeHtml(uiText("Items saved from the archive and inspector stay here for quick return.", "从馆藏和检视器保存的展品会停留在这里，方便快速返回。"))}</p>
           </div>
           ${favorites.length ? `<div class="favorites-grid favorites-main-grid">${favorites.map(favoriteCardMarkup).join("")}</div>` : `<div class="empty-state">${escapeHtml(uiText("No favorites yet. Use Save in the catalog or inspector to add items here.", "\u8fd8\u6ca1\u6709\u4fdd\u5b58\u7684\u5c55\u54c1\uff0c\u53ef\u4ee5\u5728\u9986\u85cf\u6216\u68c0\u89c6\u9875\u70b9\u51fb\u4fdd\u5b58\u3002"))}</div>`}
+        </section>
+        <section class="favorites-section favorites-loadout-section">
+          <div class="section-heading favorites-section-head">
+            <p class="eyebrow">${escapeHtml(uiText("Saved Loadouts", "已保存搭配"))}</p>
+            <h2>${escapeHtml(uiText("Loadout Favorites", "搭配收藏"))}</h2>
+            <p>${escapeHtml(uiText("Complete builds saved from the loadout studio stay together here.", "从饰品搭配页保存的整套方案会集中放在这里。"))}</p>
+          </div>
+          ${loadoutFavorites.length ? `<div class="collection-grid loadout-favorites-grid">${loadoutFavorites.map(favoriteLoadoutCardMarkup).join("")}</div>` : `<div class="empty-state">${escapeHtml(uiText("No saved loadouts yet.", "还没有保存的搭配。"))}</div>`}
         </section>
         <section class="favorites-section favorites-diy-section">
         <div class="section-heading favorites-section-head">
@@ -6425,7 +6989,7 @@
       m4a4: "M4A4",
       usp: "USP-S",
       glock: "Glock-18",
-      deagle: uiText("Desert Eagle", "娌欓拱")
+      deagle: uiText("Desert Eagle", "沙漠之鹰")
     }[slot] || slot;
   }
 
@@ -6679,16 +7243,56 @@
     }, 120);
   }
 
-  async function requestAiLoadoutChat() {
+  function syncAiLoadoutQueryState(overrides = {}) {
+    const previousState = JSON.stringify({
+      prompt: appState.aiLoadoutChatDraft || "",
+      budget: appState.aiLoadoutBudgetDraft || "",
+      preset: appState.aiLoadoutPreset || "auto",
+      color: appState.aiLoadoutColorFilter || "",
+      style: appState.aiLoadoutStyleFilter || ""
+    });
     const promptInput = document.getElementById("aiLoadoutPromptInput");
     const budgetInput = document.getElementById("aiLoadoutBudgetInput");
-    const prompt = String(promptInput instanceof HTMLTextAreaElement ? promptInput.value : appState.aiLoadoutChatDraft || "").trim();
-    const filterOverrides = aiLoadoutFilterOverrides();
-    const budget = Number(budgetInput instanceof HTMLInputElement ? budgetInput.value : appState.aiLoadoutBudgetDraft || 0);
+    const presetSelect = document.getElementById("aiLoadoutPresetSelect");
+    const colorSelect = document.getElementById("aiLoadoutColorSelect");
+    const styleSelect = document.getElementById("aiLoadoutStyleSelect");
+    if (promptInput instanceof HTMLTextAreaElement) appState.aiLoadoutChatDraft = promptInput.value || "";
+    if (budgetInput instanceof HTMLInputElement) appState.aiLoadoutBudgetDraft = budgetInput.value || "";
+    if (presetSelect instanceof HTMLSelectElement) appState.aiLoadoutPreset = presetSelect.value || "auto";
+    if (colorSelect instanceof HTMLSelectElement) appState.aiLoadoutColorFilter = colorSelect.value || "";
+    if (styleSelect instanceof HTMLSelectElement) appState.aiLoadoutStyleFilter = styleSelect.value || "";
+    if (overrides.prompt !== undefined) appState.aiLoadoutChatDraft = String(overrides.prompt || "");
+    if (overrides.budget !== undefined) appState.aiLoadoutBudgetDraft = String(overrides.budget || "");
+    if (overrides.preset !== undefined) appState.aiLoadoutPreset = String(overrides.preset || "auto");
+    if (overrides.color !== undefined) appState.aiLoadoutColorFilter = String(overrides.color || "");
+    if (overrides.style !== undefined) appState.aiLoadoutStyleFilter = String(overrides.style || "");
+    const nextState = JSON.stringify({
+      prompt: appState.aiLoadoutChatDraft || "",
+      budget: appState.aiLoadoutBudgetDraft || "",
+      preset: appState.aiLoadoutPreset || "auto",
+      color: appState.aiLoadoutColorFilter || "",
+      style: appState.aiLoadoutStyleFilter || ""
+    });
+    if (previousState !== nextState) {
+      appState.loadoutWorkbenchCache = { key: "", value: null };
+    }
+    return {
+      prompt: String(appState.aiLoadoutChatDraft || "").trim(),
+      budget: Number(appState.aiLoadoutBudgetDraft || 0),
+      filterOverrides: aiLoadoutFilterOverrides()
+    };
+  }
+
+  async function requestAiLoadoutChat() {
+    const query = syncAiLoadoutQueryState();
+    const prompt = query.prompt;
+    const filterOverrides = query.filterOverrides;
+    const budget = query.budget;
     const budgetMessage = Number.isFinite(budget) && budget > 0
       ? `Budget ${Math.round(budget)} CNY`
       : "";
-    const userContent = [budgetMessage, prompt].filter(Boolean).join(" | ").trim();
+    const filterSummary = aiLoadoutFilterText();
+    const userContent = [budgetMessage, prompt || filterSummary].filter(Boolean).join(" | ").trim();
     if (!userContent) return;
     await ensureCatalogAssetsLoaded();
     appState.aiLoadoutChatPending = true;
@@ -6709,9 +7313,14 @@
           locale: currentLanguage(),
           messages: aiLoadoutChatHistory(nextMessages),
           filterOverrides,
+          preset: filterOverrides.preset,
+          colorFilter: filterOverrides.color,
+          styleFilter: filterOverrides.style,
           preferences: {
-            color: preferences.family || "",
-            styles: preferences.styles || [],
+            preset: filterOverrides.preset,
+            color: filterOverrides.color || preferences.family || "",
+            style: filterOverrides.style,
+            styles: [...new Set([...(preferences.styles || []), filterOverrides.style].filter(Boolean))],
             weaponPreferences: preferences.weapons || [],
             mustInclude: [
               ...(preferences.wantsKnife ? ["knife"] : []),
@@ -6723,8 +7332,8 @@
             preferredItems,
             filterOverrides
           },
-          color: preferences.family || "",
-          style: prompt || "",
+          color: filterOverrides.color || preferences.family || "",
+          style: [filterOverrides.style, prompt].filter(Boolean).join(" | "),
           weaponPreferences: preferences.weapons || [],
           mustInclude: [
             ...(preferences.wantsKnife ? ["knife"] : []),
@@ -6927,7 +7536,7 @@
         <p class="eyebrow">${escapeHtml(displayMeta)}</p>
         <h3>${escapeHtml(displayName)}</h3>
         ${wearMeta}
-        <p>${escapeHtml(entry.sourceName ? `${uiText("Upgrade", "升级")} 路 ${entry.sourceName}` : (entry.familyLabel || entry.family || uiText("Mixed", "娣锋惌")))}</p>
+        <p>${escapeHtml(entry.sourceName ? `${uiText("Upgrade", "升级")} / ${entry.sourceName}` : (entry.familyLabel || entry.family || uiText("Mixed", "混搭")))}</p>
         ${entry.reason ? `<small>${escapeHtml(entry.reason)}</small>` : ""}
         ${upgradeMeta}
         <strong>${escapeHtml(formatPrice(entry.price))}</strong>
@@ -6937,11 +7546,11 @@
 
   function aiSuggestionCategoryDefinitions() {
     return [
-      { id: "all", label: uiText("All", "鍏ㄩ儴") },
+      { id: "all", label: uiText("All", "全部") },
       { id: "rifle", label: uiText("Rifles", "步枪") },
       { id: "pistol", label: uiText("Pistols", "手枪") },
-      { id: "smg", label: uiText("SMGs", "鍐查攱鏋?") },
-      { id: "shotgun", label: uiText("Shotguns", "闇板脊鏋?") },
+      { id: "smg", label: uiText("SMGs", "冲锋枪") },
+      { id: "shotgun", label: uiText("Shotguns", "霰弹枪") },
       { id: "machinegun", label: uiText("Machine Guns", "机枪") },
       { id: "knife", label: uiText("Knife", "刀具") },
       { id: "glove", label: uiText("Gloves", "手套") }
@@ -6958,14 +7567,14 @@
   function aiFamilyLabel(entry = {}) {
     const item = entry?.id ? resolveDisplayItemById(entry.id) : null;
     const tone = String(item?.tone || entry.family || "").toLowerCase();
-    if (tone.includes("blue")) return uiText("Blue-White", "钃濈櫧");
-    if (tone.includes("green")) return uiText("Green", "缁胯壊");
+    if (tone.includes("blue")) return uiText("Blue-White", "蓝白");
+    if (tone.includes("green")) return uiText("Green", "绿色");
     if (tone.includes("purple")) return uiText("Purple", "\u7d2b\u8272");
-    if (tone.includes("gold")) return uiText("Gold", "閲戣壊");
+    if (tone.includes("gold")) return uiText("Gold", "金色");
     if (tone.includes("white")) return uiText("Clean White", "\u7eaf\u51c0\u767d");
-    if (tone.includes("black") || tone.includes("neutral")) return uiText("Dark Tactical", "鏆楅粦鎴樻湳");
-    if (tone.includes("red")) return uiText("Red-Black", "绾㈤粦");
-    return uiText("Mixed", "娣锋惌");
+    if (tone.includes("black") || tone.includes("neutral")) return uiText("Dark Tactical", "暗黑战术");
+    if (tone.includes("red")) return uiText("Red-Black", "红黑");
+    return uiText("Mixed", "混搭");
   }
 
   function aiDominantThemeLabel(family = "") {
@@ -7110,6 +7719,10 @@
     return `${String(team || "").trim()}::${String(player || "").trim()}`;
   }
 
+  function proTeamKey(team = "") {
+    return normalizeProIdentity(team);
+  }
+
   function proAvatarMarkup(player = {}) {
     const playerName = String(player?.name || "").trim();
     const initials = playerName.split(/\s+/).slice(0, 2).map((entry) => entry[0] || "").join("").slice(0, 2).toUpperCase();
@@ -7218,7 +7831,7 @@
       <div class="ai-filter-tabs">
         ${aiSuggestionCategoryDefinitions().filter((definition) => Number(counts.get(definition.id)) > 0).map((definition) => `
           <button class="secondary-action compact-action${definition.id === activeCategory ? " active-filter" : ""}" type="button" data-ai-category-target="${escapeHtml(targetKey)}" data-ai-category="${escapeHtml(definition.id)}">
-            ${escapeHtml(definition.label)} 路 ${escapeHtml(String(counts.get(definition.id) || 0))}
+            ${escapeHtml(definition.label)} / ${escapeHtml(String(counts.get(definition.id) || 0))}
           </button>
         `).join("")}
       </div>
@@ -7231,7 +7844,7 @@
     if (!payload?.ok) return `<div class="empty-state">${escapeHtml(uiText("Sign in and sync inventory, or save a few favorites to unlock style recommendations.", LOADOUT_ZH.inventoryEmpty))}</div>`;
     const combo = payload.comboGuide;
     const activeCategory = appState.aiInventoryCategory || "all";
-    const suggestions = aiSuggestionsForCategory(payload.suggestions || [], activeCategory);
+    const suggestions = aiSuggestionsForCategory((payload.suggestions || []).filter(loadoutEntryAllowedForWorkbench), activeCategory);
     const snapshotUpdatedAt = globalThis.CS2_MARKET_PRICES?.updatedAt || "";
     return `
       <section class="ai-panel curator-runway-panel">
@@ -7247,7 +7860,7 @@
         </div>
         <p class="ai-copy">${escapeHtml(uiText("Only recommends a pricier skin in the same category and color family as an item you already own. If no matching upgrade exists, it is skipped.", LOADOUT_ZH.inventoryCopy))}</p>
         <div class="ai-data-freshness">
-          <span>${escapeHtml(snapshotUpdatedAt ? `${uiText("Price data", LOADOUT_ZH.priceData)} 路 ${formatDateTime(snapshotUpdatedAt)}` : uiText("Price data is loading", LOADOUT_ZH.priceLoading))}</span>
+          <span>${escapeHtml(snapshotUpdatedAt ? `${uiText("Price data", LOADOUT_ZH.priceData)} / ${formatDateTime(snapshotUpdatedAt)}` : uiText("Price data is loading", LOADOUT_ZH.priceLoading))}</span>
           <strong>${escapeHtml(uiText("More Expensive Same-Style Swaps", LOADOUT_ZH.inventoryHeading))}</strong>
         </div>
         ${combo ? `<div class="ai-combo-strip">
@@ -7271,6 +7884,7 @@
     if (preset === "guns") parts.push("guns only: AK-47, AWP, M4A4, M4A1-S, USP-S, Glock-18, no knife, no gloves");
     if (appState.aiLoadoutColorFilter) parts.push(appState.aiLoadoutColorFilter);
     if (appState.aiLoadoutStyleFilter) parts.push(appState.aiLoadoutStyleFilter);
+    return parts.filter(Boolean).join(", ");
   }
 
   function aiLoadoutFilterOverrides() {
@@ -7289,9 +7903,9 @@
     return `
       <div class="ai-loadout-filters">
         <label>${escapeHtml(uiText("Budget logic", "\u9884\u7B97\u903B\u8F91"))}<select id="aiLoadoutPresetSelect">${option("auto", uiText("Auto by budget", "\u6309\u9884\u7B97\u81EA\u52A8"), preset)}${option("premium", uiText("3000+: gloves + knife + core guns", "3000+\uFF1A\u624B\u5957+\u5200+\u6838\u5FC3\u67AA"), preset)}${option("mid", uiText("800-3000: knife + core guns", "800-3000\uFF1A\u5200+\u6838\u5FC3\u67AA"), preset)}${option("guns", uiText("Under 800: guns only", "800\u4EE5\u4E0B\uFF1A\u53EA\u8981\u67AA"), preset)}</select></label>
-        <label>${escapeHtml(uiText("Color", "\u989C\u8272"))}<select id="aiLoadoutColorSelect">${option("", uiText("Let AI infer", "\u8BA9 AI \u5224\u65AD"), color)}${option("black", uiText("Black / dark", "\u9ED1\u8272 / \u6697\u9ED1"), color)}${option("white", uiText("White / clean", "\u767D\u8272 / \u5E72\u51C0"), color)}${option("red", uiText("Red / red-black", "\u7EA2\u8272 / \u7EA2\u9ED1"), color)}${option("blue", uiText("Blue / blue-white", "\u84DD\u8272 / \u84DD\u767D"), color)}${option("green", uiText("Green", "\u7EFF\u8272"), color)}${option("purple", uiText("Purple / pink", "\u7D2B\u8272 / \u7C89\u8272"), color)}${option("gold", uiText("Gold / luxury", "\u91D1\u8272 / \u5962\u534E"), color)}</select></label>
+        <label>${escapeHtml(uiText("Color", "\u989C\u8272"))}<select id="aiLoadoutColorSelect">${option("", uiText("Any color", "不限颜色"), color)}${option("black", uiText("Black / dark", "\u9ED1\u8272 / \u6697\u9ED1"), color)}${option("white", uiText("White / clean", "\u767D\u8272 / \u5E72\u51C0"), color)}${option("red", uiText("Red / red-black", "\u7EA2\u8272 / \u7EA2\u9ED1"), color)}${option("blue", uiText("Blue / blue-white", "\u84DD\u8272 / \u84DD\u767D"), color)}${option("green", uiText("Green", "\u7EFF\u8272"), color)}${option("purple", uiText("Purple / pink", "\u7D2B\u8272 / \u7C89\u8272"), color)}${option("gold", uiText("Gold / luxury", "\u91D1\u8272 / \u5962\u534E"), color)}</select></label>
         <label>${escapeHtml(uiText("Style", "\u98CE\u683C"))}<select id="aiLoadoutStyleSelect">${option("", uiText("No extra style", "\u4E0D\u989D\u5916\u9650\u5B9A"), style)}${option("clean", uiText("Clean", "\u5E72\u51C0"), style)}${option("understated", uiText("Subtle", "\u4F4E\u8C03\u8010\u770B"), style)}${option("luxury", uiText("Premium", "\u9AD8\u7EA7\u8D28\u611F"), style)}${option("tactical", uiText("Tactical", "\u6218\u672F\u6697\u9ED1"), style)}${option("aggressive", uiText("Aggressive", "\u5F20\u626C\u4FB5\u7565"), style)}${option("neon", uiText("Neon / cyber", "\u9713\u8679\u8D5B\u535A"), style)}</select></label>
-        <div class="ai-loadout-filter-summary">${escapeHtml(aiLoadoutFilterText() || uiText("The backend will choose slots by budget.", "\u540E\u7AEF\u4F1A\u6309\u9884\u7B97\u81EA\u52A8\u9009\u62E9\u69FD\u4F4D\u3002"))}</div>
+        <div class="ai-loadout-filter-summary">${escapeHtml(aiLoadoutFilterText() || uiText("Choose slots by budget and style.", "按预算和风格筛选搭配槽位。"))}</div>
       </div>
     `;
   }
@@ -7307,6 +7921,537 @@
       activeCategory: appState.aiLoadoutCategory || "all",
       requestSummary: summarizeAiLoadoutRequest(payload?.preferences, appState.aiLoadoutChatDraft || "")
     };
+  }
+
+  function requestLoadoutRender() {
+    if (pageName() !== "loadout.html" || loadoutRenderScheduled) return;
+    loadoutRenderScheduled = true;
+    window.requestAnimationFrame(() => {
+      loadoutRenderScheduled = false;
+      renderLoadout();
+    });
+  }
+
+  function curatorCandidateKey(entry = {}) {
+    return [
+      String(entry.id || entry.name || "").trim(),
+      String(entry.wearId || "").trim(),
+      String(entry.source || "").trim()
+    ].filter(Boolean).join("::");
+  }
+
+  function curatorCandidateFromSuggestion(entry = {}, source = "ai") {
+    const item = entry?.id
+      ? resolveDisplayItemById(entry.id)
+      : resolveDisplayItemByName(entry?.name || "");
+    const displayName = item ? itemTitle(item) : localizedCatalogDisplayName(entry?.name || "", entry?.weapon || "");
+    if (!displayName) return null;
+    const type = item?.type || entry.type || entry.group || loadoutSlotForCatalogItem(item) || "rifle";
+    const key = curatorCandidateKey({
+      id: item?.id || entry.id || displayName,
+      wearId: entry.wearId || "",
+      source
+    });
+    return {
+      key,
+      source,
+      item,
+      id: item?.id || entry.id || "",
+      name: displayName,
+      meta: item ? itemWeapon(item) : localizedWeaponName(entry?.weapon || categoryLabel(type)),
+      type,
+      group: aiSuggestionCategoryForEntry({ ...entry, type, group: type }),
+      price: Number(entry.price || (item ? effectiveCatalogPrice(item) : 0) || 0),
+      image: String(item?.image || entry?.image || resolveCatalogImageForSuggestion(entry) || "").trim(),
+      reason: String(entry.reason || entry.familyLabel || entry.family || "").trim(),
+      href: item ? `item.html?id=${encodeURIComponent(item.id)}&wear=${encodeURIComponent(entry.wearId || "")}` : ""
+    };
+  }
+
+  function curatorCandidateFromInventory(entry = {}) {
+    const item = inventoryInspectorTarget(entry);
+    const name = inventoryDisplayName(entry);
+    if (!name) return null;
+    const key = curatorCandidateKey({
+      id: String(entry.asset_id || entry.assetId || item?.id || name),
+      wearId: inventoryWearFromEntry(entry, item),
+      source: "inventory"
+    });
+    return {
+      key,
+      source: "inventory",
+      item,
+      id: item?.id || "",
+      name,
+      meta: inventorySecondaryMeta(entry) || (item ? itemWeapon(item) : uiText("Steam Inventory", "Steam 库存")),
+      type: item?.type || loadoutSlotForCatalogItem(item) || "rifle",
+      group: item?.type || "rifle",
+      price: Number(inventoryReferencePrice(entry) || 0),
+      image: steamInventoryIconUrl(entry) || item?.image || "",
+      reason: uiText("Synced inventory", "已同步库存"),
+      href: item ? inventoryInspectHref(entry, item) : ""
+    };
+  }
+
+  const LOADOUT_INVENTORY_ALLOWED_WEAPONS = new Set(["AK-47", "M4A1-S", "M4A4", "USP-S", "Glock-18", "AWP"]);
+  const LOADOUT_INVENTORY_BLOCKED_WEAPONS = /(?:famas|法玛斯|galil|aug|sg 553|scar-20|g3sg1|ssg 08|p90|mp9|mp7|mac-10|ump-45|pp-bizon|nova|xm1014|mag-7|sawed-off|negev|m249)/i;
+
+  function loadoutEntryAllowedForWorkbench(entry = {}) {
+    const item = entry?.item || (entry?.id ? resolveDisplayItemById(entry.id) : resolveDisplayItemByName(entry?.name || ""));
+    const type = String(item?.type || entry?.type || entry?.group || "").toLowerCase();
+    const text = [entry?.name, entry?.meta, entry?.weapon, item?.nameEn, item?.weaponEn, item?.weapon]
+      .filter(Boolean).join(" ").toLowerCase();
+    if (/(sticker|graffiti|case|capsule|container|tool|music kit|collectible|charm|coin|涂鸦|武器箱|工具|收藏品|挂件|硬币)/i.test(text)) return false;
+    if (LOADOUT_INVENTORY_BLOCKED_WEAPONS.test(text)) return false;
+    if (type === "knife" || type === "glove") return true;
+    return [...LOADOUT_INVENTORY_ALLOWED_WEAPONS].some((weapon) => text.includes(weapon.toLowerCase()));
+  }
+
+  function loadoutCandidateMatchesFilters(candidate = {}) {
+    const preset = String(appState.aiLoadoutPreset || "auto").toLowerCase();
+    const type = String(candidate.type || "").toLowerCase();
+    const text = [
+      candidate.name,
+      candidate.meta,
+      candidate.item?.nameEn,
+      candidate.item?.weaponEn,
+      candidate.item?.collectionEn,
+      candidate.item?.tone,
+      candidate.item?.style,
+      ...(Array.isArray(candidate.item?.tags) ? candidate.item.tags : [])
+    ].filter(Boolean).join(" ").toLowerCase();
+    const isKnife = type === "knife";
+    const isGlove = type === "glove";
+    const isCoreGun = [...LOADOUT_INVENTORY_ALLOWED_WEAPONS].some((weapon) => text.includes(weapon.toLowerCase()));
+    if (preset === "guns" && (isKnife || isGlove || !isCoreGun)) return false;
+    if (preset === "mid" && !isKnife && !isCoreGun) return false;
+    if (preset === "premium" && !isKnife && !isGlove && !isCoreGun) return false;
+    const color = String(appState.aiLoadoutColorFilter || "").toLowerCase();
+    const colorTokens = {
+      black: ["black", "dark", "noir", "onyx", "night", "shadow", "black", "黑"],
+      white: ["white", "ivory", "clean", "snow", "arctic", "white", "白"],
+      red: ["red", "crimson", "ruby", "fire", "red", "红"],
+      blue: ["blue", "azure", "cobalt", "sapphire", "ocean", "blue", "蓝"],
+      green: ["green", "emerald", "jade", "forest", "green", "绿"],
+      purple: ["purple", "pink", "violet", "magenta", "pink", "紫", "粉"],
+      gold: ["gold", "golden", "luxury", "bronze", "gold", "金"]
+    };
+    if (color && !(colorTokens[color] || []).some((token) => text.includes(token))) return false;
+    const style = String(appState.aiLoadoutStyleFilter || "").toLowerCase();
+    const styleTokens = {
+      clean: ["clean", "fade", "marble", "white", "ivory"],
+      understated: ["minimal", "subtle", "slate", "graphite", "black"],
+      luxury: ["gold", "golden", "marble", "gamma", "gem", "luxury"],
+      tactical: ["black", "dark", "urban", "tactical", "camo", "night"],
+      aggressive: ["red", "fire", "blood", "slaughter", "rampage", "aggressive"],
+      neon: ["neon", "cyber", "synth", "pink", "blue", "purple"]
+    };
+    return !style || (styleTokens[style] || []).some((token) => text.includes(token));
+  }
+
+  function loadoutInventoryItemAllowedForWorkbench(entry = {}) {
+    const item = inventoryInspectorTarget(entry);
+    if (item?.type === "knife" || item?.type === "glove") return true;
+    const weapon = String(itemWeapon(item) || inventorySecondaryMeta(entry) || inventoryDisplayName(entry) || "").trim().toLowerCase();
+    if (LOADOUT_INVENTORY_BLOCKED_WEAPONS.test(weapon)) return false;
+    return [...LOADOUT_INVENTORY_ALLOWED_WEAPONS].some((allowed) => weapon.includes(allowed.toLowerCase()));
+  }
+
+  function curatedFallbackCatalogCandidates(limit = 18) {
+    const preferredTypes = new Set(["knife", "glove", "rifle", "pistol", "smg"]);
+    return items
+      .filter((item) => item?.image && preferredTypes.has(item.type))
+      .slice(0, Math.max(0, limit))
+      .map((item) => curatorCandidateFromSuggestion({
+        id: item.id,
+        name: itemTitle(item),
+        weapon: itemWeapon(item),
+        type: item.type,
+        price: effectiveCatalogPrice(item)
+      }, "catalog"))
+      .filter(Boolean);
+  }
+
+  function loadoutWorkbenchCandidates() {
+    const { payload } = latestLoadoutRecommendationState();
+    const inventoryPayload = appState.aiInventoryRecommendations;
+    const cacheKey = JSON.stringify({
+      assistant: (payload?.suggestions || []).map((entry) => [entry?.id, entry?.name, entry?.wearId, entry?.price]),
+      inventory: (inventoryPayload?.suggestions || []).slice(0, 24).map((entry) => [entry?.id, entry?.name, entry?.wearId, entry?.price]),
+      inventoryCount: (appState.inventoryPreview?.items || []).length,
+      filters: aiLoadoutFilterOverrides(),
+      language: currentLanguage()
+    });
+    if (appState.loadoutWorkbenchCache?.key === cacheKey && appState.loadoutWorkbenchCache.value) {
+      return appState.loadoutWorkbenchCache.value;
+    }
+    const seen = new Set();
+    const addUnique = (candidate) => {
+      if (!candidate?.key || seen.has(candidate.key)) return null;
+      seen.add(candidate.key);
+      return candidate;
+    };
+    const syncedInventoryCandidates = getSortedInventoryEntries()
+      .filter(loadoutInventoryItemAllowedForWorkbench)
+      .slice(0, 24)
+      .map(curatorCandidateFromInventory)
+      .filter(Boolean);
+    const inventoryCandidates = [
+      ...(Array.isArray(inventoryPayload?.suggestions) ? inventoryPayload.suggestions.slice(0, 36).map((entry) => curatorCandidateFromSuggestion(entry, "upgrade")) : []),
+      ...syncedInventoryCandidates
+    ].filter(Boolean);
+    const ownedIds = new Set(syncedInventoryCandidates.map((entry) => entry.id).filter(Boolean));
+    const recommendationCandidates = [
+      ...(Array.isArray(payload?.suggestions) ? payload.suggestions.map((entry) => curatorCandidateFromSuggestion(entry, "ai")) : []),
+      ...curatedFallbackCatalogCandidates()
+    ].filter(Boolean).map((entry) => ({ ...entry, owned: Boolean(entry.id && ownedIds.has(entry.id)) }));
+    const candidates = [...recommendationCandidates, ...inventoryCandidates]
+      .map(addUnique)
+      .filter(Boolean)
+      .slice(0, 72);
+    appState.loadoutWorkbenchCache = { key: cacheKey, value: candidates };
+    return candidates;
+  }
+
+  function selectedCuratorLoadoutKeys(candidates = loadoutWorkbenchCandidates()) {
+    const validKeys = new Set(candidates.map((entry) => entry.key));
+    const saved = (appState.aiLoadoutSelectedKeys || []).filter((key) => validKeys.has(key));
+    if (appState.aiLoadoutSelectionTouched) return saved;
+    const recommendations = candidates.filter((entry) => entry.source !== "inventory");
+    return saved.length ? saved : recommendations.slice(0, 12).map((entry) => entry.key);
+  }
+
+  function selectedCuratorLoadoutItems(candidates = loadoutWorkbenchCandidates()) {
+    const selected = new Set(selectedCuratorLoadoutKeys(candidates));
+    return candidates.filter((entry) => selected.has(entry.key));
+  }
+
+  function persistCuratorSelection(keys) {
+    appState.aiLoadoutSelectedKeys = [...new Set((keys || []).map((entry) => String(entry || "").trim()).filter(Boolean))].slice(0, 12);
+    appState.aiLoadoutSelectionTouched = true;
+    appState.loadoutFrameReady = true;
+    persistAiLoadoutState();
+  }
+
+  function addCuratorLoadoutItem(key = "") {
+    const candidates = loadoutWorkbenchCandidates();
+    const candidate = candidates.find((entry) => entry.key === key);
+    if (!candidate) return;
+    const current = selectedCuratorLoadoutKeys(candidates);
+    persistCuratorSelection(current.includes(key)
+      ? current.filter((entry) => entry !== key)
+      : [key, ...current]);
+    requestLoadoutRender();
+  }
+
+  function removeCuratorLoadoutItem(key = "") {
+    persistCuratorSelection(selectedCuratorLoadoutKeys().filter((entry) => entry !== key));
+    requestLoadoutRender();
+  }
+
+  function clearCuratorLoadoutSelection() {
+    persistCuratorSelection([]);
+    requestLoadoutRender();
+  }
+
+  function saveCurrentCuratorLoadout() {
+    const candidates = loadoutWorkbenchCandidates();
+    let selectedItems = selectedCuratorLoadoutItems(candidates);
+    if (!selectedItems.length && candidates.length) {
+      selectedItems = candidates.filter((entry) => entry.source !== "inventory").slice(0, 12);
+      if (!selectedItems.length) selectedItems = candidates.slice(0, 12);
+      persistCuratorSelection(selectedItems.map((entry) => entry.key));
+    }
+    if (!selectedItems.length) {
+      selectedItems = [...document.querySelectorAll(".curator-inventory-card")].slice(0, 12).map((card, index) => ({
+        key: card.querySelector("[data-curator-add-key]")?.getAttribute("data-curator-add-key") || `visible-${index}`,
+        id: "",
+        name: card.querySelector("h3")?.textContent?.trim() || "",
+        meta: card.querySelector("p")?.textContent?.trim() || "",
+        type: "",
+        price: Number(String(card.querySelector("strong")?.textContent || "").replace(/[^\d.]/g, "")) || 0,
+        image: card.querySelector("img")?.getAttribute("src") || "",
+        href: card.getAttribute("data-href") || ""
+      })).filter((item) => item.name);
+    }
+    if (!selectedItems.length) {
+      appState.curatorSaveNotice = uiText("Add items before saving this loadout.", "先加入饰品后再保存搭配。");
+      requestLoadoutRender();
+      return;
+    }
+    const createdAt = new Date().toISOString();
+    const loadout = {
+      id: `loadout-${Date.now()}`,
+      title: uiText("Curator Loadout", "策展搭配"),
+      createdAt,
+      filters: aiLoadoutFilterOverrides(),
+      totalPrice: selectedItems.reduce((sum, item) => sum + (Number(item?.price) || 0), 0),
+      items: selectedItems.slice(0, 12).map((item) => ({
+        key: item.key,
+        id: item.id || "",
+        name: item.name || "",
+        meta: item.meta || "",
+        type: item.type || "",
+        price: Number(item.price || 0),
+        image: item.image || "",
+        href: item.href || ""
+      }))
+    };
+    const loadouts = getFavoriteLoadouts();
+    setFavoriteLoadouts([loadout, ...loadouts].slice(0, 24));
+    appState.curatorSaveNotice = uiText("Loadout saved to Favorites.", "搭配已保存到收藏夹。");
+    persistAiLoadoutState();
+    requestLoadoutRender();
+  }
+
+  function toggleCuratorInventoryGroup(group = "") {
+    const key = String(group || "other");
+    appState.aiLoadoutCollapsedGroups = {
+      ...(appState.aiLoadoutCollapsedGroups || {}),
+      [key]: !appState.aiLoadoutCollapsedGroups?.[key]
+    };
+    persistAiLoadoutState();
+    requestLoadoutRender();
+  }
+
+  function curatorSlotLabel(type = "") {
+    const normalized = String(type || "").toLowerCase();
+    if (normalized === "knife") return uiText("Knife", "刀具");
+    if (normalized === "glove") return uiText("Gloves", "手套");
+    if (normalized === "pistol") return uiText("Pistol", "手枪");
+    if (normalized === "smg") return uiText("SMG", "冲锋枪");
+    if (normalized === "shotgun") return uiText("Shotgun", "霰弹枪");
+    if (normalized === "machinegun") return uiText("Machine Gun", "机枪");
+    if (normalized === "sticker") return uiText("Sticker", "贴纸");
+    if (normalized === "agent") return uiText("Agent", "探员");
+    if (normalized === "inventory") return uiText("Inventory", "库存");
+    return uiText("Rifle", "步枪");
+  }
+
+  function curatorSlotRailMarkup(candidates = loadoutWorkbenchCandidates()) {
+    const selected = selectedCuratorLoadoutItems(candidates);
+    const slots = ["knife", "glove", "rifle", "rifle", "rifle", "pistol", "pistol", "smg", "shotgun", "machinegun", "sticker", "agent"];
+    const used = new Set();
+    const slotItems = slots.map((slot) => {
+      const match = selected.find((entry) => !used.has(entry.key) && (entry.type === slot || entry.group === slot || (slot === "rifle" && !["knife", "glove", "pistol", "smg"].includes(entry.type))));
+      if (match) used.add(match.key);
+      return { slot, item: match || null };
+    });
+    return `
+      <section class="curator-slot-rail">
+        <div class="curator-panel-head">
+          <div>
+            <p class="eyebrow">${escapeHtml(uiText("Loadout Slots", "搭配槽位"))}</p>
+            <h2>${escapeHtml(uiText("Current Build", "当前搭配"))}</h2>
+          </div>
+          <span>${escapeHtml(String(selected.length))}/12</span>
+        </div>
+        <div class="curator-slot-list">
+          ${slotItems.map(({ slot, item }, index) => `
+            <article class="curator-slot-card${item ? " is-filled" : ""}">
+              <span class="curator-slot-code">${escapeHtml(curatorSlotLabel(slot))}</span>
+              <div class="curator-slot-visual">
+                ${item?.image ? curatorImageMarkup({ src: item.image, alt: item.name, loading: "eager" }) : `<a class="curator-slot-add" href="catalog.html?from=loadout" aria-label="${escapeHtml(uiText("Choose from catalog", "从目录选择饰品"))}">${escapeHtml(String(index + 1).padStart(2, "0"))}</a>`}
+              </div>
+              <div class="curator-slot-copy">
+                <p>${escapeHtml(item?.meta || uiText("Empty slot", "空槽位"))}</p>
+                <h3>${escapeHtml(item?.name || uiText("Add an item", "添加饰品"))}</h3>
+                <strong>${escapeHtml(item ? formatPrice(item.price) : uiText("Waiting", "待选择"))}</strong>
+              </div>
+            </article>
+          `).join("")}
+        </div>
+      </section>
+    `;
+  }
+
+  function curatorInventoryCardMarkup(candidate, selectedKeys) {
+    const isSelected = selectedKeys.has(candidate.key);
+    return `
+      <article class="curator-inventory-card${isSelected ? " is-selected" : ""}${candidate.href ? " ai-suggestion-card-clickable" : ""}"${candidate.href ? ` data-href="${escapeHtml(candidate.href)}" tabindex="0" role="link"` : ""}>
+        <div class="curator-inventory-card-visual">
+          ${curatorImageMarkup({ src: candidate.image, alt: candidate.name, loading: "lazy" })}
+        </div>
+        <p>${escapeHtml(candidate.meta)}</p>
+        <h3>${escapeHtml(candidate.name)}</h3>
+        <strong>${escapeHtml(formatPrice(candidate.price))}</strong>
+        ${candidate.owned ? `<small class="curator-owned-badge">${escapeHtml(uiText("Owned", "已拥有"))}</small>` : ""}
+        <button class="curator-card-action" type="button" data-curator-add-key="${escapeHtml(candidate.key)}" aria-pressed="${isSelected ? "true" : "false"}">${escapeHtml(isSelected ? uiText("Remove", "取消选择") : uiText("Add", "加入"))}</button>
+      </article>
+    `;
+  }
+
+  function curatorInventoryBrowserMarkup(candidates = loadoutWorkbenchCandidates()) {
+    const selectedKeys = new Set(selectedCuratorLoadoutKeys(candidates));
+    const activeCategory = appState.aiLoadoutCategory || "all";
+    const filterVisibleCandidates = candidates.filter(loadoutEntryAllowedForWorkbench).filter(loadoutCandidateMatchesFilters);
+    const visible = activeCategory === "all"
+      ? filterVisibleCandidates
+      : filterVisibleCandidates.filter((entry) => aiSuggestionCategoryForEntry({ ...entry, type: entry.type, group: entry.group }) === activeCategory);
+    const groups = visible.reduce((acc, candidate) => {
+      const group = candidate.source === "inventory"
+        ? "inventory"
+        : aiSuggestionCategoryForEntry({ ...candidate, type: candidate.type, group: candidate.group });
+      if (!acc[group]) acc[group] = [];
+      acc[group].push(candidate);
+      return acc;
+    }, {});
+    const groupKeys = Object.keys(groups);
+    return `
+      <section class="curator-inventory-browser">
+        <div class="curator-browser-head">
+          <div>
+            <p class="eyebrow">${escapeHtml(uiText("Inventory Browser", "饰品浏览器"))}</p>
+            <h2>${escapeHtml(uiText("Build From Filters, Inventory, and Catalog Picks", "从筛选、库存和目录候选中搭配"))}</h2>
+          </div>
+          <span class="curator-browser-count">${escapeHtml(String(visible.length))}</span>
+        </div>
+        <div class="curator-browser-tools">
+          ${aiLoadoutFilterBarMarkup()}
+          ${aiSuggestionTabsMarkup("loadout", activeCategory, candidates)}
+        </div>
+        <div class="curator-inventory-groups">
+          ${groupKeys.map((group) => {
+            const collapsed = Boolean(appState.aiLoadoutCollapsedGroups?.[group]);
+            return `
+              <section>
+                <button class="curator-group-toggle" type="button" data-curator-group-toggle="${escapeHtml(group)}" aria-expanded="${collapsed ? "false" : "true"}">
+                  <span>${escapeHtml(curatorSlotLabel(group))}</span>
+                  <strong>${escapeHtml(String(groups[group].length))}</strong>
+                </button>
+                <div class="curator-inventory-card-grid"${collapsed ? " hidden" : ""}>
+                  ${groups[group].slice(0, 18).map((candidate) => curatorInventoryCardMarkup(candidate, selectedKeys)).join("")}
+                </div>
+              </section>
+            `;
+          }).join("") || `<div class="empty-state">${escapeHtml(uiText("No matching picks in this lane.", "当前分类暂无可选饰品。"))}</div>`}
+        </div>
+      </section>
+    `;
+  }
+
+  function curatorLoadoutStackMarkup(candidates = loadoutWorkbenchCandidates()) {
+    const selected = selectedCuratorLoadoutItems(candidates);
+    const total = selected.reduce((sum, entry) => sum + (Number(entry.price) || 0), 0);
+    return `
+      <section class="curator-loadout-stack">
+        <div class="curator-stack-head">
+          <div>
+            <p class="eyebrow">${escapeHtml(uiText("Selected Stack", "已选搭配"))}</p>
+            <h2>${escapeHtml(uiText("Loadout Stack", "搭配清单"))}</h2>
+          </div>
+          <span>${escapeHtml(formatPrice(total))}</span>
+        </div>
+        <div class="curator-stack-list">
+          ${selected.map((entry, index) => `
+            <article class="curator-stack-card">
+              <span class="curator-stack-index">${escapeHtml(String(index + 1).padStart(2, "0"))}</span>
+              <div class="curator-stack-image">${curatorImageMarkup({ src: entry.image, alt: entry.name, loading: "lazy" })}</div>
+              <div class="curator-stack-copy">
+                <span>${escapeHtml(entry.meta)}</span>
+                <strong>${escapeHtml(entry.name)}</strong>
+                <small>${escapeHtml(entry.reason || uiText("Curated pick", "策展选择"))}</small>
+              </div>
+              <button type="button" data-curator-remove-key="${escapeHtml(entry.key)}" aria-label="${escapeHtml(uiTemplate("Remove {name}", { name: entry.name }))}">×</button>
+            </article>
+          `).join("") || `<div class="empty-state">${escapeHtml(uiText("Add items from the browser to build a loadout.", "从浏览器加入饰品来组成搭配。"))}</div>`}
+        </div>
+        <div class="curator-stack-total">
+          <span>${escapeHtml(uiText("Reference Total", "参考总价"))}</span>
+          <strong>${escapeHtml(total > 0 ? formatPrice(total) : uiText("No price", "暂无报价"))}</strong>
+        </div>
+      </section>
+    `;
+  }
+
+  function curatorRouteSummaryMarkup(candidates = loadoutWorkbenchCandidates()) {
+    const selected = selectedCuratorLoadoutItems(candidates);
+    const total = selected.reduce((sum, entry) => sum + (Number(entry.price) || 0), 0);
+    const budget = Number(appState.aiLoadoutBudgetDraft || 0);
+    const budgetUsage = budget > 0 ? Math.min(100, Math.round((total / budget) * 100)) : Math.min(100, selected.length * 12);
+    return `
+      <section class="curator-route-summary-panel">
+        <div class="curator-panel-head">
+          <div>
+            <p class="eyebrow">${escapeHtml(uiText("Route Summary", "路线摘要"))}</p>
+            <h2>${escapeHtml(uiText("Budget Fit", "预算适配"))}</h2>
+          </div>
+        </div>
+        <div class="curator-summary-metrics">
+          <article><span>${escapeHtml(uiText("Items", "饰品"))}</span><strong>${escapeHtml(String(selected.length))}</strong></article>
+          <article><span>${escapeHtml(uiText("Total", "总价"))}</span><strong>${escapeHtml(formatPrice(total))}</strong></article>
+          <article><span>${escapeHtml(uiText("Budget", "预算"))}</span><strong>${escapeHtml(budget > 0 ? formatPrice(budget) : uiText("Auto", "自动"))}</strong></article>
+        </div>
+        <div class="curator-summary-meter"><i style="width:${escapeHtml(String(budgetUsage))}%"></i></div>
+        <div class="curator-summary-notes">
+          <p>${escapeHtml(uiText("Your selected stack stays editable while filters and inventory references update.", "已选搭配可随时编辑，筛选结果和库存参考会继续更新。"))}</p>
+        </div>
+        <div class="curator-summary-actions">
+          <button class="primary-action" data-curator-save-loadout type="button">${escapeHtml(uiText("Save Stack", "保存搭配"))}</button>
+          <button class="secondary-action" data-curator-clear-loadout type="button"${selected.length ? "" : " disabled"}>${escapeHtml(uiText("Clear", "清空"))}</button>
+        </div>
+        ${appState.curatorSaveNotice ? `<p class="curator-save-notice">${escapeHtml(appState.curatorSaveNotice)}</p>` : ""}
+      </section>
+    `;
+  }
+
+  function consumeCatalogLoadoutAddition() {
+    if (pageName() !== "loadout.html") return false;
+    const params = new URLSearchParams(location.search);
+    const itemId = String(params.get("add") || "").trim();
+    if (!itemId) return false;
+    const item = resolveDisplayItemById(itemId)
+      || (Array.isArray(globalThis.CS2_CATALOG) ? globalThis.CS2_CATALOG.find((entry) => String(entry?.id || "") === itemId) : null)
+      || (Array.isArray(items) ? items.find((entry) => String(entry?.id || "") === itemId) : null);
+    if (!item) return false;
+    const candidate = curatorCandidateFromSuggestion({
+      id: item.id,
+      name: itemTitle(item),
+      weapon: itemWeapon(item),
+      type: item.type,
+      price: effectiveCatalogPrice(item),
+      image: item.image
+    }, "catalog");
+    if (!candidate) return false;
+    const existing = loadoutWorkbenchCandidates();
+    const nextCandidates = existing.some((entry) => entry.key === candidate.key) ? existing : [candidate, ...existing];
+    appState.loadoutWorkbenchCache = { key: appState.loadoutWorkbenchCache?.key || "", value: nextCandidates };
+    const current = selectedCuratorLoadoutKeys(nextCandidates);
+    if (!current.includes(candidate.key)) persistCuratorSelection([candidate.key, ...current]);
+    params.delete("add");
+    const nextQuery = params.toString();
+    history.replaceState({}, "", `${location.pathname}${nextQuery ? `?${nextQuery}` : ""}${location.hash}`);
+    return true;
+  }
+
+  function curatorWorkbenchMarkup() {
+    const candidates = loadoutWorkbenchCandidates();
+    return `
+      <section class="curator-workbench-stage page-intro" id="loadoutWorkbench" data-motion-intro>
+        <div class="curator-workbench-title">
+          <span class="curator-workbench-emblem" aria-hidden="true"></span>
+          <div>
+            <p class="eyebrow" data-motion-part="eyebrow">${escapeHtml(uiText("Curate Your Legend", "策展你的传奇"))}</p>
+            <h1 data-motion-part="title">${escapeHtml(uiText("Loadout Workbench", "饰品搭配工作台"))}</h1>
+          <p data-motion-part="copy">${escapeHtml(uiText("Build an editable CS loadout from filters, synced inventory, and catalog picks.", "从筛选、同步库存和目录候选中编辑你的 CS 饰品搭配。"))}</p>
+          </div>
+        </div>
+        <div class="curator-workbench-frame">
+          <div class="curator-operating-grid">
+            <div class="curator-side-stack">
+              ${curatorSlotRailMarkup(candidates)}
+              ${curatorRouteSummaryMarkup(candidates)}
+            </div>
+            ${curatorInventoryBrowserMarkup(candidates)}
+            ${curatorLoadoutStackMarkup(candidates)}
+          </div>
+        </div>
+        <div class="curator-fixed-savebar">
+          <button class="primary-action" data-curator-save-loadout type="button">${escapeHtml(uiText("Save Stack", "保存搭配"))}</button>
+          <button class="secondary-action" data-curator-clear-loadout type="button">${escapeHtml(uiText("Clear Stack", "清空搭配"))}</button>
+        </div>
+      </section>
+    `;
   }
 
   function curatorRecommendationRailItemMarkup(entry = {}) {
@@ -7366,11 +8511,10 @@
           <span>${escapeHtml(uiText("Curator Console", "策展控制台"))}</span>
         </div>
         <nav class="curator-sidebar-nav" aria-label="${escapeHtml(uiText("Curator Sections", "策展分区"))}">
-          <a class="is-active" href="#loadoutCommandDeck"><b>${escapeHtml(uiText("Loadout Studio", "搭配推荐"))}</b><small>LOADOUT STUDIO</small></a>
+          <a class="is-active" href="#loadoutWorkbench"><b>${escapeHtml(uiText("Loadout Studio", "搭配工作台"))}</b><small>LOADOUT STUDIO</small></a>
           <a href="#inventoryUpgradeStage"><b>${escapeHtml(uiText("Inventory Analysis", "库存分析"))}</b><small>INVENTORY</small></a>
           <a href="#proReferenceStage"><b>${escapeHtml(uiText("Pro Archive", "职业选手"))}</b><small>PRO ARCHIVE</small></a>
           <a href="favorites.html"><b>${escapeHtml(uiText("Collection", "收藏馆"))}</b><small>COLLECTION</small></a>
-          <a href="catalog.html"><b>${escapeHtml(uiText("Market Trends", "市场趋势"))}</b><small>MARKET</small></a>
           <a href="account.html"><b>${escapeHtml(uiText("Profile", "个人中心"))}</b><small>PROFILE</small></a>
         </nav>
         <section class="curator-sidebar-summary">
@@ -7381,19 +8525,6 @@
           <a class="secondary-action" href="inventory.html">${escapeHtml(uiText("Open Inventory", "前往库存"))}</a>
         </section>
       </aside>
-    `;
-  }
-
-  function curatorMarketStripMarkup() {
-    const { payload } = latestLoadoutRecommendationState();
-    const overview = loadoutInventoryOverview();
-    return `
-      <section class="curator-market-strip">
-        <article><span>${escapeHtml(uiText("Market Overview", "市场总览"))}</span><strong>${escapeHtml(overview.synced.length ? formatPrice(overview.totalValue) : uiText("No price", "暂无报价"))}</strong></article>
-        <article><span>${escapeHtml(uiText("Today Route", "今日方案数"))}</span><strong>${escapeHtml(String(Array.isArray(payload?.suggestions) ? payload.suggestions.length : 0))}</strong></article>
-        <article><span>${escapeHtml(uiText("24h Trend", "24h 趋势"))}</span><strong class="is-red">-2.38%</strong></article>
-        <article><span>${escapeHtml(uiText("Data Source", "数据来源"))}</span><strong>${escapeHtml(uiText("BUFF / YouPin", "BUFF / 悠悠有品"))}</strong></article>
-      </section>
     `;
   }
 
@@ -7408,7 +8539,6 @@
           </div>
           <span class="curator-command-status">${escapeHtml(uiText("Online", "在线"))}</span>
         </div>
-        ${aiLoadoutFilterBarMarkup()}
         <div class="curator-command-console">
           <div class="curator-command-output">
             ${latestAssistantMessage ? `
@@ -7453,7 +8583,11 @@
     const visibleCount = Math.max(PRO_LOADOUT_TEAM_PAGE_SIZE, Number(appState.aiProTeamsRenderedCount) || PRO_LOADOUT_TEAM_PAGE_SIZE);
     const visibleTeams = teams.slice(0, visibleCount);
     const hasMoreTeams = visibleTeams.length < teams.length;
-    const visiblePlayers = visibleTeams.flatMap((team) => (Array.isArray(team.players) ? team.players : []).map((player) => ({ team, player }))).slice(0, 6);
+    const activeTeamKey = appState.activeProTeamKey && visibleTeams.some((team) => proTeamKey(team.team) === appState.activeProTeamKey)
+      ? appState.activeProTeamKey
+      : proTeamKey(visibleTeams[0]?.team || "");
+    const playerTeams = activeTeamKey ? visibleTeams.filter((team) => proTeamKey(team.team) === activeTeamKey) : visibleTeams;
+    const visiblePlayers = playerTeams.flatMap((team) => (Array.isArray(team.players) ? team.players : []).map((player) => ({ team, player }))).slice(0, 8);
     return `
       <section class="ai-panel curator-pro-panel">
         <div class="section-heading curator-pro-head">
@@ -7461,26 +8595,50 @@
             <p class="eyebrow">${escapeHtml(uiText("Pro Loadouts", LOADOUT_ZH.proTitle))}</p>
             <h2>${escapeHtml(uiText("Pro Player Loadout Archive", "职业选手搭配档案"))}</h2>
           </div>
-          <p class="ai-copy">${escapeHtml(uiText("Browse team-by-team player references without leaving the curator flow.", "来自顶级战队的真实选择。"))}</p>
+          <p class="ai-copy">${escapeHtml(uiText("By team", LOADOUT_ZH.byTeam || "按战队"))} · ${escapeHtml(uiText("Source", LOADOUT_ZH.source || "来源"))}</p>
         </div>
         <div class="curator-team-tabs">
-          ${visibleTeams.map((team) => `<span>${escapeHtml(team.team)}</span>`).join("")}
+          ${visibleTeams.map((team) => {
+            const teamKey = proTeamKey(team.team);
+            return `
+            <button type="button" class="${teamKey === activeTeamKey ? "is-active" : ""}" data-pro-team="${escapeHtml(teamKey)}">
+              ${proTeamLogoMarkup(team)}
+              <span>${escapeHtml(team.team)}</span>
+            </button>
+          `;
+          }).join("")}
         </div>
         <div class="curator-pro-card-grid">
-          ${visiblePlayers.map(({ team, player }) => {
-            const key = proPlayerKey(team.team, player.name);
-            const isActive = appState.activeProPlayerKey === key;
+          ${playerTeams.map((team) => {
+            const teamKey = proTeamKey(team.team);
             return `
-              <article class="curator-pro-card">
-                <button class="curator-pro-card-head pro-player-head${isActive ? " is-active" : ""}" type="button" data-pro-player="${escapeHtml(key)}" aria-expanded="${isActive ? "true" : "false"}">
-                  ${proAvatarMarkup(player)}
+              <article class="curator-pro-team-card" data-pro-team="${escapeHtml(teamKey)}">
+                <div class="curator-pro-team-head">
+                  ${proTeamLogoMarkup(team)}
                   <div>
-                    <strong>${escapeHtml(player.name)}</strong>
-                    <small>${escapeHtml(team.team)}</small>
+                    <strong>${escapeHtml(team.team)}</strong>
+                    <small>${escapeHtml(uiText("Source", LOADOUT_ZH.source || "来源"))}: ${escapeHtml(team.sourceUrl || "HLTV / Pro archive")}</small>
                   </div>
-                </button>
-                <div class="pro-player-loadout" data-pro-player-loadout="${escapeHtml(key)}"${isActive ? "" : " hidden"}>
-                  ${proPlayerLoadoutMarkup(team, player)}
+                </div>
+                <div class="curator-pro-player-list">
+                  ${(Array.isArray(team.players) ? team.players : []).slice(0, 8).map((player) => {
+                    const key = proPlayerKey(team.team, player.name);
+                    const isActive = appState.activeProPlayerKey === key;
+                    return `
+                      <article class="curator-pro-card">
+                        <button class="curator-pro-card-head pro-player-head${isActive ? " is-active" : ""}" type="button" data-pro-player="${escapeHtml(key)}" aria-expanded="${isActive ? "true" : "false"}">
+                          ${proAvatarMarkup(player)}
+                          <div>
+                            <strong>${escapeHtml(player.name)}</strong>
+                            <small>${escapeHtml(team.team)}</small>
+                          </div>
+                        </button>
+                        <div class="pro-player-loadout" data-pro-player-loadout="${escapeHtml(key)}"${isActive ? "" : " hidden"}>
+                          ${proPlayerLoadoutMarkup(team, player)}
+                        </div>
+                      </article>
+                    `;
+                  }).join("")}
                 </div>
               </article>
             `;
@@ -8365,6 +9523,118 @@
     }
   }
 
+  function parseMoneyLines(value = "") {
+    return String(value || "")
+      .split(/\r?\n|,/u)
+      .map((line) => {
+        const trimmed = line.trim();
+        if (!trimmed) return null;
+        const match = trimmed.match(/(-?\d+(?:\.\d+)?)/u);
+        const amount = match ? Number(match[1]) : 0;
+        const name = trimmed.replace(match?.[0] || "", "").replace(/^[-:：\s]+|[-:：\s]+$/gu, "").trim();
+        return Number.isFinite(amount) && amount > 0 ? { name, amount } : null;
+      })
+      .filter(Boolean);
+  }
+
+  function calculatePurchaseCost() {
+    const listed = Math.max(0, Number(appState.practicalToolsPurchasePriceDraft) || 0);
+    const feeRate = Math.max(0, Number(appState.practicalToolsFeeRateDraft) || 0) / 100;
+    const discount = Math.max(0, Number(appState.practicalToolsDiscountDraft) || 0);
+    const budget = Math.max(0, Number(appState.practicalToolsTargetBudgetDraft) || 0);
+    const fee = listed * feeRate;
+    const finalCost = Math.max(0, listed + fee - discount);
+    const maxListed = budget > 0 ? Math.max(0, (budget + discount) / (1 + feeRate)) : 0;
+    return { listed, feeRate, discount, budget, fee, finalCost, maxListed, delta: budget > 0 ? budget - finalCost : 0 };
+  }
+
+  function calculateWishlistBudget() {
+    const entries = parseMoneyLines(appState.practicalToolsWishlistText);
+    const saved = Math.max(0, Number(appState.practicalToolsSavedDraft) || 0);
+    const monthly = Math.max(0, Number(appState.practicalToolsMonthlyDraft) || 0);
+    const total = entries.reduce((sum, entry) => sum + entry.amount, 0);
+    const remaining = Math.max(0, total - saved);
+    const months = monthly > 0 ? Math.ceil(remaining / monthly) : null;
+    const sorted = [...entries].sort((left, right) => right.amount - left.amount);
+    return { entries, sorted, saved, monthly, total, remaining, months };
+  }
+
+  function calculateTradeBudget() {
+    const sales = parseMoneyLines(appState.practicalToolsTradeSaleText);
+    const feeRate = Math.max(0, Number(appState.practicalToolsTradeFeeRateDraft) || 0) / 100;
+    const addCash = Math.max(0, Number(appState.practicalToolsTradeAddCashDraft) || 0);
+    const target = Math.max(0, Number(appState.practicalToolsTradeTargetDraft) || 0);
+    const gross = sales.reduce((sum, entry) => sum + entry.amount, 0);
+    const fees = gross * feeRate;
+    const net = Math.max(0, gross - fees + addCash);
+    return { sales, feeRate, addCash, target, gross, fees, net, gap: target > 0 ? target - net : 0, coverage: target > 0 ? Math.min(100, Math.round((net / target) * 100)) : 0 };
+  }
+
+  function purchaseCostCalculatorMarkup(result) {
+    return `
+      <section class="tool-panel">
+        <div class="tool-panel-head"><div><p class="eyebrow">${escapeHtml(uiText("Real Cost", "到手价"))}</p><h2>${escapeHtml(uiText("Calculate the real price before buying", "下单前算清实际到手价"))}</h2></div><strong>${escapeHtml(formatPrice(result.finalCost))}</strong></div>
+        <form class="tools-form" id="toolsPurchaseForm">
+          <label><span>${escapeHtml(uiText("Listed price", "标价"))}</span><input id="toolsPurchasePrice" type="number" min="0" step="1" value="${escapeHtml(appState.practicalToolsPurchasePriceDraft)}" /></label>
+          <label><span>${escapeHtml(uiText("Fee %", "手续费 %"))}</span><input id="toolsPurchaseFee" type="number" min="0" step="0.1" value="${escapeHtml(appState.practicalToolsFeeRateDraft)}" /></label>
+          <label><span>${escapeHtml(uiText("Discount", "优惠/砍价"))}</span><input id="toolsPurchaseDiscount" type="number" min="0" step="1" value="${escapeHtml(appState.practicalToolsDiscountDraft)}" /></label>
+          <label><span>${escapeHtml(uiText("Budget", "预算上限"))}</span><input id="toolsPurchaseBudget" type="number" min="0" step="1" value="${escapeHtml(appState.practicalToolsTargetBudgetDraft)}" /></label>
+          <button class="primary-action" type="submit">${escapeHtml(uiText("Calculate", "计算"))}</button>
+        </form>
+        <div class="tool-breakdown-grid">
+          <div><span>${escapeHtml(uiText("Platform fee", "平台手续费"))}</span><strong>${escapeHtml(formatPrice(result.fee))}</strong></div>
+          <div><span>${escapeHtml(uiText("After discount", "扣优惠后"))}</span><strong>${escapeHtml(formatPrice(result.finalCost))}</strong></div>
+          <div><span>${escapeHtml(uiText("Max listed price", "可接受最高标价"))}</span><strong>${escapeHtml(result.maxListed ? formatPrice(result.maxListed) : uiText("Set budget", "先填预算"))}</strong></div>
+          <div><span>${escapeHtml(uiText("Budget delta", "预算差额"))}</span><strong>${escapeHtml(result.budget ? formatSignedPrice(result.delta) : uiText("No budget", "未设置"))}</strong></div>
+        </div>
+      </section>`;
+  }
+
+  function wishlistBudgetMarkup(result) {
+    const rows = result.sorted.map((entry, index) => `<tr><td>${escapeHtml(entry.name || uiTemplate("Item {count}", { count: index + 1 }))}</td><td>${escapeHtml(formatPrice(entry.amount))}</td></tr>`).join("");
+    return `
+      <section class="tool-panel">
+        <div class="tool-panel-head"><div><p class="eyebrow">${escapeHtml(uiText("Wishlist Budget", "愿望清单预算"))}</p><h2>${escapeHtml(uiText("Plan what to buy first", "先排清购买顺序"))}</h2></div><strong>${escapeHtml(formatPrice(result.total))}</strong></div>
+        <form class="tools-form tools-form-stacked" id="toolsWishlistForm">
+          <label><span>${escapeHtml(uiText("Wishlist", "愿望清单"))}</span><textarea id="toolsWishlistText" rows="5" placeholder="AK Redline 320\nM4 Printstream 980">${escapeHtml(appState.practicalToolsWishlistText)}</textarea></label>
+          <label><span>${escapeHtml(uiText("Saved cash", "已有预算"))}</span><input id="toolsWishlistSaved" type="number" min="0" step="1" value="${escapeHtml(appState.practicalToolsSavedDraft)}" /></label>
+          <label><span>${escapeHtml(uiText("Monthly saving", "每月可攒"))}</span><input id="toolsWishlistMonthly" type="number" min="0" step="1" value="${escapeHtml(appState.practicalToolsMonthlyDraft)}" /></label>
+          <button class="primary-action" type="submit">${escapeHtml(uiText("Update", "更新"))}</button>
+        </form>
+        <div class="tool-breakdown-grid"><div><span>${escapeHtml(uiText("Total target", "目标总价"))}</span><strong>${escapeHtml(formatPrice(result.total))}</strong></div><div><span>${escapeHtml(uiText("Still needed", "还差"))}</span><strong>${escapeHtml(formatPrice(result.remaining))}</strong></div><div><span>${escapeHtml(uiText("Months", "预计月份"))}</span><strong>${escapeHtml(result.months === null ? uiText("Set monthly", "填每月预算") : String(result.months))}</strong></div></div>
+        ${result.sorted.length ? `<table class="wishlist-table"><tbody>${rows}</tbody></table>` : `<div class="empty-state">${escapeHtml(uiText("Add one item per line with a price, for example AK Redline 320.", "每行输入一个想买的饰品和价格，例如 AK Redline 320。"))}</div>`}
+      </section>`;
+  }
+
+  function tradeUpCalculatorMarkup(result) {
+    return `
+      <section class="tool-panel">
+        <div class="tool-panel-head"><div><p class="eyebrow">${escapeHtml(uiText("Sell and Upgrade", "卖出换购"))}</p><h2>${escapeHtml(uiText("Know the real upgrade budget", "算清卖出后能换哪一档"))}</h2></div><strong>${escapeHtml(formatPrice(result.net))}</strong></div>
+        <form class="tools-form tools-form-stacked" id="toolsTradeForm">
+          <label><span>${escapeHtml(uiText("Items to sell", "准备卖出的物品"))}</span><textarea id="toolsTradeSaleText" rows="5" placeholder="AWP Asiimov 760\nUSP Ticket 120">${escapeHtml(appState.practicalToolsTradeSaleText)}</textarea></label>
+          <label><span>${escapeHtml(uiText("Sale fee %", "卖出手续费 %"))}</span><input id="toolsTradeFee" type="number" min="0" step="0.1" value="${escapeHtml(appState.practicalToolsTradeFeeRateDraft)}" /></label>
+          <label><span>${escapeHtml(uiText("Extra cash", "额外补钱"))}</span><input id="toolsTradeAddCash" type="number" min="0" step="1" value="${escapeHtml(appState.practicalToolsTradeAddCashDraft)}" /></label>
+          <label><span>${escapeHtml(uiText("Target price", "目标价位"))}</span><input id="toolsTradeTarget" type="number" min="0" step="1" value="${escapeHtml(appState.practicalToolsTradeTargetDraft)}" /></label>
+          <button class="primary-action" type="submit">${escapeHtml(uiText("Calculate", "计算"))}</button>
+        </form>
+        <div class="tool-breakdown-grid"><div><span>${escapeHtml(uiText("Gross sale", "卖出总额"))}</span><strong>${escapeHtml(formatPrice(result.gross))}</strong></div><div><span>${escapeHtml(uiText("Fees", "手续费"))}</span><strong>${escapeHtml(formatPrice(result.fees))}</strong></div><div><span>${escapeHtml(uiText("Usable budget", "可用预算"))}</span><strong>${escapeHtml(formatPrice(result.net))}</strong></div><div><span>${escapeHtml(uiText("Target gap", "目标差额"))}</span><strong>${escapeHtml(result.target ? formatSignedPrice(-result.gap) : uiText("Set target", "先填目标"))}</strong></div></div>
+        <div class="tool-progress" aria-hidden="true"><i style="width:${escapeHtml(String(result.coverage))}%"></i></div>
+      </section>`;
+  }
+
+  function renderPracticalTools() {
+    const root = document.getElementById("toolsRoot");
+    if (!root) return;
+    const purchase = calculatePurchaseCost();
+    const wishlist = calculateWishlistBudget();
+    const trade = calculateTradeBudget();
+    root.innerHTML = `
+      <section class="tools-hero" data-motion-intro>
+        <div><p class="eyebrow" data-motion-part="eyebrow">${escapeHtml(uiText("Practical Tools", "实用工具"))}</p><h1 data-motion-part="title">${escapeHtml(uiText("Do the math before you buy", "买之前先把账算明白"))}</h1><p data-motion-part="copy">${escapeHtml(uiText("Real cost, wishlist planning, and sell-to-upgrade math stay separate from loadout building and opening simulation.", "到手价、愿望清单和卖出换购专门负责算账，不再重复搭配页和开箱页的功能。"))}</p></div>
+        <div class="tools-hero-stats"><div><span>${escapeHtml(uiText("Wishlist total", "愿望总价"))}</span><strong>${escapeHtml(formatPrice(wishlist.total))}</strong></div><div><span>${escapeHtml(uiText("Upgrade budget", "换购预算"))}</span><strong>${escapeHtml(formatPrice(trade.net))}</strong></div></div>
+      </section>
+      <section class="tools-grid">${purchaseCostCalculatorMarkup(purchase)}${wishlistBudgetMarkup(wishlist)}${tradeUpCalculatorMarkup(trade)}</section>`;
+  }
   function preserveWindowScrollDuringRender(callback) {
     const beforeX = Number(window.scrollX || window.pageXOffset || 0);
     const beforeY = Number(window.scrollY || window.pageYOffset || 0);
@@ -8388,6 +9658,20 @@
   function renderLoadout() {
     const root = document.getElementById("loadoutRoot");
     if (!root) return;
+    const additionConsumed = consumeCatalogLoadoutAddition();
+    const pendingAdditionId = String(new URLSearchParams(location.search).get("add") || "").trim();
+    if (pendingAdditionId && !additionConsumed && !loadoutCatalogAdditionPromise) {
+      loadoutCatalogAdditionPromise = ensureItemDetailDataLoaded(pendingAdditionId)
+        .then(() => {
+          if (!resolveDisplayItemById(pendingAdditionId)) return ensureCatalogDataLoaded();
+          return null;
+        })
+        .catch(() => {})
+        .finally(() => {
+          loadoutCatalogAdditionPromise = null;
+          if (pageName() === "loadout.html" && new URLSearchParams(location.search).get("add")) renderLoadout();
+        });
+    }
     const hasCatalog = Array.isArray(globalThis.CS2_CATALOG) && globalThis.CS2_CATALOG.length;
     const hasInventoryPayload = Boolean(appState.aiInventoryRecommendations);
     const hasProPayload = Boolean(appState.aiProLoadouts);
@@ -8396,21 +9680,8 @@
       <div class="curator-console-shell" data-loadout-stage="${escapeHtml(frameState)}">
         ${curatorSidebarMarkup(frameState)}
         <div class="curator-console-stage">
-          ${curatorMarketStripMarkup()}
-          <section class="curator-console-masthead page-intro" data-motion-intro>
-            <div class="curator-hero-banner">
-              <div class="curator-hero-overlay">
-                <p class="eyebrow" data-motion-part="eyebrow">${escapeHtml(uiText("Curate Your Legend", "策展你的传奇"))}</p>
-                <h1 data-motion-part="title">${escapeHtml(uiText("Curator Console", "策展控制台"))}</h1>
-                <p data-motion-part="copy">${escapeHtml(uiText("A red-black command chamber for AI routes, inventory upgrades, and pro-inspired loadouts.", "一座为 AI 方案、库存升级和职业选手灵感而生的红黑控制台。"))}</p>
-              </div>
-            </div>
-          </section>
+          ${curatorWorkbenchMarkup()}
           <div class="curator-operating-grid">
-            ${curatorRecommendationRailMarkup()}
-            <section class="curator-command-deck" id="loadoutCommandDeck">
-              ${aiChatMarkup()}
-            </section>
             <section class="curator-runway" id="inventoryUpgradeStage">
               ${(hasCatalog || hasInventoryPayload || appState.aiInventoryLoading)
                 ? aiInventoryRecommendationsMarkup()
@@ -8425,6 +9696,15 @@
         </div>
       </div>
     `;
+    root.querySelectorAll("*").forEach((element) => {
+      if (element.children.length || !element.textContent) return;
+      element.textContent = element.textContent
+        .replaceAll("娌欓拱", "沙漠之鹰")
+        .replaceAll("鍏ㄩ儴", "全部")
+        .replaceAll("鍐查攱鏋?", "冲锋枪")
+        .replaceAll("闇板脊鏋?", "霰弹枪")
+        .replaceAll("娣锋惌", "混搭");
+    });
     armLoadoutProHydration();
     if (!appState.aiInventoryRecommendations) {
       scheduleLoadoutHydration();
@@ -8543,6 +9823,13 @@
     if (!nextId) return;
     const designs = getDiyDesigns();
     setDiyDesigns(designs.filter((design) => String(design?.id || "").trim() !== nextId));
+    renderFavorites();
+  }
+
+  function removeFavoriteLoadout(loadoutId) {
+    const nextId = String(loadoutId || "").trim();
+    if (!nextId) return;
+    setFavoriteLoadouts(getFavoriteLoadouts().filter((loadout) => String(loadout?.id || "").trim() !== nextId));
     renderFavorites();
   }
 
@@ -8980,6 +10267,26 @@
         } else if (form.id === "aiLoadoutChatForm") {
           event.preventDefault();
           await requestAiLoadoutChat();
+        } else if (form.id === "toolsPurchaseForm") {
+          event.preventDefault();
+          appState.practicalToolsPurchasePriceDraft = document.getElementById("toolsPurchasePrice")?.value || "0";
+          appState.practicalToolsFeeRateDraft = document.getElementById("toolsPurchaseFee")?.value || "0";
+          appState.practicalToolsDiscountDraft = document.getElementById("toolsPurchaseDiscount")?.value || "0";
+          appState.practicalToolsTargetBudgetDraft = document.getElementById("toolsPurchaseBudget")?.value || "0";
+          renderPracticalTools();
+        } else if (form.id === "toolsWishlistForm") {
+          event.preventDefault();
+          appState.practicalToolsWishlistText = document.getElementById("toolsWishlistText")?.value || "";
+          appState.practicalToolsSavedDraft = document.getElementById("toolsWishlistSaved")?.value || "0";
+          appState.practicalToolsMonthlyDraft = document.getElementById("toolsWishlistMonthly")?.value || "0";
+          renderPracticalTools();
+        } else if (form.id === "toolsTradeForm") {
+          event.preventDefault();
+          appState.practicalToolsTradeSaleText = document.getElementById("toolsTradeSaleText")?.value || "";
+          appState.practicalToolsTradeFeeRateDraft = document.getElementById("toolsTradeFee")?.value || "0";
+          appState.practicalToolsTradeAddCashDraft = document.getElementById("toolsTradeAddCash")?.value || "0";
+          appState.practicalToolsTradeTargetDraft = document.getElementById("toolsTradeTarget")?.value || "0";
+          renderPracticalTools();
         }
       } catch (error) {
         appState.accountError = error.message;
@@ -9005,6 +10312,11 @@
       const rawTarget = event.target;
       const target = rawTarget instanceof Element ? rawTarget : rawTarget?.parentElement || null;
       if (!target) return;
+      if (target.closest("[data-intro-replay]")) {
+        event.preventDefault();
+        replayHomeIntro();
+        return;
+      }
       if (target.closest("#aiLoadoutChatForm button[type='submit']")) {
         event.preventDefault();
         await requestAiLoadoutChat();
@@ -9063,6 +10375,41 @@
         navigateSmoothly(aiSuggestionCard.dataset.href || "", aiSuggestionCard);
         return;
       }
+      const curatorHrefCard = target.closest(".ai-suggestion-card-clickable[data-href]");
+      if (curatorHrefCard instanceof HTMLElement && !target.closest("a, button, input, select, textarea")) {
+        event.preventDefault();
+        pulsePressState(curatorHrefCard);
+        navigateSmoothly(curatorHrefCard.dataset.href || "", curatorHrefCard);
+        return;
+      }
+      const curatorAdd = target.closest("[data-curator-add-key]");
+      if (curatorAdd instanceof HTMLElement) {
+        event.preventDefault();
+        addCuratorLoadoutItem(curatorAdd.dataset.curatorAddKey || "");
+        return;
+      }
+      const curatorRemove = target.closest("[data-curator-remove-key]");
+      if (curatorRemove instanceof HTMLElement) {
+        event.preventDefault();
+        removeCuratorLoadoutItem(curatorRemove.dataset.curatorRemoveKey || "");
+        return;
+      }
+      const curatorGroupToggle = target.closest("[data-curator-group-toggle]");
+      if (curatorGroupToggle instanceof HTMLElement) {
+        event.preventDefault();
+        toggleCuratorInventoryGroup(curatorGroupToggle.dataset.curatorGroupToggle || "");
+        return;
+      }
+      if (target.closest("[data-curator-clear-loadout]")) {
+        event.preventDefault();
+        clearCuratorLoadoutSelection();
+        return;
+      }
+      if (target.closest("[data-curator-save-loadout]")) {
+        event.preventDefault();
+        saveCurrentCuratorLoadout();
+        return;
+      }
       const aiCategorySwitch = target.closest("[data-ai-category-target][data-ai-category]");
       if (aiCategorySwitch instanceof HTMLElement) {
         event.preventDefault();
@@ -9119,16 +10466,45 @@
         if (pageName() === "loadout.html") refreshProPlayerLoadoutVisibility();
         return;
       }
+      const proTeamSwitch = target.closest("[data-pro-team]");
+      if (proTeamSwitch instanceof HTMLElement) {
+        event.preventDefault();
+        appState.activeProTeamKey = proTeamSwitch.dataset.proTeam || "";
+        appState.activeProPlayerKey = "";
+        persistAiLoadoutState();
+        requestLoadoutRender();
+        return;
+      }
       const favoriteTrigger = target.closest("[data-favorite-id]");
       if (favoriteTrigger instanceof HTMLElement) {
         event.preventDefault();
         toggleFavorite(favoriteTrigger.dataset.favoriteId || "");
         return;
       }
+      const catalogLoadoutAdd = target.closest("[data-catalog-loadout-add]");
+      if (catalogLoadoutAdd instanceof HTMLElement) {
+        event.preventDefault();
+        const itemId = catalogLoadoutAdd.dataset.catalogLoadoutAdd || "";
+        if (itemId) navigateSmoothly(`loadout.html?add=${encodeURIComponent(itemId)}`, catalogLoadoutAdd);
+        return;
+      }
+      const itemLoadoutAdd = target.closest("[data-item-add-loadout]");
+      if (itemLoadoutAdd instanceof HTMLElement) {
+        event.preventDefault();
+        const itemId = itemLoadoutAdd.dataset.itemAddLoadout || "";
+        if (itemId) navigateSmoothly(`loadout.html?add=${encodeURIComponent(itemId)}`, itemLoadoutAdd);
+        return;
+      }
       const diyFavoriteTrigger = target.closest("[data-diy-favorite-id]");
       if (diyFavoriteTrigger instanceof HTMLElement) {
         event.preventDefault();
         removeDiyDesign(diyFavoriteTrigger.dataset.diyFavoriteId || "");
+        return;
+      }
+      const loadoutFavoriteTrigger = target.closest("[data-loadout-favorite-id]");
+      if (loadoutFavoriteTrigger instanceof HTMLElement) {
+        event.preventDefault();
+        removeFavoriteLoadout(loadoutFavoriteTrigger.dataset.loadoutFavoriteId || "");
         return;
       }
       const compareTrigger = target.closest("[data-compare-id]");
@@ -9473,6 +10849,12 @@
         navigateSmoothly(target.dataset.href || "", target);
         return;
       }
+      if (target?.matches(".ai-suggestion-card-clickable[data-href]")) {
+        event.preventDefault();
+        pulsePressState(target);
+        navigateSmoothly(target.dataset.href || "", target);
+        return;
+      }
       if (target?.matches("[data-opening-batch-index]")) {
         event.preventDefault();
         selectOpeningBatchResult(Number(target.dataset.openingBatchIndex));
@@ -9500,13 +10882,13 @@
       }
       if (target.id === "aiLoadoutPromptInput") {
         const input = target instanceof HTMLTextAreaElement ? target : null;
-        appState.aiLoadoutChatDraft = input?.value || "";
+        syncAiLoadoutQueryState({ prompt: input?.value || "" });
         persistAiLoadoutState();
         return;
       }
       if (target.id === "aiLoadoutBudgetInput") {
         const input = target instanceof HTMLInputElement ? target : null;
-        appState.aiLoadoutBudgetDraft = input?.value || "";
+        syncAiLoadoutQueryState({ budget: input?.value || "" });
         persistAiLoadoutState();
         return;
       }
@@ -9527,9 +10909,11 @@
       const target = event.target instanceof HTMLElement ? event.target : null;
       if (!target) return;
       if (["aiLoadoutPresetSelect", "aiLoadoutColorSelect", "aiLoadoutStyleSelect"].includes(target.id)) {
-        if (target.id === "aiLoadoutPresetSelect") appState.aiLoadoutPreset = target.value || "auto";
-        if (target.id === "aiLoadoutColorSelect") appState.aiLoadoutColorFilter = target.value || "";
-        if (target.id === "aiLoadoutStyleSelect") appState.aiLoadoutStyleFilter = target.value || "";
+        syncAiLoadoutQueryState({
+          preset: target.id === "aiLoadoutPresetSelect" ? target.value : undefined,
+          color: target.id === "aiLoadoutColorSelect" ? target.value : undefined,
+          style: target.id === "aiLoadoutStyleSelect" ? target.value : undefined
+        });
         persistAiLoadoutState();
         if (pageName() === "loadout.html") renderLoadout();
         return;
@@ -9661,7 +11045,7 @@
     const currentPageIsItemDetail = currentPage === "item.html";
     const detailParams = new URLSearchParams(location.search);
     const requestedItemId = detailParams.get("id") || getInspectorState().itemId || DEFAULT_DETAIL_ALIAS;
-    const currentPageNeedsCatalogData = ["index.html", "catalog.html", "collections.html", "favorites.html", "recent.html", "openings.html", "related.html"].includes(currentPage);
+    const currentPageNeedsCatalogData = ["index.html", "catalog.html", "collections.html", "favorites.html", "recent.html", "openings.html", "related.html", "tools.html"].includes(currentPage);
     const hasCatalogData = Array.isArray(globalThis.CS2_CATALOG) && globalThis.CS2_CATALOG.length > 0;
     const currentPageNeedsOpeningData = currentPage === "openings.html";
     const hasOpeningData = !currentPageNeedsOpeningData || openingDataAvailable();
@@ -9736,6 +11120,7 @@
   });
   async function boot() {
     bindEvents();
+    mountCommandPalette();
     initLazyImageLoading();
     resetTransientUiState();
     restoreCurrentPageMemory();
@@ -9743,12 +11128,19 @@
     restoreAuthOverviewSnapshot();
     consumeAccountRedirectFeedback();
     restoreAiLoadoutState();
-    await globalThis.ensureCatalogLocaleLoaded?.(currentLanguage());
     restoreOpeningState();
     await renderCurrentPage();
+    mountHomeIntro();
     if (pageName() !== "collections.html") {
       document.documentElement.dataset.uiReady = "true";
     }
+    const renderedPage = pageName();
+    void Promise.resolve(globalThis.ensureCatalogLocaleLoaded?.(currentLanguage()))
+      .then(() => {
+        if (pageName() !== renderedPage) return;
+        return renderCurrentPage();
+      })
+      .catch(() => {});
     window.addEventListener("pageshow", async (event) => {
       if (!event.persisted) return;
       resetTransientUiState();
@@ -9780,7 +11172,7 @@
     });
     try {
       await Promise.allSettled([ensureAccountData()]);
-      if ((pageName() === "inventory.html" || pageName() === "loadout.html") && appState.session?.steamId && !(appState.inventoryPreview?.items || []).length && !appState.inventoryAutoSyncStarted) {
+      if (pageName() === "inventory.html" && appState.session?.steamId && !(appState.inventoryPreview?.items || []).length && !appState.inventoryAutoSyncStarted) {
         appState.inventoryAutoSyncStarted = true;
         try {
           await runSteamSync();
@@ -9798,8 +11190,10 @@
 
   boot().catch(() => {
     bindEvents();
+    mountCommandPalette();
     resetTransientUiState();
     void renderCurrentPage();
+    mountHomeIntro();
     if (pageName() !== "collections.html") {
       document.documentElement.dataset.uiReady = "true";
     }

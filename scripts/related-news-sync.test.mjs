@@ -4,6 +4,7 @@ import {
   classifyNewsItem,
   dedupeNewsItems,
   normalizeNewsItem,
+  normalizeRankingSnapshot,
   serializeNewsData
 } from "./sync-related-news.mjs";
 
@@ -12,7 +13,8 @@ test("normalizes valid raw news item into stable related news shape", () => {
     title: "Counter-Strike 2 Update",
     url: "/news/updates",
     publishedAt: "2026-06-30",
-    summary: "Added sticker price visibility and Storage Unit improvements."
+    summary: "Added sticker price visibility and Storage Unit improvements.",
+    image: "/images/update.png"
   }, {
     source: "Counter-Strike",
     baseUrl: "https://www.counter-strike.net",
@@ -21,13 +23,14 @@ test("normalizes valid raw news item into stable related news shape", () => {
 
   assert.deepEqual(item, {
     id: "counter-strike-2026-06-30-counter-strike-2-update",
-    category: "market",
+    category: "official",
     source: "Counter-Strike",
     title: "Counter-Strike 2 Update",
     summary: "Added sticker price visibility and Storage Unit improvements.",
+    body: "",
     url: "https://www.counter-strike.net/news/updates",
     publishedAt: "2026-06-30",
-    image: "",
+    image: "https://www.counter-strike.net/images/update.png",
     tags: ["Update", "Inventory", "Stickers"]
   });
 });
@@ -42,9 +45,9 @@ test("classifies esports and market items by source category and keywords", () =
 
   assert.equal(classifyNewsItem({
     category: "official",
-    title: "Sticker capsule market update",
-    summary: "New sticker capsule and price display changes.",
-    source: "Counter-Strike"
+    title: "Best budget knives for CS2",
+    summary: "Knife prices and skin market trends.",
+    source: "Skinport Blog"
   }), "market");
 });
 
@@ -59,6 +62,15 @@ test("dedupes by canonical url before normalized title", () => {
 });
 
 test("serializes deterministic browser data file", () => {
+  const rankingSnapshot = normalizeRankingSnapshot({
+    date: "2026-07-06",
+    label: "HLTV World Ranking",
+    source: "HLTV",
+    url: "https://www.hltv.org/ranking/teams/2026/july/6",
+    teams: [
+      { rank: 1, name: "Vitality", points: 999 }
+    ]
+  });
   const serialized = serializeNewsData([{
     id: "sample",
     category: "official",
@@ -69,9 +81,11 @@ test("serializes deterministic browser data file", () => {
     publishedAt: "2026-07-01",
     image: "",
     tags: ["Update"]
-  }]);
+  }], rankingSnapshot);
 
-  assert.match(serialized, /^window\.RELATED_NEWS = /);
+  assert.match(serialized, /^window\.HLTV_TEAM_RANKING_SNAPSHOT = /);
+  assert.match(serialized, /"logo": "https:\/\/img-cdn\.hltv\.org\/teamlogo\//);
+  assert.match(serialized, /window\.RELATED_NEWS = /);
   assert.match(serialized, /"id": "sample"/);
   assert.match(serialized, /;\n$/);
 });

@@ -8,8 +8,9 @@ const indexHtml = await readFile(join(process.cwd(), "index.html"), "utf8");
 const runtimeSource = await readFile(join(process.cwd(), "language-runtime.js"), "utf8");
 
 test("home redesign boots from the latest app runtime", () => {
-  assert.match(indexHtml, /app\.js\?v=20260709stable6/);
-  assert.match(indexHtml, /app-overrides\.js\?v=20260709stable6/);
+  assert.match(indexHtml, /app\.js\?v=20260710interact5/);
+  assert.match(indexHtml, /app-overrides\.js\?v=20260709smooth4/);
+  assert.match(indexHtml, /home-data\.js\?v=20260710home1/);
   assert.doesNotMatch(indexHtml, /page-rescue\.js/);
   assert.match(appSource, /function buildHomeMarkup/);
   assert.match(appSource, /const HOME_FEATURED_GLOVE_LIMIT = 1;/);

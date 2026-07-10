@@ -7,6 +7,7 @@ import { DatabaseSync } from "node:sqlite";
 import { extname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
 import { runInNewContext } from "node:vm";
+import { createBrotliCompress, createGzip } from "node:zlib";
 import { generateLoadoutCandidates } from "../server/recommendation-engine.mjs";
 import { rerankLoadoutsWithAI } from "../server/openai-recommender.mjs";
 import { handleLoadoutChat } from "../server/loadout-chat.mjs";
@@ -24,6 +25,7 @@ import {
   wearLabel
 } from "../server/market-sync.mjs";
 import { PRO_LOADOUT_TEAMS } from "./ai-data.mjs";
+import { syncRelatedNews } from "./sync-related-news.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 
@@ -49,10 +51,12 @@ const marketPricesFile = join(dataDir, "market-prices.json");
 const marketPricesScriptFile = join(dataDir, "market-prices.js");
 const buffLinksFile = join(dataDir, "buff-links.json");
 const youpinLinksFile = join(dataDir, "youpin-links.json");
+const assetProxyCacheDir = join(dataDir, "asset-proxy-cache");
 const port = Number(process.env.PORT || 4173);
 const sessionCookieName = "cs2_relic_hall_session_token";
 const sessionTtlMs = 14 * 24 * 60 * 60 * 1000;
 const syncIntervalMinutes = 60;
+const relatedNewsSyncIntervalMs = Number(process.env.RELATED_NEWS_SYNC_INTERVAL_MS || 60 * 60 * 1000);
 const edgeExecutableCandidates = [
   process.env.EDGE_PATH || "",
   "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
@@ -99,6 +103,35 @@ const youpinDefaultHeaders = {
   origin: "https://www.youpin898.com",
   referer: "https://www.youpin898.com/"
 };
+
+let relatedNewsSyncInFlight = null;
+
+async function runRelatedNewsSync(reason = "manual") {
+  if (relatedNewsSyncInFlight) return relatedNewsSyncInFlight;
+  relatedNewsSyncInFlight = syncRelatedNews({ cwd: root })
+    .then((result) => {
+      console.log(`[related-news-sync] ${reason}: wrote ${result.items.length} item(s).`);
+      return result;
+    })
+    .catch((error) => {
+      console.error(`[related-news-sync] ${reason} failed:`, error?.message || error);
+      return null;
+    })
+    .finally(() => {
+      relatedNewsSyncInFlight = null;
+    });
+  return relatedNewsSyncInFlight;
+}
+
+function scheduleRelatedNewsSync() {
+  const intervalMs = Number.isFinite(relatedNewsSyncIntervalMs) && relatedNewsSyncIntervalMs > 0
+    ? relatedNewsSyncIntervalMs
+    : 60 * 60 * 1000;
+  void runRelatedNewsSync("startup");
+  setInterval(() => {
+    void runRelatedNewsSync("interval");
+  }, intervalMs).unref?.();
+}
 
 await mkdir(dataDir, { recursive: true });
 const db = new DatabaseSync(dbFile);
@@ -527,6 +560,14 @@ function corsHeaders(origin = "*") {
   };
 }
 
+function assetProxyCacheHeaders(extra = {}) {
+  return {
+    ...corsHeaders(),
+    "Cache-Control": "public, max-age=604800, immutable",
+    ...extra
+  };
+}
+
 function staticCacheHeaders(filePath, requestUrl) {
   const extension = extname(filePath).toLowerCase();
   const pathname = decodeURIComponent(requestUrl.pathname || "");
@@ -550,6 +591,39 @@ function staticCacheHeaders(filePath, requestUrl) {
   return {
     "Cache-Control": "public, max-age=31536000, immutable"
   };
+}
+
+function staticCompressionHeaders(request, extension, info) {
+  if (![".css", ".html", ".js", ".json", ".svg"].includes(extension) || Number(info?.size || 0) < 1024) {
+    return {};
+  }
+  const acceptEncoding = String(request.headers["accept-encoding"] || "");
+  if (/\bbr\b/u.test(acceptEncoding)) {
+    return {
+      "Content-Encoding": "br",
+      Vary: "Accept-Encoding"
+    };
+  }
+  if (/\bgzip\b/u.test(acceptEncoding)) {
+    return {
+      "Content-Encoding": "gzip",
+      Vary: "Accept-Encoding"
+    };
+  }
+  return {};
+}
+
+function pipeStaticFile(filePath, response, encoding) {
+  const stream = createReadStream(filePath);
+  if (encoding === "br") {
+    stream.pipe(createBrotliCompress()).pipe(response);
+    return;
+  }
+  if (encoding === "gzip") {
+    stream.pipe(createGzip()).pipe(response);
+    return;
+  }
+  stream.pipe(response);
 }
 
 function isPublicRecommendationRoute(pathname) {
@@ -2062,6 +2136,25 @@ async function handleAssetProxy(request, response) {
     json(response, 403, { ok: false, error: "Unsupported asset host." }, corsHeaders());
     return;
   }
+  const cacheKey = createHash("sha1").update(parsedTarget.toString()).digest("hex");
+  const cacheFile = join(assetProxyCacheDir, `${cacheKey}.asset`);
+  const cacheMetaFile = join(assetProxyCacheDir, `${cacheKey}.json`);
+  try {
+    const [cachedMetaRaw, cachedBody] = await Promise.all([
+      readFile(cacheMetaFile, "utf8"),
+      readFile(cacheFile)
+    ]);
+    const cachedMeta = safeJsonParse(cachedMetaRaw, {});
+    const contentType = String(cachedMeta?.contentType || "application/octet-stream");
+    response.writeHead(200, assetProxyCacheHeaders({
+      "Content-Type": contentType,
+      "X-Asset-Proxy-Cache": "HIT"
+    }));
+    response.end(cachedBody);
+    return;
+  } catch {
+    // Cache misses are expected on first load.
+  }
   try {
     const upstream = await fetch(parsedTarget, {
       headers: {
@@ -2076,12 +2169,19 @@ async function handleAssetProxy(request, response) {
     }
     const contentType = upstream.headers.get("content-type") || "application/octet-stream";
     const arrayBuffer = await upstream.arrayBuffer();
-    response.writeHead(200, {
-      ...corsHeaders(),
-      "Cache-Control": "public, max-age=86400",
-      "Content-Type": contentType
+    const body = Buffer.from(arrayBuffer);
+    await mkdir(assetProxyCacheDir, { recursive: true });
+    await Promise.all([
+      writeFile(cacheFile, body),
+      writeFile(cacheMetaFile, JSON.stringify({ contentType, source: parsedTarget.toString(), cachedAt: new Date().toISOString() }, null, 2), "utf8")
+    ]).catch((error) => {
+      console.warn("Failed to write asset proxy cache:", error?.message || error);
     });
-    response.end(Buffer.from(arrayBuffer));
+    response.writeHead(200, assetProxyCacheHeaders({
+      "Content-Type": contentType,
+      "X-Asset-Proxy-Cache": "MISS"
+    }));
+    response.end(body);
   } catch (error) {
     console.error("Failed to proxy asset:", error);
     json(response, 502, { ok: false, error: "Failed to fetch remote asset." }, corsHeaders());
@@ -2203,8 +2303,7 @@ async function routeApi(request, response, pathname) {
   return false;
 }
 
-async function serveStatic(pathname, response) {
-  const requestUrl = new URL(pathname, "http://127.0.0.1");
+async function serveStatic(request, response, requestUrl) {
   const relativePath = requestUrl.pathname === "/" ? "index.html" : requestUrl.pathname.replace(/^\/+/u, "");
   const filePath = normalize(join(root, relativePath));
   const isAllowedDataFile = relativePath === ".data/market-prices.js" || /^\.data\/catalog-locales\/[^/]+\.js$/u.test(relativePath);
@@ -2215,15 +2314,20 @@ async function serveStatic(pathname, response) {
   try {
     const info = await stat(filePath);
     if (!info.isFile()) throw new Error("Not a file");
+    const extension = extname(filePath).toLowerCase();
+    const compressionHeaders = staticCompressionHeaders(request, extension, info);
     response.writeHead(200, {
-      "Content-Type": mimeTypes[extname(filePath)] || "application/octet-stream",
-      ...staticCacheHeaders(filePath, requestUrl)
+      "Content-Type": mimeTypes[extension] || "application/octet-stream",
+      ...staticCacheHeaders(filePath, requestUrl),
+      ...compressionHeaders
     });
-    createReadStream(filePath).pipe(response);
+    pipeStaticFile(filePath, response, compressionHeaders["Content-Encoding"]);
   } catch {
     response.writeHead(404).end("Not found");
   }
 }
+
+scheduleRelatedNewsSync();
 
 createServer(async (request, response) => {
   try {
@@ -2245,7 +2349,7 @@ createServer(async (request, response) => {
     }
     const handled = await routeApi(request, response, pathname);
     if (handled) return;
-    await serveStatic(pathname, response);
+    await serveStatic(request, response, url);
   } catch (error) {
     const status = Number(error?.status) || 500;
     json(response, status, {

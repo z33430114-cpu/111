@@ -8,6 +8,9 @@ const root = join(import.meta.dirname, "..");
 
 async function loadInventorySortGroup() {
   const appSource = await readFile(join(root, "app.js"), "utf8");
+  const helperStart = appSource.indexOf("function inventoryLooksLikeWeapon(entry, resolved, text = inventoryEntryText(entry))");
+  assert.notEqual(helperStart, -1, "inventoryLooksLikeWeapon must exist");
+
   const functionStart = appSource.indexOf("function inventorySortGroup(entry)");
   assert.notEqual(functionStart, -1, "inventorySortGroup must exist");
 
@@ -33,7 +36,7 @@ async function loadInventorySortGroup() {
     function inventoryEntryText(entry) {
       return String(entry?.market_hash_name || entry?.item_name || entry?.label || "");
     }
-    ${appSource.slice(functionStart, functionEnd)}
+    ${appSource.slice(helperStart, functionEnd)}
     globalThis.inventorySortGroup = inventorySortGroup;
   `;
   const sandbox = { globalThis: {} };
@@ -41,7 +44,7 @@ async function loadInventorySortGroup() {
   return sandbox.globalThis.inventorySortGroup;
 }
 
-test("inventorySortGroup keeps ordinary weapon entries renderable", async () => {
+test("inventorySortGroup keeps ordinary weapon entries in the gun skin group", async () => {
   const inventorySortGroup = await loadInventorySortGroup();
 
   assert.equal(
@@ -49,7 +52,33 @@ test("inventorySortGroup keeps ordinary weapon entries renderable", async () => 
       market_hash_name: "AK-47 | Inheritance (Field-Tested)",
       resolved: { type: "rifle" }
     }),
-    8
+    2
+  );
+});
+
+test("inventorySortGroup places gun skins after knives and gloves", async () => {
+  const inventorySortGroup = await loadInventorySortGroup();
+
+  for (const type of ["rifle", "pistol", "smg", "shotgun", "machinegun"]) {
+    assert.equal(
+      inventorySortGroup({
+        market_hash_name: "Factory New gun skin",
+        resolved: { type }
+      }),
+      2
+    );
+  }
+});
+
+test("inventorySortGroup recognizes gun skins from text when catalog resolution fails", async () => {
+  const inventorySortGroup = await loadInventorySortGroup();
+
+  assert.equal(
+    inventorySortGroup({
+      market_hash_name: "AWP | Asiimov (Field-Tested)",
+      resolved: null
+    }),
+    2
   );
 });
 

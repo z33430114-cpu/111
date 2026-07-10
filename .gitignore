@@ -38,6 +38,8 @@ tmp/
 temp/
 *.tmp
 .tmp-edge-inspector/
+.tmp-edge-tools-profile*/
+.tmp-tools-*.png
 
 # Local runtime data
 .data/

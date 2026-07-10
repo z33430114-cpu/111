@@ -181,7 +181,13 @@ function envFile() {
 }
 
 function nginxConf() {
-  return `server {
+  return `gzip on;
+gzip_comp_level 6;
+gzip_min_length 1024;
+gzip_vary on;
+gzip_types text/plain text/css text/javascript application/javascript application/json image/svg+xml;
+
+server {
     listen 80;
     server_name ${serverName};
 

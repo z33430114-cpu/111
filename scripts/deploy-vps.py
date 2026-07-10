@@ -99,11 +99,39 @@ def main():
         exec_checked(client, "echo '%s' | sudo -S cp -rf %s/* %s/" % (PASSWORD, REMOTE_STAGING, REMOTE_ROOT))
         exec_checked(client, "echo '%s' | sudo -S cp -f %s/.data/market-prices.js %s/.data/market-prices.js" % (PASSWORD, REMOTE_STAGING, REMOTE_ROOT))
 
-        nginx_conf = """server {
+        nginx_conf = """gzip on;
+gzip_comp_level 6;
+gzip_min_length 1024;
+gzip_vary on;
+gzip_types text/plain text/css text/javascript application/javascript application/json image/svg+xml;
+
+types {
+    text/css css;
+    text/javascript js;
+    application/json json;
+    image/svg+xml svg;
+    image/webp webp;
+    image/png png;
+    image/jpeg jpg jpeg;
+    image/gif gif;
+}
+
+server {
     listen 80;
     server_name _;
     root /var/www/cs2-relic-hall;
     index index.html;
+
+    location ~* \\.(?:js|css|png|jpg|jpeg|gif|webp|svg|ico|woff2?)$ {
+        expires 30d;
+        add_header Cache-Control "public, max-age=2592000, immutable";
+        try_files $uri =404;
+    }
+
+    location ~* \\.html$ {
+        add_header Cache-Control "no-cache";
+        try_files $uri =404;
+    }
 
     location / {
         try_files $uri $uri/ /index.html;

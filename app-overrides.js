@@ -1076,6 +1076,7 @@
       Favorites: "Saved",
       Recent: "Trail",
       Unbox: "Drop Theatre",
+      Tools: "Tools",
       Account: "Pass",
       Inventory: "Vault",
       Loadout: "Curator"

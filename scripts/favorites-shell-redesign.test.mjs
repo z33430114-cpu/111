@@ -116,3 +116,8 @@ test("removeDiyDesign persists the filtered gallery and refreshes the favorites 
   ]);
   assert.equal(renderCount, 1);
 });
+
+test("favorites loading shell keeps the final hero title instead of flashing a different label", () => {
+  assert.match(appSource, /if \(!catalogDataAvailable\(\)\) \{[\s\S]*<h1 data-motion-part="title">\$\{escapeHtml\(uiText\("Favorites", "Favorites"\)\)\}<\/h1>/);
+  assert.doesNotMatch(appSource, /if \(!catalogDataAvailable\(\)\) \{[\s\S]*<h1 data-motion-part="title">\$\{escapeHtml\(uiText\("Saved", "已收藏"\)\)\}<\/h1>/);
+});

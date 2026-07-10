@@ -59,6 +59,30 @@ server {
 }
 ```
 
+For public deployment, keep HTML/API responses fresh but allow versioned static files to be cached. Enable compression at the proxy too:
+
+```nginx
+gzip on;
+gzip_comp_level 6;
+gzip_min_length 1024;
+gzip_vary on;
+gzip_types text/plain text/css text/javascript application/javascript application/json image/svg+xml;
+
+server {
+  listen 80;
+  server_name example.com;
+
+  location / {
+    proxy_pass http://127.0.0.1:4173;
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+  }
+}
+```
+
 Use Certbot or your hosting provider to enable HTTPS.
 
 ## 5. Caddy reverse proxy

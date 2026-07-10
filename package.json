@@ -9,7 +9,8 @@
 		"test:shared-navigation-language": "node scripts/check-shared-navigation-language.mjs",
 		"test:nav-runtime-localization": "node scripts/check-nav-runtime-localization.mjs",
 		"test:openings-async-refresh": "node scripts/check-openings-async-refresh.mjs",
-		"test:openings-copy-audio": "node scripts/check-openings-copy-and-audio.mjs"
+		"test:openings-copy-audio": "node scripts/check-openings-copy-and-audio.mjs",
+		"test:practical-tools": "node scripts/check-practical-tools.mjs"
 	},
 	"devDependencies": {
 		"ssh2": "^1.17.0"
