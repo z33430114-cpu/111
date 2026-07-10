@@ -1,4 +1,4 @@
-﻿  const STATE_KEY = "cs2-relic-hall:state";
+  const STATE_KEY = "cs2-relic-hall:state";
   const PAGE_MEMORY_KEY = "cs2-relic-hall:page-memory";
   const DIY_KEY = "cs2-relic-hall:diy-designs";
   const OPENING_STATE_KEY = "cs2-relic-hall:openings";
@@ -4704,43 +4704,124 @@
     if (main) main.innerHTML = buildHomeMarkup();
   }
 
-  function relatedNewsItems() {
-    const featured = featuredHomeItems(5);
+  function fallbackRelatedNewsItems() {
     return [
       {
-        label: uiText("Market Watch", "市场观察"),
+        id: "fallback-market-watch",
+        category: "market",
+        source: uiText("CS Exhibition", "CS 展馆"),
         title: uiText("Red and black loadouts are still the safest visual lane", "红黑搭配仍然是最稳的视觉路线"),
-        copy: uiText("High-contrast rifles, a restrained knife, and one dark glove slot keep the budget focused without making the set feel noisy.", "高对比步枪、克制刀具和一件暗色手套能集中预算，也不会让整套搭配显得杂乱。"),
-        item: featured[0]
+        summary: uiText("High-contrast rifles, a restrained knife, and one dark glove slot keep the budget focused without making the set feel noisy.", "高对比步枪、克制刀具和一件暗色手套能集中预算，也不会让整套搭配显得杂乱。"),
+        url: "loadout.html",
+        publishedAt: "",
+        tags: [uiText("Market", "市场"), uiText("Loadout", "搭配")]
       },
       {
-        label: uiText("Inventory Tip", "库存提示"),
+        id: "fallback-inventory-tip",
+        category: "market",
+        source: uiText("CS Exhibition", "CS 展馆"),
         title: uiText("Upgrade by slot instead of replacing the whole collection", "按槽位升级，不必整套推倒重来"),
-        copy: uiText("Start from your most-used rifle or pistol, then let the AI route fill knife, glove, and secondary slots only when budget allows.", "先从常用步枪或手枪升级，再让 AI 在预算允许时补刀、手套和副武器槽位。"),
-        item: featured[1]
+        summary: uiText("Start from your most-used rifle or pistol, then let the AI route fill knife, glove, and secondary slots only when budget allows.", "先从常用步枪或手枪升级，再让 AI 在预算允许时补刀、手套和副武器槽位。"),
+        url: "catalog.html",
+        publishedAt: "",
+        tags: [uiText("Inventory", "库存"), uiText("Upgrade", "升级")]
       },
       {
-        label: uiText("Inspection", "检视建议"),
+        id: "fallback-inspection",
+        category: "official",
+        source: uiText("CS Exhibition", "CS 展馆"),
         title: uiText("Check wear and live platform price before saving a route", "保存方案前先确认磨损和实时平台价格"),
-        copy: uiText("The inspector keeps selected wear in memory, so you can return from a route without losing the exact version you were comparing.", "检视器会记住已选磨损，返回搭配方案时不用重新选择正在对比的版本。"),
-        item: featured[2]
+        summary: uiText("The inspector keeps selected wear in memory, so you can return from a route without losing the exact version you were comparing.", "检视器会记住已选磨损，返回搭配方案时不用重新选择正在对比的版本。"),
+        url: "item.html?id=ak-inheritance",
+        publishedAt: "",
+        tags: [uiText("Inspection", "检视"), uiText("Price", "价格")]
       }
     ];
   }
 
+  function relatedNewsCategoryLabel(category) {
+    const labels = {
+      all: uiText("All", "全部"),
+      official: uiText("Official Updates", "官方更新"),
+      esports: uiText("Esports", "赛事动态"),
+      market: uiText("Skin Market", "饰品市场")
+    };
+    return labels[category] || labels.official;
+  }
+
+  function normalizeRelatedNewsEntry(entry) {
+    if (!entry || typeof entry !== "object") return null;
+    const category = ["official", "esports", "market"].includes(entry.category) ? entry.category : "official";
+    const title = String(entry.title || "").trim();
+    const summary = String(entry.summary || "").trim();
+    const source = String(entry.source || "").trim();
+    const url = String(entry.url || "").trim();
+    if (!title || !summary || !source || !url) return null;
+    const publishedAt = String(entry.publishedAt || "").trim();
+    return {
+      id: String(entry.id || `${category}-${title}`).trim(),
+      category,
+      source,
+      title,
+      summary,
+      url,
+      publishedAt: /^\d{4}-\d{2}-\d{2}$/.test(publishedAt) ? publishedAt : "",
+      image: String(entry.image || "").trim(),
+      tags: Array.isArray(entry.tags) ? entry.tags.map((tag) => String(tag || "").trim()).filter(Boolean).slice(0, 4) : []
+    };
+  }
+
+  function relatedNewsItems() {
+    const generated = Array.isArray(window.RELATED_NEWS) ? window.RELATED_NEWS.map(normalizeRelatedNewsEntry).filter(Boolean) : [];
+    const news = generated.length ? generated : fallbackRelatedNewsItems();
+    return news
+      .sort((a, b) => String(b.publishedAt || "").localeCompare(String(a.publishedAt || "")))
+      .slice(0, 30);
+  }
+
+  function relatedNewsDateLabel(entry) {
+    return entry.publishedAt || uiText("Curated note", "策展笔记");
+  }
+
+  function relatedNewsTagsMarkup(entry) {
+    if (!entry.tags?.length) return "";
+    return `<div class="related-news-tags">${entry.tags.map((tag) => `<span>${escapeHtml(tag)}</span>`).join("")}</div>`;
+  }
+
   function relatedNewsCardMarkup(entry, index) {
-    const item = entry.item;
-    const href = item ? itemHref(item) : "catalog.html";
+    const isExternal = /^https?:\/\//i.test(entry.url);
     return `
-      <article class="related-news-card">
-        <a class="related-news-visual" href="${escapeHtml(href)}">
-          ${item?.image ? lazyImageMarkup({ src: item.image, alt: itemTitle(item), loading: index === 0 ? "eager" : "lazy", decoding: "async", fetchpriority: index === 0 ? "high" : "low" }) : ""}
-        </a>
+      <article class="related-news-card" data-related-news-card="${escapeHtml(entry.category)}">
         <div class="related-news-copy">
-          <p class="eyebrow">${escapeHtml(entry.label)}</p>
+          <div class="related-news-meta">
+            <span>${escapeHtml(relatedNewsCategoryLabel(entry.category))}</span>
+            <span>${escapeHtml(entry.source)}</span>
+            <time datetime="${escapeHtml(entry.publishedAt || "")}">${escapeHtml(relatedNewsDateLabel(entry))}</time>
+          </div>
           <h2>${escapeHtml(entry.title)}</h2>
-          <p>${escapeHtml(entry.copy)}</p>
-          <a class="action-link" href="${escapeHtml(href)}">${escapeHtml(item ? uiText("Open referenced item", "查看关联饰品") : uiText("Open catalog", "打开目录"))}</a>
+          <p>${escapeHtml(entry.summary)}</p>
+          ${relatedNewsTagsMarkup(entry)}
+          <a class="action-link" href="${escapeHtml(entry.url)}"${isExternal ? ` target="_blank" rel="noopener noreferrer"` : ""}>${escapeHtml(isExternal ? uiText("Open original article", "查看原文") : uiText("Open related page", "打开相关页面"))}</a>
+        </div>
+      </article>
+    `;
+  }
+
+  function relatedNewsFeaturedMarkup(entry) {
+    if (!entry) return "";
+    const isExternal = /^https?:\/\//i.test(entry.url);
+    return `
+      <article class="related-news-featured" data-related-news-card="${escapeHtml(entry.category)}">
+        <div>
+          <p class="eyebrow">${escapeHtml(uiText("Featured Brief", "重点简报"))}</p>
+          <h2>${escapeHtml(entry.title)}</h2>
+          <p>${escapeHtml(entry.summary)}</p>
+        </div>
+        <div class="related-news-featured-meta">
+          <span>${escapeHtml(relatedNewsCategoryLabel(entry.category))}</span>
+          <strong>${escapeHtml(entry.source)}</strong>
+          <time datetime="${escapeHtml(entry.publishedAt || "")}">${escapeHtml(relatedNewsDateLabel(entry))}</time>
+          <a class="primary-action" href="${escapeHtml(entry.url)}"${isExternal ? ` target="_blank" rel="noopener noreferrer"` : ""}>${escapeHtml(isExternal ? uiText("Open original article", "查看原文") : uiText("Open related page", "打开相关页面"))}</a>
         </div>
       </article>
     `;
@@ -4751,26 +4832,34 @@
     if (!main) return;
     document.body.classList.remove("home-exhibition-page", "halls-directory-page", "is-inspector-page");
     const news = relatedNewsItems();
+    const featured = news.find((entry) => entry.category === "official" || entry.category === "market") || news[0];
+    const cardNews = news.filter((entry) => entry !== featured);
+    const filters = ["all", "official", "esports", "market"];
     main.innerHTML = `
       <section class="related-news-page">
         <section class="related-news-hero page-intro" data-motion-intro>
           <p class="eyebrow" data-motion-part="eyebrow">${escapeHtml(uiText("Related News", "相关资讯"))}</p>
-          <h1 data-motion-part="title">${escapeHtml(uiText("Related News", "相关资讯"))}</h1>
-          <p data-motion-part="copy">${escapeHtml(uiText("Market notes, loadout ideas, and inspection tips that match the exhibition style.", "与本站风格一致的市场观察、搭配灵感和检视提示。"))}</p>
+          <h1 data-motion-part="title">${escapeHtml(uiText("CS Intelligence Desk", "CS 情报台"))}</h1>
+          <p data-motion-part="copy">${escapeHtml(uiText("Official updates, competitive Counter-Strike, and skin-market signals for collectors and loadout builders.", "汇集官方更新、赛事动态和饰品市场信号，服务收藏、检视与搭配决策。"))}</p>
         </section>
+        ${relatedNewsFeaturedMarkup(featured)}
+        <div class="related-news-filter-bar" role="toolbar" aria-label="${escapeHtml(uiText("News filters", "资讯筛选"))}">
+          ${filters.map((filter, index) => `<button type="button" class="secondary-action compact-action${index === 0 ? " is-active" : ""}" data-related-news-filter="${escapeHtml(filter)}" aria-pressed="${index === 0 ? "true" : "false"}">${escapeHtml(relatedNewsCategoryLabel(filter))}</button>`).join("")}
+        </div>
         <section class="related-news-grid">
-          ${news.map(relatedNewsCardMarkup).join("")}
+          ${cardNews.map(relatedNewsCardMarkup).join("")}
         </section>
         <section class="related-news-brief">
           <div>
             <span>${escapeHtml(uiText("AI Loadout", "AI 搭配"))}</span>
-            <strong>${escapeHtml(uiText("Need a route from these notes?", "想根据这些资讯生成搭配？"))}</strong>
+            <strong>${escapeHtml(uiText("Turn news context into a loadout route", "把资讯线索转成搭配路线"))}</strong>
           </div>
           <a class="primary-action" href="loadout.html">${escapeHtml(uiText("Open Loadout Studio", "打开饰品搭配"))}</a>
         </section>
       </section>
     `;
   }
+
 
   function scheduleUiTask(callback, { afterFrames = 1, fallbackMs = 24 } = {}) {
     const frameCount = Math.max(1, Number(afterFrames) || 1);
@@ -8988,6 +9077,22 @@
           persistAiLoadoutState();
           if (pageName() === "loadout.html") renderLoadout();
         }
+        return;
+      }
+      const relatedNewsFilter = target.closest("[data-related-news-filter]");
+      if (relatedNewsFilter instanceof HTMLElement) {
+        event.preventDefault();
+        const filter = relatedNewsFilter.dataset.relatedNewsFilter || "all";
+        document.querySelectorAll("[data-related-news-filter]").forEach((entry) => {
+          const isActive = entry === relatedNewsFilter;
+          entry.classList.toggle("is-active", isActive);
+          entry.setAttribute("aria-pressed", isActive ? "true" : "false");
+        });
+        document.querySelectorAll("[data-related-news-card]").forEach((card) => {
+          if (!(card instanceof HTMLElement)) return;
+          const visible = filter === "all" || card.dataset.relatedNewsCard === filter;
+          card.hidden = !visible;
+        });
         return;
       }
       if (target.id === "clearAiLoadoutChatButton") {
