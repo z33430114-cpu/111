@@ -54,8 +54,11 @@ function connect() {
     const client = new SshClient();
     client
       .on("ready", () => resolve(client))
+      .on("keyboard-interactive", (_name, _instructions, _lang, prompts, finish) => {
+        finish(prompts.map(() => password));
+      })
       .on("error", reject)
-      .connect({ host, port, username, password, readyTimeout: 20000 });
+      .connect({ host, port, username, password, tryKeyboard: true, readyTimeout: 20000 });
   });
 }
 
