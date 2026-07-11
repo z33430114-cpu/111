@@ -256,6 +256,7 @@
     aiInventoryLoading: false,
     aiInventoryPriceSnapshotLoadedAt: 0,
     aiInventoryPriceSnapshotRefreshing: false,
+    aiInventoryUpgradeRotating: false,
     aiInventoryUpgradeGroupIndex: 0,
     aiProLoadouts: null,
     aiProLoadoutsLoading: false,
@@ -266,6 +267,7 @@
     aiLoadoutChatRequestToken: 0,
     aiLoadoutChatDraft: "",
     aiLoadoutBudgetDraft: "",
+    aiLoadoutSlotPage: 0,
     aiLoadoutPreset: "auto",
     aiLoadoutColorFilter: "",
     aiLoadoutStyleFilter: "",
@@ -974,11 +976,12 @@
   function curatorImageMarkup({ src = "", alt = "", loading = "lazy", className = "", id = "" } = {}) {
     const label = String(alt || "?").split("|")[0].trim().slice(0, 12) || "?";
     const fallback = `<span class="curator-image-fallback" hidden>${escapeHtml(label)}</span>`;
-    if (!String(src || "").trim()) return fallback;
+    const safeSrc = loadoutImageUrl(src);
+    if (!safeSrc) return fallback;
     const attributes = [
       id ? `id="${escapeHtml(id)}"` : "",
       className ? `class="${escapeHtml(className)}"` : "",
-      `src="${escapeHtml(String(src).trim())}"`,
+      `src="${escapeHtml(safeSrc)}"`,
       `alt="${escapeHtml(alt)}"`,
       `loading="${escapeHtml(loading)}"`,
       `decoding="async"`,
@@ -986,6 +989,18 @@
       `onerror="this.onerror=null;this.hidden=true;this.nextElementSibling.hidden=false;"`
     ].filter(Boolean);
     return `<img ${attributes.join(" ")} />${fallback}`;
+  }
+
+  function loadoutImageUrl(value = "") {
+    const raw = String(value || "").trim();
+    if (!raw) return "";
+    try {
+      const url = new URL(raw);
+      if (!/(^|\.)steamstatic\.com$/i.test(url.hostname)) return raw;
+      return localApiUrl(`/api/asset-proxy?url=${encodeURIComponent(url.toString())}`);
+    } catch {
+      return raw;
+    }
   }
 
   function loadLazyImage(node) {
@@ -2103,6 +2118,7 @@
       : [];
     appState.aiLoadoutChatDraft = String(parsed.aiLoadoutChatDraft || "");
     appState.aiLoadoutBudgetDraft = String(parsed.aiLoadoutBudgetDraft || "");
+    appState.aiLoadoutSlotPage = Math.max(0, Number(parsed.aiLoadoutSlotPage) || 0);
     appState.aiLoadoutPreset = String(parsed.aiLoadoutPreset || "auto") || "auto";
     appState.aiLoadoutColorFilter = String(parsed.aiLoadoutColorFilter || "");
     appState.aiLoadoutStyleFilter = String(parsed.aiLoadoutStyleFilter || "");
@@ -2143,6 +2159,7 @@
       })).filter((entry) => entry.content).slice(-24),
       aiLoadoutChatDraft: String(appState.aiLoadoutChatDraft || ""),
       aiLoadoutBudgetDraft: String(appState.aiLoadoutBudgetDraft || ""),
+      aiLoadoutSlotPage: Math.max(0, Number(appState.aiLoadoutSlotPage) || 0),
       aiLoadoutPreset: String(appState.aiLoadoutPreset || "auto") || "auto",
       aiLoadoutColorFilter: String(appState.aiLoadoutColorFilter || ""),
       aiLoadoutStyleFilter: String(appState.aiLoadoutStyleFilter || ""),
@@ -7189,10 +7206,17 @@
   }
 
   async function rotateAiInventoryUpgradeGroup() {
+    if (appState.aiInventoryUpgradeRotating) return;
+    appState.aiInventoryUpgradeRotating = true;
     appState.aiInventoryUpgradeGroupIndex = Math.max(0, Number(appState.aiInventoryUpgradeGroupIndex) || 0) + 1;
     appState.aiInventoryRecommendations = null;
-    await ensureAiInventoryRecommendations(true);
     if (pageName() === "loadout.html") renderLoadout();
+    try {
+      await ensureAiInventoryRecommendations(true);
+    } finally {
+      appState.aiInventoryUpgradeRotating = false;
+      if (pageName() === "loadout.html") renderLoadout();
+    }
   }
 
   async function ensureAiProLoadouts(force = false) {
@@ -7328,7 +7352,7 @@
             ],
             excludeSlots: preferences.excludeSlots || [],
             preferredWears: preferences.preferredWears || [],
-            budgetMode: preferences.budgetMode || "maximize",
+            budgetMode: "maximize",
             preferredItems,
             filterOverrides
           },
@@ -7341,7 +7365,7 @@
           ].filter((slot) => !(preferences.avoidKnifeGloves && ["knife", "glove"].includes(slot))),
           excludeSlots: preferences.excludeSlots || [],
           preferredWears: preferences.preferredWears || [],
-          budgetMode: preferences.budgetMode || "maximize",
+          budgetMode: "maximize",
           preferredItems,
           extraWeapons: []
         })
@@ -7525,7 +7549,7 @@
     const href = item ? `item.html?id=${encodeURIComponent(item.id)}&wear=${encodeURIComponent(entry.wearId || "")}` : "";
     const displayName = item ? itemTitle(item) : localizedCatalogDisplayName(entry?.name || "", entry?.weapon || "");
     const displayMeta = item ? itemWeapon(item) : localizedWeaponName(entry?.weapon || categoryLabel(entry.type || ""));
-    const imageUrl = String(item?.image || entry?.image || resolveCatalogImageForSuggestion(entry) || "").trim();
+    const imageUrl = loadoutImageUrl(item?.image || entry?.image || resolveCatalogImageForSuggestion(entry));
     const upgradeMeta = entry?.sourceName && Number(entry?.sourcePrice) > 0
       ? `<div class="ai-upgrade-price-row"><span>${escapeHtml(uiText("Current", "当前"))}: ${escapeHtml(formatPrice(entry.sourcePrice))}</span><span>${escapeHtml(uiText("Upgrade", "升级"))}: ${escapeHtml(formatPrice(entry.price))}</span><span>${escapeHtml(uiText("More", "更多"))}: ${escapeHtml(formatPrice(entry.upgradeDelta))}</span></div>`
       : "";
@@ -7752,7 +7776,7 @@
       ? resolveDisplayItemById(entry.itemId)
       : resolveDisplayItemByName(entry.name || "");
     const href = item ? itemHref(item) : "";
-    const imageUrl = String(item?.image || entry?.image || "").trim();
+    const imageUrl = loadoutImageUrl(item?.image || entry?.image);
     return `
       <article class="ai-suggestion-card${href ? " ai-suggestion-card-clickable" : ""}"${href ? ` data-href="${escapeHtml(href)}" tabindex="0" role="link"` : ""}>
         ${imageUrl ? lazyImageMarkup({ src: imageUrl, alt: item ? itemTitle(item) : localizedCatalogDisplayName(entry.name || "", ""), loading: "eager", decoding: "async", fetchpriority: "low" }) : ""}
@@ -7854,7 +7878,7 @@
             <h2>${escapeHtml(uiText("Upgrade Runway", "升级展轨"))}</h2>
           </div>
           <div class="curator-runway-actions">
-            <button class="secondary-action compact-action" id="rotateAiInventoryUpgradeGroupButton" type="button">${escapeHtml(uiText("Another set", LOADOUT_ZH.anotherSet))}</button>
+            <button class="secondary-action compact-action" id="rotateAiInventoryUpgradeGroupButton" type="button"${appState.aiInventoryUpgradeRotating ? " disabled" : ""}>${escapeHtml(appState.aiInventoryUpgradeRotating ? uiText("Updating the recommendation...", LOADOUT_ZH.updating) : uiText("Another set", LOADOUT_ZH.anotherSet))}</button>
             <button class="secondary-action compact-action" id="refreshAiInventoryRecommendationsButton" type="button"${appState.aiInventoryPriceSnapshotRefreshing ? " disabled" : ""}>${escapeHtml(appState.aiInventoryPriceSnapshotRefreshing ? uiText("Refreshing...", LOADOUT_ZH.refreshing) : uiText("Refresh data", LOADOUT_ZH.refresh))}</button>
           </div>
         </div>
@@ -7896,13 +7920,13 @@
   }
 
   function aiLoadoutFilterBarMarkup() {
-    const preset = appState.aiLoadoutPreset || "auto";
+    const budget = appState.aiLoadoutBudgetDraft || "";
     const color = appState.aiLoadoutColorFilter || "";
     const style = appState.aiLoadoutStyleFilter || "";
     const option = (value, label, selected) => `<option value="${escapeHtml(value)}"${value === selected ? " selected" : ""}>${escapeHtml(label)}</option>`;
     return `
       <div class="ai-loadout-filters">
-        <label>${escapeHtml(uiText("Budget logic", "\u9884\u7B97\u903B\u8F91"))}<select id="aiLoadoutPresetSelect">${option("auto", uiText("Auto by budget", "\u6309\u9884\u7B97\u81EA\u52A8"), preset)}${option("premium", uiText("3000+: gloves + knife + core guns", "3000+\uFF1A\u624B\u5957+\u5200+\u6838\u5FC3\u67AA"), preset)}${option("mid", uiText("800-3000: knife + core guns", "800-3000\uFF1A\u5200+\u6838\u5FC3\u67AA"), preset)}${option("guns", uiText("Under 800: guns only", "800\u4EE5\u4E0B\uFF1A\u53EA\u8981\u67AA"), preset)}</select></label>
+        <label>${escapeHtml(uiText("Budget (CNY)", "\u9884\u7B97\uFF08\u4EBA\u6C11\u5E01\uFF09"))}<input id="aiLoadoutBudgetInput" type="number" min="0" step="50" value="${escapeHtml(String(budget))}" placeholder="1500" /></label>
         <label>${escapeHtml(uiText("Color", "\u989C\u8272"))}<select id="aiLoadoutColorSelect">${option("", uiText("Any color", "不限颜色"), color)}${option("black", uiText("Black / dark", "\u9ED1\u8272 / \u6697\u9ED1"), color)}${option("white", uiText("White / clean", "\u767D\u8272 / \u5E72\u51C0"), color)}${option("red", uiText("Red / red-black", "\u7EA2\u8272 / \u7EA2\u9ED1"), color)}${option("blue", uiText("Blue / blue-white", "\u84DD\u8272 / \u84DD\u767D"), color)}${option("green", uiText("Green", "\u7EFF\u8272"), color)}${option("purple", uiText("Purple / pink", "\u7D2B\u8272 / \u7C89\u8272"), color)}${option("gold", uiText("Gold / luxury", "\u91D1\u8272 / \u5962\u534E"), color)}</select></label>
         <label>${escapeHtml(uiText("Style", "\u98CE\u683C"))}<select id="aiLoadoutStyleSelect">${option("", uiText("No extra style", "\u4E0D\u989D\u5916\u9650\u5B9A"), style)}${option("clean", uiText("Clean", "\u5E72\u51C0"), style)}${option("understated", uiText("Subtle", "\u4F4E\u8C03\u8010\u770B"), style)}${option("luxury", uiText("Premium", "\u9AD8\u7EA7\u8D28\u611F"), style)}${option("tactical", uiText("Tactical", "\u6218\u672F\u6697\u9ED1"), style)}${option("aggressive", uiText("Aggressive", "\u5F20\u626C\u4FB5\u7565"), style)}${option("neon", uiText("Neon / cyber", "\u9713\u8679\u8D5B\u535A"), style)}</select></label>
         <div class="ai-loadout-filter-summary">${escapeHtml(aiLoadoutFilterText() || uiText("Choose slots by budget and style.", "按预算和风格筛选搭配槽位。"))}</div>
@@ -8050,11 +8074,13 @@
   }
 
   function loadoutInventoryItemAllowedForWorkbench(entry = {}) {
-    const item = inventoryInspectorTarget(entry);
-    if (item?.type === "knife" || item?.type === "glove") return true;
-    const weapon = String(itemWeapon(item) || inventorySecondaryMeta(entry) || inventoryDisplayName(entry) || "").trim().toLowerCase();
-    if (LOADOUT_INVENTORY_BLOCKED_WEAPONS.test(weapon)) return false;
-    return [...LOADOUT_INVENTORY_ALLOWED_WEAPONS].some((allowed) => weapon.includes(allowed.toLowerCase()));
+    return [0, 1, 2].includes(inventorySortGroup(entry));
+  }
+
+  function inventoryCandidateOwnershipKey(candidate = {}) {
+    const id = String(candidate?.id || "").trim();
+    const name = normalizeLoadoutName(candidate?.name || candidate?.item?.nameEn || "");
+    return id && name ? `${id}::${name}` : "";
   }
 
   function curatedFallbackCatalogCandidates(limit = 18) {
@@ -8093,18 +8119,17 @@
     };
     const syncedInventoryCandidates = getSortedInventoryEntries()
       .filter(loadoutInventoryItemAllowedForWorkbench)
-      .slice(0, 24)
       .map(curatorCandidateFromInventory)
       .filter(Boolean);
     const inventoryCandidates = [
       ...(Array.isArray(inventoryPayload?.suggestions) ? inventoryPayload.suggestions.slice(0, 36).map((entry) => curatorCandidateFromSuggestion(entry, "upgrade")) : []),
       ...syncedInventoryCandidates
     ].filter(Boolean);
-    const ownedIds = new Set(syncedInventoryCandidates.map((entry) => entry.id).filter(Boolean));
+    const inventoryOwnershipKeys = new Set(syncedInventoryCandidates.map(inventoryCandidateOwnershipKey).filter(Boolean));
     const recommendationCandidates = [
       ...(Array.isArray(payload?.suggestions) ? payload.suggestions.map((entry) => curatorCandidateFromSuggestion(entry, "ai")) : []),
       ...curatedFallbackCatalogCandidates()
-    ].filter(Boolean).map((entry) => ({ ...entry, owned: Boolean(entry.id && ownedIds.has(entry.id)) }));
+    ].filter(Boolean).map((entry) => ({ ...entry, owned: inventoryOwnershipKeys.has(inventoryCandidateOwnershipKey(entry)) }));
     const candidates = [...recommendationCandidates, ...inventoryCandidates]
       .map(addUnique)
       .filter(Boolean)
@@ -8231,6 +8256,9 @@
   function curatorSlotRailMarkup(candidates = loadoutWorkbenchCandidates()) {
     const selected = selectedCuratorLoadoutItems(candidates);
     const slots = ["knife", "glove", "rifle", "rifle", "rifle", "pistol", "pistol", "smg", "shotgun", "machinegun", "sticker", "agent"];
+    const slotPageSize = 4;
+    const pageCount = Math.ceil(slots.length / slotPageSize);
+    const page = Math.min(Math.max(0, Number(appState.aiLoadoutSlotPage) || 0), Math.max(0, pageCount - 1));
     const used = new Set();
     const slotItems = slots.map((slot) => {
       const match = selected.find((entry) => !used.has(entry.key) && (entry.type === slot || entry.group === slot || (slot === "rifle" && !["knife", "glove", "pistol", "smg"].includes(entry.type))));
@@ -8247,11 +8275,11 @@
           <span>${escapeHtml(String(selected.length))}/12</span>
         </div>
         <div class="curator-slot-list">
-          ${slotItems.map(({ slot, item }, index) => `
+          ${slotItems.slice(page * slotPageSize, (page + 1) * slotPageSize).map(({ slot, item }, index) => `
             <article class="curator-slot-card${item ? " is-filled" : ""}">
               <span class="curator-slot-code">${escapeHtml(curatorSlotLabel(slot))}</span>
               <div class="curator-slot-visual">
-                ${item?.image ? curatorImageMarkup({ src: item.image, alt: item.name, loading: "eager" }) : `<a class="curator-slot-add" href="catalog.html?from=loadout" aria-label="${escapeHtml(uiText("Choose from catalog", "从目录选择饰品"))}">${escapeHtml(String(index + 1).padStart(2, "0"))}</a>`}
+                ${item?.image ? curatorImageMarkup({ src: loadoutImageUrl(item.image), alt: item.name, loading: "eager" }) : `<a class="curator-slot-add" href="catalog.html?from=loadout" aria-label="${escapeHtml(uiText("Choose from catalog", "从目录选择饰品"))}">${escapeHtml(String(page * slotPageSize + index + 1).padStart(2, "0"))}</a>`}
               </div>
               <div class="curator-slot-copy">
                 <p>${escapeHtml(item?.meta || uiText("Empty slot", "空槽位"))}</p>
@@ -8260,6 +8288,9 @@
               </div>
             </article>
           `).join("")}
+        </div>
+        <div class="curator-slot-pagination" aria-label="${escapeHtml(uiText("Loadout pages", "搭配分页"))}">
+          ${Array.from({ length: pageCount }, (_, index) => `<button type="button" class="${index === page ? "is-active" : ""}" data-curator-slot-page="${index}" aria-label="${escapeHtml(uiTemplate("Loadout page {page}", { page: index + 1 }))}" aria-current="${index === page ? "page" : "false"}">${index + 1}</button>`).join("")}
         </div>
       </section>
     `;
@@ -8270,7 +8301,7 @@
     return `
       <article class="curator-inventory-card${isSelected ? " is-selected" : ""}${candidate.href ? " ai-suggestion-card-clickable" : ""}"${candidate.href ? ` data-href="${escapeHtml(candidate.href)}" tabindex="0" role="link"` : ""}>
         <div class="curator-inventory-card-visual">
-          ${curatorImageMarkup({ src: candidate.image, alt: candidate.name, loading: "lazy" })}
+          ${curatorImageMarkup({ src: loadoutImageUrl(candidate.image), alt: candidate.name, loading: "lazy" })}
         </div>
         <p>${escapeHtml(candidate.meta)}</p>
         <h3>${escapeHtml(candidate.name)}</h3>
@@ -8289,9 +8320,7 @@
       ? filterVisibleCandidates
       : filterVisibleCandidates.filter((entry) => aiSuggestionCategoryForEntry({ ...entry, type: entry.type, group: entry.group }) === activeCategory);
     const groups = visible.reduce((acc, candidate) => {
-      const group = candidate.source === "inventory"
-        ? "inventory"
-        : aiSuggestionCategoryForEntry({ ...candidate, type: candidate.type, group: candidate.group });
+      const group = aiSuggestionCategoryForEntry({ ...candidate, type: candidate.type, group: candidate.group });
       if (!acc[group]) acc[group] = [];
       acc[group].push(candidate);
       return acc;
@@ -8346,7 +8375,7 @@
           ${selected.map((entry, index) => `
             <article class="curator-stack-card">
               <span class="curator-stack-index">${escapeHtml(String(index + 1).padStart(2, "0"))}</span>
-              <div class="curator-stack-image">${curatorImageMarkup({ src: entry.image, alt: entry.name, loading: "lazy" })}</div>
+              <div class="curator-stack-image">${curatorImageMarkup({ src: loadoutImageUrl(entry.image), alt: entry.name, loading: "lazy" })}</div>
               <div class="curator-stack-copy">
                 <span>${escapeHtml(entry.meta)}</span>
                 <strong>${escapeHtml(entry.name)}</strong>
@@ -8556,10 +8585,6 @@
             ` : appState.aiLoadoutChatPending ? `<div class="empty-state">${escapeHtml(uiText("Updating the recommendation...", LOADOUT_ZH.updating))}</div>` : `<div class="empty-state">${escapeHtml(uiText("Tell the curator your budget, style, and favorite weapons.", "告诉顾问你的预算、风格和常用武器。"))}</div>`}
           </div>
           <form class="ai-chat-form curator-command-form" id="aiLoadoutChatForm">
-            <label>
-              ${escapeHtml(uiText("Budget (CNY)", "\u9884\u7b97\uff08\u4eba\u6c11\u5e01\uff09"))}
-              <input id="aiLoadoutBudgetInput" type="number" min="0" step="50" value="${escapeHtml(String(appState.aiLoadoutBudgetDraft || ""))}" placeholder="1500" />
-            </label>
             <label>
               ${escapeHtml(uiText("What do you want?", LOADOUT_ZH.askWhat))}
               <textarea id="aiLoadoutPromptInput" rows="3" placeholder="${escapeHtml(uiText("Example: red-black, restrained, knife + AK focus, no flashy gloves", "示例：红黑、克制、刀和 AK 为主、不想要太花的手套"))}">${escapeHtml(appState.aiLoadoutChatDraft || "")}</textarea>
@@ -8809,6 +8834,27 @@
     return `${String(itemId || "").trim()}::${String(variantId || "standard").trim()}::${String(wearId || "").trim()}`;
   }
 
+  function syncInspectorSelectionParams({ wearId, variantId, templateId } = {}) {
+    const params = new URLSearchParams(location.search);
+    if (Object.prototype.hasOwnProperty.call(arguments[0] || {}, "wearId")) {
+      const nextWearId = String(wearId || "").trim();
+      if (nextWearId) params.set("wear", nextWearId);
+      else params.delete("wear");
+    }
+    if (Object.prototype.hasOwnProperty.call(arguments[0] || {}, "variantId")) {
+      const nextVariantId = String(variantId || "").trim();
+      if (nextVariantId) params.set("variant", nextVariantId);
+      else params.delete("variant");
+    }
+    if (Object.prototype.hasOwnProperty.call(arguments[0] || {}, "templateId")) {
+      const nextTemplateId = String(templateId || "").trim();
+      if (nextTemplateId) params.set("template", nextTemplateId);
+      else params.delete("template");
+    }
+    const query = params.toString();
+    history.replaceState({}, "", `${location.pathname}${query ? `?${query}` : ""}`);
+  }
+
   function setCatalogPriceOverrides(payload) {
     appState.catalogPriceOverrides = payload?.items && typeof payload.items === "object" ? payload.items : {};
     appState.catalogPriceOverridesLoaded = true;
@@ -8869,11 +8915,29 @@
     persistPriceCaches();
   }
 
+  function livePricePayloadHasPlatformQuote(payload) {
+    return Object.values(payload?.platforms || {}).some((platform) => {
+      const price = Number(platform?.price);
+      return Number.isFinite(price) && price > 0;
+    });
+  }
+
+  function livePricePayloadHasReferenceQuote(payload) {
+    const price = Number(payload?.referencePrice);
+    const source = String(payload?.referenceSourceKey || "").trim();
+    return Number.isFinite(price) && price > 0 && source && source !== "reference";
+  }
+
+  function livePricePayloadNeedsRefresh(payload) {
+    if (!payload) return true;
+    if (livePricePayloadHasPlatformQuote(payload)) return false;
+    if (payload.ok === true && livePricePayloadHasReferenceQuote(payload)) return false;
+    return true;
+  }
+
   function cacheLivePricePayload(payload) {
     if (!payload?.id) return;
-    const youpinStatus = String(payload?.platforms?.youpin?.status || "");
-    const youpinPrice = Number(payload?.platforms?.youpin?.price);
-    if ((youpinStatus === "error" || youpinStatus === "unavailable") && !(Number.isFinite(youpinPrice) && youpinPrice > 0)) return;
+    if (!livePricePayloadHasPlatformQuote(payload) && !livePricePayloadHasReferenceQuote(payload)) return;
     appState.livePrices = {
       ...appState.livePrices,
       [livePriceKey(payload.id, payload.wearId, payload.variantId)]: payload
@@ -9072,7 +9136,7 @@
   async function loadPlatformPrices(item, wearId = "", variantId = "standard") {
     if (!item?.id) return null;
     const key = livePriceKey(item.id, wearId, variantId);
-    if (appState.livePrices[key]) return appState.livePrices[key];
+    if (appState.livePrices[key] && !livePricePayloadNeedsRefresh(appState.livePrices[key])) return appState.livePrices[key];
     if (appState.livePriceRequests[key]) return appState.livePriceRequests[key];
     try {
       const params = new URLSearchParams();
@@ -9570,7 +9634,31 @@
     return { sales, feeRate, addCash, target, gross, fees, net, gap: target > 0 ? target - net : 0, coverage: target > 0 ? Math.min(100, Math.round((net / target) * 100)) : 0 };
   }
 
-  function purchaseCostCalculatorMarkup(result) {
+  function purchaseDecision(result) {
+    if (!result.listed || !result.budget) return { tone: "neutral", title: uiText("Add a price and a budget", "填入标价和预算"), detail: uiText("Then compare the real cost.", "即可比较真实到手价。") };
+    if (result.delta >= 0) return { tone: "ready", title: uiText("Within budget", "预算内，可以考虑下单"), detail: uiTemplate(uiText("You still have {amount} left.", "还可留出 {amount}。"), { amount: formatPrice(result.delta) }) };
+    return { tone: "wait", title: uiText("Over budget", "超出预算，建议等待或议价"), detail: uiTemplate(uiText("Lower the listed price by {amount}.", "还需压低 {amount}。"), { amount: formatPrice(Math.abs(result.delta)) }) };
+  }
+
+  function wishlistDecision(result) {
+    const sorted = [...result.entries].sort((left, right) => left.amount - right.amount);
+    const nextItem = sorted.find((entry) => entry.amount > result.saved) || sorted[0] || null;
+    if (!nextItem) return { tone: "neutral", title: uiText("Add your first target", "添加第一件目标"), detail: uiText("One item and its price per line.", "每行填写一件饰品和价格。"), nextItem: null };
+    const gap = Math.max(0, nextItem.amount - result.saved);
+    return { tone: gap === 0 ? "ready" : "plan", title: gap === 0 ? uiText("Ready for the next item", "下一件已经够预算") : uiText("Save for the next item", "先攒下一件"), detail: uiTemplate(uiText("{name}: {amount}", "{name}：还差 {amount}"), { name: nextItem.name || uiText("Next item", "下一件"), amount: formatPrice(gap) }), nextItem };
+  }
+
+  function tradeDecision(result) {
+    if (!result.target) return { tone: "neutral", title: uiText("Set an upgrade target", "先填写换购目标"), detail: uiText("We will calculate the cash gap.", "系统会计算需要补的差额。") };
+    if (result.gap <= 0) return { tone: "ready", title: uiText("Ready to upgrade", "资金已覆盖目标"), detail: uiTemplate(uiText("You have {amount} to spare.", "还能余下 {amount}。"), { amount: formatPrice(Math.abs(result.gap)) }) };
+    return { tone: "wait", title: uiText("More funds needed", "仍需补足资金"), detail: uiTemplate(uiText("You still need {amount}.", "还差 {amount}。"), { amount: formatPrice(result.gap) }) };
+  }
+
+  function toolDecisionMarkup(decision) {
+    return `<div class="tool-decision tool-decision--${escapeHtml(decision.tone)}" aria-live="polite"><strong>${escapeHtml(decision.title)}</strong><span>${escapeHtml(decision.detail)}</span></div>`;
+  }
+
+  function purchaseCostCalculatorMarkup(result, decision) {
     return `
       <section class="tool-panel">
         <div class="tool-panel-head"><div><p class="eyebrow">${escapeHtml(uiText("Real Cost", "到手价"))}</p><h2>${escapeHtml(uiText("Calculate the real price before buying", "下单前算清实际到手价"))}</h2></div><strong>${escapeHtml(formatPrice(result.finalCost))}</strong></div>
@@ -9579,8 +9667,9 @@
           <label><span>${escapeHtml(uiText("Fee %", "手续费 %"))}</span><input id="toolsPurchaseFee" type="number" min="0" step="0.1" value="${escapeHtml(appState.practicalToolsFeeRateDraft)}" /></label>
           <label><span>${escapeHtml(uiText("Discount", "优惠/砍价"))}</span><input id="toolsPurchaseDiscount" type="number" min="0" step="1" value="${escapeHtml(appState.practicalToolsDiscountDraft)}" /></label>
           <label><span>${escapeHtml(uiText("Budget", "预算上限"))}</span><input id="toolsPurchaseBudget" type="number" min="0" step="1" value="${escapeHtml(appState.practicalToolsTargetBudgetDraft)}" /></label>
-          <button class="primary-action" type="submit">${escapeHtml(uiText("Calculate", "计算"))}</button>
+          <div class="tool-panel-actions"><button class="primary-action" type="submit">${escapeHtml(uiText("Calculate", "计算"))}</button><button class="secondary-action" id="toolsPurchaseExample" data-tools-example="purchase" type="button">${escapeHtml(uiText("Use example", "填充示例"))}</button></div>
         </form>
+        ${toolDecisionMarkup(decision)}
         <div class="tool-breakdown-grid">
           <div><span>${escapeHtml(uiText("Platform fee", "平台手续费"))}</span><strong>${escapeHtml(formatPrice(result.fee))}</strong></div>
           <div><span>${escapeHtml(uiText("After discount", "扣优惠后"))}</span><strong>${escapeHtml(formatPrice(result.finalCost))}</strong></div>
@@ -9590,7 +9679,7 @@
       </section>`;
   }
 
-  function wishlistBudgetMarkup(result) {
+  function wishlistBudgetMarkup(result, decision) {
     const rows = result.sorted.map((entry, index) => `<tr><td>${escapeHtml(entry.name || uiTemplate("Item {count}", { count: index + 1 }))}</td><td>${escapeHtml(formatPrice(entry.amount))}</td></tr>`).join("");
     return `
       <section class="tool-panel">
@@ -9599,14 +9688,15 @@
           <label><span>${escapeHtml(uiText("Wishlist", "愿望清单"))}</span><textarea id="toolsWishlistText" rows="5" placeholder="AK Redline 320\nM4 Printstream 980">${escapeHtml(appState.practicalToolsWishlistText)}</textarea></label>
           <label><span>${escapeHtml(uiText("Saved cash", "已有预算"))}</span><input id="toolsWishlistSaved" type="number" min="0" step="1" value="${escapeHtml(appState.practicalToolsSavedDraft)}" /></label>
           <label><span>${escapeHtml(uiText("Monthly saving", "每月可攒"))}</span><input id="toolsWishlistMonthly" type="number" min="0" step="1" value="${escapeHtml(appState.practicalToolsMonthlyDraft)}" /></label>
-          <button class="primary-action" type="submit">${escapeHtml(uiText("Update", "更新"))}</button>
+          <div class="tool-panel-actions"><button class="primary-action" type="submit">${escapeHtml(uiText("Update", "更新"))}</button><button class="secondary-action" id="toolsWishlistExample" data-tools-example="wishlist" type="button">${escapeHtml(uiText("Use example", "填充示例"))}</button></div>
         </form>
+        ${toolDecisionMarkup(decision)}
         <div class="tool-breakdown-grid"><div><span>${escapeHtml(uiText("Total target", "目标总价"))}</span><strong>${escapeHtml(formatPrice(result.total))}</strong></div><div><span>${escapeHtml(uiText("Still needed", "还差"))}</span><strong>${escapeHtml(formatPrice(result.remaining))}</strong></div><div><span>${escapeHtml(uiText("Months", "预计月份"))}</span><strong>${escapeHtml(result.months === null ? uiText("Set monthly", "填每月预算") : String(result.months))}</strong></div></div>
         ${result.sorted.length ? `<table class="wishlist-table"><tbody>${rows}</tbody></table>` : `<div class="empty-state">${escapeHtml(uiText("Add one item per line with a price, for example AK Redline 320.", "每行输入一个想买的饰品和价格，例如 AK Redline 320。"))}</div>`}
       </section>`;
   }
 
-  function tradeUpCalculatorMarkup(result) {
+  function tradeUpCalculatorMarkup(result, decision) {
     return `
       <section class="tool-panel">
         <div class="tool-panel-head"><div><p class="eyebrow">${escapeHtml(uiText("Sell and Upgrade", "卖出换购"))}</p><h2>${escapeHtml(uiText("Know the real upgrade budget", "算清卖出后能换哪一档"))}</h2></div><strong>${escapeHtml(formatPrice(result.net))}</strong></div>
@@ -9615,8 +9705,9 @@
           <label><span>${escapeHtml(uiText("Sale fee %", "卖出手续费 %"))}</span><input id="toolsTradeFee" type="number" min="0" step="0.1" value="${escapeHtml(appState.practicalToolsTradeFeeRateDraft)}" /></label>
           <label><span>${escapeHtml(uiText("Extra cash", "额外补钱"))}</span><input id="toolsTradeAddCash" type="number" min="0" step="1" value="${escapeHtml(appState.practicalToolsTradeAddCashDraft)}" /></label>
           <label><span>${escapeHtml(uiText("Target price", "目标价位"))}</span><input id="toolsTradeTarget" type="number" min="0" step="1" value="${escapeHtml(appState.practicalToolsTradeTargetDraft)}" /></label>
-          <button class="primary-action" type="submit">${escapeHtml(uiText("Calculate", "计算"))}</button>
+          <div class="tool-panel-actions"><button class="primary-action" type="submit">${escapeHtml(uiText("Calculate", "计算"))}</button><button class="secondary-action" id="toolsTradeExample" data-tools-example="trade" type="button">${escapeHtml(uiText("Use example", "填充示例"))}</button></div>
         </form>
+        ${toolDecisionMarkup(decision)}
         <div class="tool-breakdown-grid"><div><span>${escapeHtml(uiText("Gross sale", "卖出总额"))}</span><strong>${escapeHtml(formatPrice(result.gross))}</strong></div><div><span>${escapeHtml(uiText("Fees", "手续费"))}</span><strong>${escapeHtml(formatPrice(result.fees))}</strong></div><div><span>${escapeHtml(uiText("Usable budget", "可用预算"))}</span><strong>${escapeHtml(formatPrice(result.net))}</strong></div><div><span>${escapeHtml(uiText("Target gap", "目标差额"))}</span><strong>${escapeHtml(result.target ? formatSignedPrice(-result.gap) : uiText("Set target", "先填目标"))}</strong></div></div>
         <div class="tool-progress" aria-hidden="true"><i style="width:${escapeHtml(String(result.coverage))}%"></i></div>
       </section>`;
@@ -9628,12 +9719,16 @@
     const purchase = calculatePurchaseCost();
     const wishlist = calculateWishlistBudget();
     const trade = calculateTradeBudget();
+    const purchaseDecisionResult = purchaseDecision(purchase);
+    const wishlistDecisionResult = wishlistDecision(wishlist);
+    const tradeDecisionResult = tradeDecision(trade);
+    const toolsDecisionSummaryMarkup = `<aside class="tools-decision-summary" aria-label="${escapeHtml(uiText("Purchase overview", "购买总览"))}"><p class="eyebrow">${escapeHtml(uiText("My purchase panel", "我的购买面板"))}</p><div class="tools-summary-grid"><div><span>${escapeHtml(uiText("Available savings", "已有储蓄"))}</span><strong>${escapeHtml(formatPrice(wishlist.saved))}</strong></div><div><span>${escapeHtml(uiText("Wishlist gap", "愿望缺口"))}</span><strong>${escapeHtml(formatPrice(wishlist.remaining))}</strong></div><div><span>${escapeHtml(uiText("Upgrade funds", "换购资金"))}</span><strong>${escapeHtml(formatPrice(trade.net))}</strong></div></div>${toolDecisionMarkup(wishlistDecisionResult)}</aside>`;
     root.innerHTML = `
       <section class="tools-hero" data-motion-intro>
         <div><p class="eyebrow" data-motion-part="eyebrow">${escapeHtml(uiText("Practical Tools", "实用工具"))}</p><h1 data-motion-part="title">${escapeHtml(uiText("Do the math before you buy", "买之前先把账算明白"))}</h1><p data-motion-part="copy">${escapeHtml(uiText("Real cost, wishlist planning, and sell-to-upgrade math stay separate from loadout building and opening simulation.", "到手价、愿望清单和卖出换购专门负责算账，不再重复搭配页和开箱页的功能。"))}</p></div>
-        <div class="tools-hero-stats"><div><span>${escapeHtml(uiText("Wishlist total", "愿望总价"))}</span><strong>${escapeHtml(formatPrice(wishlist.total))}</strong></div><div><span>${escapeHtml(uiText("Upgrade budget", "换购预算"))}</span><strong>${escapeHtml(formatPrice(trade.net))}</strong></div></div>
+        ${toolsDecisionSummaryMarkup}
       </section>
-      <section class="tools-grid">${purchaseCostCalculatorMarkup(purchase)}${wishlistBudgetMarkup(wishlist)}${tradeUpCalculatorMarkup(trade)}</section>`;
+      <section class="tools-grid">${purchaseCostCalculatorMarkup(purchase, purchaseDecisionResult)}${wishlistBudgetMarkup(wishlist, wishlistDecisionResult)}${tradeUpCalculatorMarkup(trade, tradeDecisionResult)}</section>`;
   }
   function preserveWindowScrollDuringRender(callback) {
     const beforeX = Number(window.scrollX || window.pageXOffset || 0);
@@ -10317,6 +10412,15 @@
         replayHomeIntro();
         return;
       }
+      const toolsExample = target.closest("[data-tools-example]")?.dataset.toolsExample;
+      if (toolsExample) {
+        event.preventDefault();
+        if (toolsExample === "purchase") Object.assign(appState, { practicalToolsPurchasePriceDraft: "980", practicalToolsFeeRateDraft: "2.5", practicalToolsDiscountDraft: "30", practicalToolsTargetBudgetDraft: "1000" });
+        if (toolsExample === "wishlist") Object.assign(appState, { practicalToolsWishlistText: "AK-47 | Redline 320\nM4A1-S | Printstream 980\nUSP-S | Ticket 120", practicalToolsSavedDraft: "450", practicalToolsMonthlyDraft: "500" });
+        if (toolsExample === "trade") Object.assign(appState, { practicalToolsTradeSaleText: "AWP | Asiimov 760\nUSP-S | Ticket 120", practicalToolsTradeFeeRateDraft: "2.5", practicalToolsTradeAddCashDraft: "200", practicalToolsTradeTargetDraft: "1200" });
+        renderPracticalTools();
+        return;
+      }
       if (target.closest("#aiLoadoutChatForm button[type='submit']")) {
         event.preventDefault();
         await requestAiLoadoutChat();
@@ -10457,13 +10561,21 @@
         await rotateAiInventoryUpgradeGroup();
         return;
       }
+      const slotPageSwitch = target.closest("[data-curator-slot-page]");
+      if (slotPageSwitch instanceof HTMLElement) {
+        event.preventDefault();
+        appState.aiLoadoutSlotPage = Math.max(0, Number(slotPageSwitch.dataset.curatorSlotPage) || 0);
+        persistAiLoadoutState();
+        requestLoadoutRender();
+        return;
+      }
       const proPlayerSwitch = target.closest("[data-pro-player]");
       if (proPlayerSwitch instanceof HTMLElement) {
         event.preventDefault();
         const key = proPlayerSwitch.dataset.proPlayer || "";
         appState.activeProPlayerKey = appState.activeProPlayerKey === key ? "" : key;
         persistAiLoadoutState();
-        if (pageName() === "loadout.html") refreshProPlayerLoadoutVisibility();
+        if (pageName() === "loadout.html") preserveElementViewportDuringRender(proPlayerSwitch, () => refreshProPlayerLoadoutVisibility());
         return;
       }
       const proTeamSwitch = target.closest("[data-pro-team]");
@@ -10940,6 +11052,7 @@
           templateByItem: inspectorState.templateByItem || {}
         });
         applyWearClass(target.value);
+        syncInspectorSelectionParams({ wearId: target.value });
         if (pricedItem) {
           const loadingHint = uiText("Checking the selected wear tier price.", "正在检查所选磨损等级价格。");
           const referenceHint = document.getElementById("detailReferencePriceHint");
@@ -10970,6 +11083,7 @@
           },
           templateByItem: inspectorState.templateByItem || {}
         });
+        syncInspectorSelectionParams({ variantId: target.value || "standard" });
         if (pricedItem) {
           const loadingHint = uiText("Checking the selected version price.", "正在检查所选版本价格。");
           const referenceHint = document.getElementById("detailReferencePriceHint");
@@ -10999,10 +11113,7 @@
               [resolvedItem.id]: target.value || ""
             }
           });
-          const params = new URLSearchParams(location.search);
-          if (target.value) params.set("template", target.value);
-          else params.delete("template");
-          history.replaceState({}, "", `${location.pathname}?${params.toString()}`);
+          syncInspectorSelectionParams({ templateId: target.value || "" });
         }
         if (pricedItem) {
           const loadingHint = uiText("Checking the selected special template price.", "正在检查所选特殊模板价格。");

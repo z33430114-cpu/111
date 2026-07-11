@@ -50,7 +50,11 @@ test("cacheLivePricePayload persists opening price payloads when any platform or
     }
   };
   vm.createContext(context);
-  vm.runInContext(`${extractFunctionSource(appSource, "cacheLivePricePayload")};`, context);
+  vm.runInContext(`
+${extractFunctionSource(appSource, "livePricePayloadHasPlatformQuote")}
+${extractFunctionSource(appSource, "livePricePayloadHasReferenceQuote")}
+${extractFunctionSource(appSource, "cacheLivePricePayload")}
+`, context);
 
   context.cacheLivePricePayload({
     id: "case-1",

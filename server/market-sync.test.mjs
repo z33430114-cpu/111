@@ -115,6 +115,25 @@ test("buildYoupinWearSearchJobs keeps the selected wear first and caps candidate
   assert.deepEqual([...new Set(jobs.map((job) => job.wearId))], jobs.map((job) => job.wearId));
 });
 
+test("buildYoupinWearSearchJobs synthesizes the selected wear search name when the snapshot lacks that wear", () => {
+  const jobs = buildYoupinWearSearchJobs({
+    itemId: "skin-a",
+    wearId: "field-tested",
+    variantId: "standard",
+    snapshotRecord: {
+      prices: {
+        "minimal-wear": { marketHashName: "AK-47 | Redline (Minimal Wear)", price: 700 }
+      }
+    },
+    marketHashName: "AK-47 | Redline (Minimal Wear)"
+  });
+
+  assert.deepEqual(jobs.map((job) => [job.wearId, job.marketHashName]), [
+    ["field-tested", "AK-47 | Redline (Field-Tested)"],
+    ["minimal-wear", "AK-47 | Redline (Minimal Wear)"]
+  ]);
+});
+
 test("buildYoupinWearSearchJobs only adds conservative neighbors for edge wears", () => {
   const jobs = buildYoupinWearSearchJobs({
     itemId: "skin-a",

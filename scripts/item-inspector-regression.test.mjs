@@ -5,12 +5,27 @@ import { join } from "node:path";
 import vm from "node:vm";
 
 const appSource = await readFile(join(process.cwd(), "app.js"), "utf8");
+const itemHtmlSource = await readFile(join(process.cwd(), "item.html"), "utf8");
 
 function extractFunctionSource(sourceText, name) {
   const marker = `function ${name}`;
   const start = sourceText.indexOf(marker);
   if (start === -1) throw new Error(`Unable to find ${name}`);
-  const bodyStart = sourceText.indexOf("{", start);
+  const paramsStart = sourceText.indexOf("(", start + marker.length);
+  let parenDepth = 0;
+  let paramsEnd = -1;
+  for (let index = paramsStart; index < sourceText.length; index += 1) {
+    const char = sourceText[index];
+    if (char === "(") parenDepth += 1;
+    if (char === ")") {
+      parenDepth -= 1;
+      if (parenDepth === 0) {
+        paramsEnd = index;
+        break;
+      }
+    }
+  }
+  const bodyStart = sourceText.indexOf("{", paramsEnd);
   let depth = 0;
   for (let index = bodyStart; index < sourceText.length; index += 1) {
     const char = sourceText[index];
@@ -92,4 +107,35 @@ test("aiItemAnalysisMarkup renders localized zh-CN market-read copy", () => {
 test("renderItemDetail notifies the sticker DIY rebuild hook after inspector rerenders", () => {
   const renderItemDetailSource = extractFunctionSource(appSource, "renderItemDetail");
   assert.match(renderItemDetailSource, /__rebuildStickerViewer/);
+});
+
+test("syncInspectorSelectionParams keeps the URL wear in step with inspector selection", () => {
+  const context = {
+    location: {
+      pathname: "/item.html",
+      search: "?id=skin-a&wear=factory-new&variant=standard&template=phase-1"
+    },
+    history: {
+      replacedUrl: "",
+      replaceState: (_state, _title, url) => {
+        context.history.replacedUrl = url;
+      }
+    },
+    URLSearchParams
+  };
+  vm.createContext(context);
+  vm.runInContext(`${extractFunctionSource(appSource, "syncInspectorSelectionParams")};`, context);
+
+  context.syncInspectorSelectionParams({ wearId: "field-tested", variantId: "stattrak" });
+
+  const updatedUrl = new URL(context.history.replacedUrl, "http://127.0.0.1");
+  assert.equal(updatedUrl.pathname, "/item.html");
+  assert.equal(updatedUrl.searchParams.get("id"), "skin-a");
+  assert.equal(updatedUrl.searchParams.get("wear"), "field-tested");
+  assert.equal(updatedUrl.searchParams.get("variant"), "stattrak");
+  assert.equal(updatedUrl.searchParams.get("template"), "phase-1");
+});
+
+test("item inspector uses a fresh app bundle after image proxy changes", () => {
+  assert.match(itemHtmlSource, /app\.js\?v=20260711inspectimage1/);
 });
