@@ -12,7 +12,7 @@ const loadoutSource = appSource.slice(
   appSource.indexOf("function renderCompareTray")
 );
 
-test("loadout renders a twelve-slot rail with horizontal scrolling", () => {
+test("loadout renders a twelve-slot rail with click pagination", () => {
   const slotRailSource = appSource.slice(
     appSource.indexOf("function curatorSlotRailMarkup"),
     appSource.indexOf("function curatorInventoryCardMarkup")
@@ -20,7 +20,8 @@ test("loadout renders a twelve-slot rail with horizontal scrolling", () => {
 
   assert.match(slotRailSource, /const slots = \[[\s\S]*?"agent"[\s\S]*?\];/);
   assert.doesNotMatch(slotRailSource, /const slots = \["knife", "glove", "rifle", "rifle", "pistol", "smg"\]/);
-  assert.match(stylesSource, /#loadoutRoot[\s\S]*?\.curator-slot-list[\s\S]*?overflow-x:\s*auto/);
+  assert.match(slotRailSource, /data-curator-slot-page/);
+  assert.doesNotMatch(stylesSource, /#loadoutRoot \.curator-slot-list[\s\S]{0,500}overflow-x:\s*auto/);
 });
 
 test("loadout keeps the original app-rendered shell instead of recovery UI", () => {
@@ -43,7 +44,7 @@ test("loadout keeps rifle recommendations separate from inventory candidates", (
     "recommendation candidates must be assembled before inventory candidates are appended"
   );
   assert.match(candidateSource, /const syncedInventoryCandidates = getSortedInventoryEntries\(\)/);
-  assert.match(candidateSource, /const ownedIds = new Set\(syncedInventoryCandidates\.map\(\(entry\) => entry\.id\)/);
+  assert.match(candidateSource, /const inventoryOwnershipKeys = new Set\(syncedInventoryCandidates\.map\(inventoryCandidateOwnershipKey\)/);
   assert.doesNotMatch(candidateSource, /const ownedIds = new Set\(inventoryCandidates\.map/);
 });
 
@@ -101,7 +102,7 @@ test("loadout advisor is removed while the filter bar remains", () => {
   assert.match(appSource, /current\.includes\(key\)/);
 });
 
-test("loadout inventory lane only exposes knives gloves and core rifles or pistols", () => {
+test("loadout inventory lane exposes synced knives gloves and guns", () => {
   const candidateSource = appSource.slice(
     appSource.indexOf("const LOADOUT_INVENTORY_ALLOWED_WEAPONS"),
     appSource.indexOf("function loadoutWorkbenchCandidates")
@@ -116,7 +117,7 @@ test("loadout inventory lane only exposes knives gloves and core rifles or pisto
   assert.match(candidateSource, /AWP/);
   assert.match(candidateSource, /LOADOUT_INVENTORY_BLOCKED_WEAPONS/);
   assert.match(candidateSource, /famas\|法玛斯/);
-  assert.match(candidateSource, /item\?\.type === "knife" \|\| item\?\.type === "glove"/);
+  assert.match(candidateSource, /inventorySortGroup\(entry\)/);
   assert.match(appSource, /const syncedInventoryCandidates = getSortedInventoryEntries\(\)\s*\.filter\(loadoutInventoryItemAllowedForWorkbench\)/);
 });
 
@@ -124,7 +125,7 @@ test("saved loadout rendering tolerates unresolved inventory entries", () => {
   assert.match(appSource, /function localeText\(item, field\) \{\s*if \(!item \|\| typeof item !== "object"\) return "";/);
   assert.match(appSource, /function itemTitle\(item\) \{\s*if \(!item \|\| typeof item !== "object"\) return "";/);
   assert.match(appSource, /function itemWeapon\(item\) \{\s*if \(!item \|\| typeof item !== "object"\) return "";/);
-  assert.match(loadoutHtml, /app\.js\?v=20260710loadoutfix23/);
+  assert.match(loadoutHtml, /app\.js\?v=20260711loadoutfix2/);
 });
 
 test("saved curator loadouts are stored and rendered in favorites", () => {

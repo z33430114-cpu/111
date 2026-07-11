@@ -93,3 +93,27 @@ test("serve compresses large JavaScript assets when the client supports gzip", a
     child.kill("SIGTERM");
   }
 });
+
+test("serve delivers the catalog payload with low-latency Brotli compression", async () => {
+  const port = 4205;
+  const child = spawn(process.execPath, ["scripts/serve.mjs"], {
+    cwd: process.cwd(),
+    env: { ...process.env, PORT: String(port) },
+    stdio: ["ignore", "pipe", "pipe"]
+  });
+
+  try {
+    await waitForHealth(port, child);
+    const startedAt = Date.now();
+    const response = await fetch(`http://127.0.0.1:${port}/catalog-data.js?v=test`, {
+      headers: { "Accept-Encoding": "br" }
+    });
+    await response.arrayBuffer();
+    const elapsedMs = Date.now() - startedAt;
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get("content-encoding"), "br");
+    assert.ok(elapsedMs < 15000, `catalog Brotli response took ${elapsedMs}ms`);
+  } finally {
+    child.kill("SIGTERM");
+  }
+});

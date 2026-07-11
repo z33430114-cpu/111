@@ -80,6 +80,348 @@ window.HLTV_TEAM_RANKING_SNAPSHOT = {
 
 window.RELATED_NEWS = [
   {
+    "id": "dust2-us-2026-07-11-mad-steps-down-from-iowa-stormboar",
+    "category": "esports",
+    "source": "Dust2.us",
+    "title": "MAD steps down from Iowa Stormboar",
+    "summary": "Iowa Stormboar now have three positions to fill.",
+    "url": "https://www.dust2.us/news/75876/mad-steps-down-from-iowa-stormboar",
+    "publishedAt": "2026-07-11",
+    "image": "https://img-cdn.hltv.org/gallerypicture/pN-d1UwD0r9yv7cm0PQPO_.png?ixlib=java-2.1.0&w=1200&s=16cde4442ecc0295cf7cfb6e1db8ccc6",
+    "tags": [],
+    "titleZh": "MAD steps down from Iowa Stormboar",
+    "summaryZh": "MAD steps down from Iowa Stormboar",
+    "sourceZh": "Dust2.us",
+    "tagsZh": [],
+    "bulletsZh": [
+      "关注点：MAD steps down from Iowa Stormboar",
+      "适合补充战队动态、赛事规则、选手流动或赛程热点。",
+      "来源配图和原文链接已保留，详情页可直接跳转核对。"
+    ]
+  },
+  {
+    "id": "dust2-us-2026-07-11-official-stanislaw-s-metizport-add-swedish-prodigy-mail09",
+    "category": "esports",
+    "source": "Dust2.us",
+    "title": "Official: stanislaw's Metizport add Swedish prodigy MaiL09",
+    "summary": "MaiL09 will get to work with one of NA",
+    "url": "https://www.dust2.us/news/75874/official-stanislaws-metizport-add-swedish-prodigy-mail09",
+    "publishedAt": "2026-07-11",
+    "image": "https://img-cdn.hltv.org/gallerypicture/kBLHAAGAZUI1CgQw8lwZKI.jpg?ixlib=java-2.1.0&w=1200&s=9d66c5e7269cfe527f2343c90eb377a4",
+    "tags": [],
+    "titleZh": "Official: stanislaw's Metizport add Swedish prodigy MaiL09",
+    "summaryZh": "Official: stanislaw's Metizport add Swedish prodigy MaiL09",
+    "sourceZh": "Dust2.us",
+    "tagsZh": [],
+    "bulletsZh": [
+      "关注点：Official: stanislaw's Metizport add Swedish prodigy MaiL09",
+      "适合补充战队动态、赛事规则、选手流动或赛程热点。",
+      "来源配图和原文链接已保留，详情页可直接跳转核对。"
+    ]
+  },
+  {
+    "id": "dust2-us-2026-07-11-faze-owner-gamesquare-at-risk-of-nasdaq-delisting-after-stock-craters-83-in-12-months",
+    "category": "esports",
+    "source": "Dust2.us",
+    "title": "FaZe owner GameSquare at risk of NASDAQ delisting after stock craters 83% in 12 months",
+    "summary": "$GAME is currently trading at $0.33, requiring GameSquare to act quickly to avoid delisting.",
+    "url": "https://www.dust2.us/news/75872/faze-owner-gamesquare-at-risk-of-nasdaq-delisting-after-stock-craters-83-in-12-months",
+    "publishedAt": "2026-07-11",
+    "image": "https://img-cdn.hltv.org/gallerypicture/CZQvoNI8xzinWOR8hHg8SQ.png?ixlib=java-2.1.0&w=1200&s=34df02ff0f6ca033b40b10e92451595d",
+    "tags": [],
+    "titleZh": "FaZe owner GameSquare at risk of NASDAQ delisting after stock craters 83% in 12 months",
+    "summaryZh": "FaZe owner GameSquare at risk of NASDAQ delisting after stock craters 83% in 12 months",
+    "sourceZh": "Dust2.us",
+    "tagsZh": [],
+    "bulletsZh": [
+      "关注点：FaZe owner GameSquare at risk of NASDAQ delisting after stock craters 83% in 12 months",
+      "适合补充战队动态、赛事规则、选手流动或赛程热点。",
+      "来源配图和原文链接已保留，详情页可直接跳转核对。"
+    ]
+  },
+  {
+    "id": "dust2-us-2026-07-11-maxuel-parts-ways-with-festina-lente-joins-detonate",
+    "category": "esports",
+    "source": "Dust2.us",
+    "title": "Maxuel parts ways with Festina Lente, joins DETONATE",
+    "summary": "Maxuel wasn",
+    "url": "https://www.dust2.us/news/75870/maxuel-parts-ways-with-festina-lente-joins-detonate",
+    "publishedAt": "2026-07-11",
+    "image": "https://img-cdn.hltv.org/gallerypicture/fDiylASMxA0zQlqB-c33VY.png?ixlib=java-2.1.0&w=1200&s=4d98938a38ed476c9eaeadc96a94b65a",
+    "tags": [],
+    "titleZh": "Maxuel parts ways with Festina Lente, joins DETONATE",
+    "summaryZh": "Maxuel parts ways with Festina Lente, joins DETONATE",
+    "sourceZh": "Dust2.us",
+    "tagsZh": [],
+    "bulletsZh": [
+      "关注点：Maxuel parts ways with Festina Lente, joins DETONATE",
+      "适合补充战队动态、赛事规则、选手流动或赛程热点。",
+      "来源配图和原文链接已保留，详情页可直接跳转核对。"
+    ]
+  },
+  {
+    "id": "dust2-us-2026-07-11-new-cs2-hostage-map-shelter-lets-players-rescue-dogs",
+    "category": "esports",
+    "source": "Dust2.us",
+    "title": "New CS2 hostage map Shelter lets players rescue dogs",
+    "summary": "Save the dogs!",
+    "url": "https://www.dust2.us/news/75869/new-cs2-hostage-map-shelter-lets-players-rescue-dogs",
+    "publishedAt": "2026-07-11",
+    "image": "https://img-cdn.hltv.org/gallerypicture/abzfGa3hn_Q_ZMsCj7HLKP.png?ixlib=java-2.1.0&w=1200&s=d0619823ecbbcbcda3ccf4b8b2a696fd",
+    "tags": [
+      "Esports"
+    ],
+    "titleZh": "New CS2 hostage map Shelter lets players rescue dogs",
+    "summaryZh": "New CS2 hostage map Shelter lets players rescue dogs",
+    "sourceZh": "Dust2.us",
+    "tagsZh": [
+      "赛事"
+    ],
+    "bulletsZh": [
+      "关注点：New CS2 hostage map Shelter lets players rescue dogs",
+      "适合补充战队动态、赛事规则、选手流动或赛程热点。",
+      "来源配图和原文链接已保留，详情页可直接跳转核对。"
+    ]
+  },
+  {
+    "id": "dust2-us-2026-07-11-regain-upset-marsborne-m80-advance-in-blast-open-fall-2026-closed-qualifier-opening-round",
+    "category": "esports",
+    "source": "Dust2.us",
+    "title": "regain upset Marsborne, M80 advance in BLAST Open Fall 2026 Closed Qualifier opening round",
+    "summary": "LAG and Voca were the other teams that booked semifinal berths.",
+    "url": "https://www.dust2.us/news/75865/regain-upset-marsborne-m80-advance-in-blast-open-fall-2026-closed-qualifier-opening-round",
+    "publishedAt": "2026-07-11",
+    "image": "https://img-cdn.hltv.org/gallerypicture/RvADNh2pECq5As8KLjT1Aj.jpg?ixlib=java-2.1.0&w=1200&s=dd9fae9b093f1a9911c5a1288f49108f",
+    "tags": [],
+    "titleZh": "regain upset Marsborne, M80 advance in BLAST Open Fall 2026 Closed Qualifier opening round",
+    "summaryZh": "regain upset Marsborne, M80 advance in BLAST Open Fall 2026 Closed Qualifier opening round",
+    "sourceZh": "Dust2.us",
+    "tagsZh": [],
+    "bulletsZh": [
+      "关注点：regain upset Marsborne, M80 advance in BLAST Open Fall 2026 Closed Qualifier opening round",
+      "适合补充战队动态、赛事规则、选手流动或赛程热点。",
+      "来源配图和原文链接已保留，详情页可直接跳转核对。"
+    ]
+  },
+  {
+    "id": "dust2-us-2026-07-11-regain-win-crossfire-season-5-over-club-333-to-secure-third-overall-title",
+    "category": "official",
+    "source": "Dust2.us",
+    "title": "regain win CROSSFIRE Season 5 over Club 333 to secure third overall title",
+    "summary": "The CROSSFIRE kings remain supreme.",
+    "url": "https://www.dust2.us/news/75857/regain-win-crossfire-season-5-over-club-333-to-secure-third-overall-title",
+    "publishedAt": "2026-07-11",
+    "image": "https://img-cdn.hltv.org/gallerypicture/tefZKlDCmYui5Hz0wdmS0p.png?ixlib=java-2.1.0&w=1200&s=f362ff0aa027126f83627da07b29b31e",
+    "tags": [
+      "Update"
+    ],
+    "titleZh": "regain win CROSSFIRE Season 5 over Club 333 to secure third overall title",
+    "summaryZh": "regain win CROSSFIRE Season 5 over Club 333 to secure third overall title",
+    "sourceZh": "Dust2.us",
+    "tagsZh": [
+      "版本更新"
+    ],
+    "bulletsZh": [
+      "关注点：regain win CROSSFIRE Season 5 over Club 333 to secure third overall title",
+      "优先关注玩法、地图池、军械库和版本节奏变化。",
+      "来源配图和原文链接已保留，详情页可直接跳转核对。"
+    ]
+  },
+  {
+    "id": "dust2-us-2026-07-11-faze-thrash-betboom-to-reach-xse-pro-league-semifinals",
+    "category": "esports",
+    "source": "Dust2.us",
+    "title": "FaZe thrash BetBoom to reach XSE Pro League semifinals",
+    "summary": "Not bad for an 0-2 start in the Swiss.",
+    "url": "https://www.dust2.us/news/75858/faze-thrash-betboom-to-reach-xse-pro-league-semifinals",
+    "publishedAt": "2026-07-11",
+    "image": "https://img-cdn.hltv.org/gallerypicture/CzWzypqNKEwleD6Bcg2AUf.jpg?ixlib=java-2.1.0&w=1200&s=a72d715c897fe0895fd96e3aa4b4a5e0",
+    "tags": [],
+    "titleZh": "FaZe thrash BetBoom to reach XSE Pro League semifinals",
+    "summaryZh": "FaZe thrash BetBoom to reach XSE Pro League semifinals",
+    "sourceZh": "Dust2.us",
+    "tagsZh": [],
+    "bulletsZh": [
+      "关注点：FaZe thrash BetBoom to reach XSE Pro League semifinals",
+      "适合补充战队动态、赛事规则、选手流动或赛程热点。",
+      "来源配图和原文链接已保留，详情页可直接跳转核对。"
+    ]
+  },
+  {
+    "id": "csgoskins-gg-2026-07-11-arabesque-tech-fruits-racing",
+    "category": "official",
+    "source": "CSGOSKINS.GG",
+    "title": "Arabesque, Tech, Fruits & Racing",
+    "summary": "CS2 Season 5 brings Cache back to the active duty map pool and reworks bomb damage, while the community-designed Arabesque and Spy Tech weapon collections arrive alongside two new...",
+    "url": "https://csgoskins.gg/updates/arabesque-tech-fruits-and-racing",
+    "publishedAt": "2026-07-11",
+    "image": "https://cdn.csgoskins.gg/public/uih/updates/aHR0cHM6Ly9jc2dvc2tpbnMuZ2cvYnVpbGQvYXNzZXRzL2hlYWRlci1DX2hxMDJ0cy5wbmc-/auto/auto/85/notrim/e45df39fcac465ccb0bc5bf3bc66e549.png",
+    "tags": [
+      "Update"
+    ],
+    "titleZh": "Arabesque、Tech、Fruits & Racing 系列更新",
+    "summaryZh": "Arabesque、Tech、Fruits & Racing 系列更新",
+    "sourceZh": "CSGOSKINS.GG",
+    "tagsZh": [
+      "版本更新"
+    ],
+    "bulletsZh": [
+      "关注点：Arabesque、Tech、Fruits & Racing 系列更新",
+      "优先关注玩法、地图池、军械库和版本节奏变化。",
+      "来源配图和原文链接已保留，详情页可直接跳转核对。"
+    ]
+  },
+  {
+    "id": "csgoskins-gg-2026-07-11-jackass-stickers",
+    "category": "market",
+    "source": "CSGOSKINS.GG",
+    "title": "Jackass Stickers",
+    "summary": "The latest CS2 update introduces the Jackass Sticker Capsule, a 39-sticker collection created in partnership with Paramount Games Studio to celebrate the release of jackass: best...",
+    "url": "https://csgoskins.gg/updates/jackass-stickers",
+    "publishedAt": "2026-07-11",
+    "image": "https://cdn.csgoskins.gg/public/uih/updates/aHR0cHM6Ly9jc2dvc2tpbnMuZ2cvYnVpbGQvYXNzZXRzL2hlYWRlci1DX2tyck1MeC5wbmc-/auto/auto/85/notrim/44624b5c1835e632d52791c20929f049.png",
+    "tags": [
+      "Update",
+      "Stickers"
+    ],
+    "titleZh": "《蠢蛋搞怪秀》贴纸",
+    "summaryZh": "《蠢蛋搞怪秀》贴纸",
+    "sourceZh": "CSGOSKINS.GG",
+    "tagsZh": [
+      "版本更新",
+      "贴纸"
+    ],
+    "bulletsZh": [
+      "关注点：《蠢蛋搞怪秀》贴纸",
+      "适合从收藏池、贴纸、皮肤搭配或价格情绪角度继续观察。",
+      "来源配图和原文链接已保留，详情页可直接跳转核对。"
+    ]
+  },
+  {
+    "id": "csgoskins-gg-2026-07-11-cologne-2026-stickers",
+    "category": "market",
+    "source": "CSGOSKINS.GG",
+    "title": "Cologne 2026 Stickers",
+    "summary": "The Cologne 2026 CS2 update overhauls the Major shop with dynamic token-based pricing, introduces Souvenir Trade-Ups, and ships new stickers, graffiti, and viewer passes!",
+    "url": "https://csgoskins.gg/updates/cologne-2026-stickers",
+    "publishedAt": "2026-07-11",
+    "image": "https://cdn.csgoskins.gg/public/uih/updates/aHR0cHM6Ly9jc2dvc2tpbnMuZ2cvYnVpbGQvYXNzZXRzL2hlYWRlci1DcWg5cnFYeC5wbmc-/auto/auto/85/notrim/bca6b622711c5404b8114a3cad5f23cc.png",
+    "tags": [
+      "Update",
+      "Stickers"
+    ],
+    "titleZh": "科隆 2026 贴纸",
+    "summaryZh": "科隆 2026 贴纸",
+    "sourceZh": "CSGOSKINS.GG",
+    "tagsZh": [
+      "版本更新",
+      "贴纸"
+    ],
+    "bulletsZh": [
+      "关注点：科隆 2026 贴纸",
+      "适合从收藏池、贴纸、皮肤搭配或价格情绪角度继续观察。",
+      "来源配图和原文链接已保留，详情页可直接跳转核对。"
+    ]
+  },
+  {
+    "id": "csgoskins-gg-2026-07-11-nightmode-2-music-kits",
+    "category": "official",
+    "source": "CSGOSKINS.GG",
+    "title": "NIGHTMODE 2 Music Kits",
+    "summary": "The latest CS2 update introduces the NIGHTMODE 2 Music Kits, featuring six new music kits from various artists. Available in StatTrak too!",
+    "url": "https://csgoskins.gg/updates/nightmode-2-music-kits",
+    "publishedAt": "2026-07-11",
+    "image": "https://cdn.csgoskins.gg/public/uih/updates/aHR0cHM6Ly9jc2dvc2tpbnMuZ2cvYnVpbGQvYXNzZXRzL2hlYWRlci1DUnkzWkkzRi5wbmc-/auto/auto/85/notrim/835734657cef1d4650fae7d76da0b87d.png",
+    "tags": [
+      "Update"
+    ],
+    "titleZh": "NIGHTMODE 2 音乐盒",
+    "summaryZh": "NIGHTMODE 2 音乐盒",
+    "sourceZh": "CSGOSKINS.GG",
+    "tagsZh": [
+      "版本更新"
+    ],
+    "bulletsZh": [
+      "关注点：NIGHTMODE 2 音乐盒",
+      "优先关注玩法、地图池、军械库和版本节奏变化。",
+      "来源配图和原文链接已保留，详情页可直接跳转核对。"
+    ]
+  },
+  {
+    "id": "csgoskins-gg-2026-07-11-dead-hand-skins",
+    "category": "market",
+    "source": "CSGOSKINS.GG",
+    "title": "Dead Hand Skins",
+    "summary": "The latest CS2 update introduces the Dead Hand Terminal, containing 17 new skins and 22 brand new glove finishes.",
+    "url": "https://csgoskins.gg/updates/dead-hand-skins",
+    "publishedAt": "2026-07-11",
+    "image": "https://cdn.csgoskins.gg/public/uih/updates/aHR0cHM6Ly9jc2dvc2tpbnMuZ2cvYnVpbGQvYXNzZXRzL2hlYWRlci1EdE1vMTR4NC5wbmc-/auto/auto/85/notrim/d6a6ebb356278a41f845d700d0d9d3e7.png",
+    "tags": [
+      "Update"
+    ],
+    "titleZh": "Dead Hand 皮肤",
+    "summaryZh": "Dead Hand 皮肤",
+    "sourceZh": "CSGOSKINS.GG",
+    "tagsZh": [
+      "版本更新"
+    ],
+    "bulletsZh": [
+      "关注点：Dead Hand 皮肤",
+      "适合从收藏池、贴纸、皮肤搭配或价格情绪角度继续观察。",
+      "来源配图和原文链接已保留，详情页可直接跳转核对。"
+    ]
+  },
+  {
+    "id": "csgoskins-gg-2026-07-11-fourth-season-skins",
+    "category": "market",
+    "source": "CSGOSKINS.GG",
+    "title": "Fourth Season Skins",
+    "summary": "The latest CS2 update introduces the new Harlequin & Achroma weapon collections, as well as a new Limited Item, the AK-47 Aphrodite.",
+    "url": "https://csgoskins.gg/updates/fourth-season-skins",
+    "publishedAt": "2026-07-11",
+    "image": "https://cdn.csgoskins.gg/public/uih/updates/aHR0cHM6Ly9jc2dvc2tpbnMuZ2cvYnVpbGQvYXNzZXRzL2hlYWRlci1CZDl1czRSWS5wbmc-/auto/auto/85/notrim/f66a356cb7fc13ea50247b9a9a797e16.png",
+    "tags": [
+      "Update"
+    ],
+    "titleZh": "第四赛季皮肤",
+    "summaryZh": "第四赛季皮肤",
+    "sourceZh": "CSGOSKINS.GG",
+    "tagsZh": [
+      "版本更新"
+    ],
+    "bulletsZh": [
+      "关注点：第四赛季皮肤",
+      "适合从收藏池、贴纸、皮肤搭配或价格情绪角度继续观察。",
+      "来源配图和原文链接已保留，详情页可直接跳转核对。"
+    ]
+  },
+  {
+    "id": "csgoskins-gg-2026-07-11-budapest-2025-champion-stickers",
+    "category": "market",
+    "source": "CSGOSKINS.GG",
+    "title": "Budapest 2025 Champion Stickers",
+    "summary": "The latest CS2 update introduces the new Budapest 2025 Champions Autograph Capsule, containing stickers from Team Vitality, who won the tournament.",
+    "url": "https://csgoskins.gg/updates/budapest-2025-champion-stickers",
+    "publishedAt": "2026-07-11",
+    "image": "https://cdn.csgoskins.gg/public/uih/updates/aHR0cHM6Ly9jc2dvc2tpbnMuZ2cvYnVpbGQvYXNzZXRzL2hlYWRlci1EckNnWWc1Vy5wbmc-/auto/auto/85/notrim/f2fd8a94283b8b506b7949d318ce531d.png",
+    "tags": [
+      "Update",
+      "Stickers"
+    ],
+    "titleZh": "布达佩斯 2025 冠军贴纸",
+    "summaryZh": "布达佩斯 2025 冠军贴纸",
+    "sourceZh": "CSGOSKINS.GG",
+    "tagsZh": [
+      "版本更新",
+      "贴纸"
+    ],
+    "bulletsZh": [
+      "关注点：布达佩斯 2025 冠军贴纸",
+      "适合从收藏池、贴纸、皮肤搭配或价格情绪角度继续观察。",
+      "来源配图和原文链接已保留，详情页可直接跳转核对。"
+    ]
+  },
+  {
     "id": "dust2-us-2026-07-10-esl-amend-esl-challenger-league-rulebook-to-allow-mid-cup-roster-changes",
     "category": "esports",
     "source": "Dust2.us",
@@ -276,204 +618,6 @@ window.RELATED_NEWS = [
     ]
   },
   {
-    "id": "csgoskins-gg-2026-07-10-arabesque-tech-fruits-racing",
-    "category": "official",
-    "source": "CSGOSKINS.GG",
-    "title": "Arabesque, Tech, Fruits & Racing",
-    "summary": "CS2 Season 5 brings Cache back to the active duty map pool and reworks bomb damage, while the community-designed Arabesque and Spy Tech weapon collections arrive alongside two new...",
-    "url": "https://csgoskins.gg/updates/arabesque-tech-fruits-and-racing",
-    "publishedAt": "2026-07-10",
-    "image": "https://cdn.csgoskins.gg/public/uih/updates/aHR0cHM6Ly9jc2dvc2tpbnMuZ2cvYnVpbGQvYXNzZXRzL2hlYWRlci1DX2hxMDJ0cy5wbmc-/auto/auto/85/notrim/e45df39fcac465ccb0bc5bf3bc66e549.png",
-    "tags": [
-      "Update"
-    ],
-    "titleZh": "Arabesque、Tech、Fruits & Racing 系列更新",
-    "summaryZh": "Arabesque、Tech、Fruits & Racing 系列更新",
-    "sourceZh": "CSGOSKINS.GG",
-    "tagsZh": [
-      "版本更新"
-    ],
-    "bulletsZh": [
-      "关注点：Arabesque、Tech、Fruits & Racing 系列更新",
-      "优先关注玩法、地图池、军械库和版本节奏变化。",
-      "来源配图和原文链接已保留，详情页可直接跳转核对。"
-    ]
-  },
-  {
-    "id": "csgoskins-gg-2026-07-10-jackass-stickers",
-    "category": "market",
-    "source": "CSGOSKINS.GG",
-    "title": "Jackass Stickers",
-    "summary": "The latest CS2 update introduces the Jackass Sticker Capsule, a 39-sticker collection created in partnership with Paramount Games Studio to celebrate the release of jackass: best...",
-    "url": "https://csgoskins.gg/updates/jackass-stickers",
-    "publishedAt": "2026-07-10",
-    "image": "https://cdn.csgoskins.gg/public/uih/updates/aHR0cHM6Ly9jc2dvc2tpbnMuZ2cvYnVpbGQvYXNzZXRzL2hlYWRlci1DX2tyck1MeC5wbmc-/auto/auto/85/notrim/44624b5c1835e632d52791c20929f049.png",
-    "tags": [
-      "Update",
-      "Stickers"
-    ],
-    "titleZh": "《蠢蛋搞怪秀》贴纸",
-    "summaryZh": "《蠢蛋搞怪秀》贴纸",
-    "sourceZh": "CSGOSKINS.GG",
-    "tagsZh": [
-      "版本更新",
-      "贴纸"
-    ],
-    "bulletsZh": [
-      "关注点：《蠢蛋搞怪秀》贴纸",
-      "适合从收藏池、贴纸、皮肤搭配或价格情绪角度继续观察。",
-      "来源配图和原文链接已保留，详情页可直接跳转核对。"
-    ]
-  },
-  {
-    "id": "csgoskins-gg-2026-07-10-cologne-2026-stickers",
-    "category": "market",
-    "source": "CSGOSKINS.GG",
-    "title": "Cologne 2026 Stickers",
-    "summary": "The Cologne 2026 CS2 update overhauls the Major shop with dynamic token-based pricing, introduces Souvenir Trade-Ups, and ships new stickers, graffiti, and viewer passes!",
-    "url": "https://csgoskins.gg/updates/cologne-2026-stickers",
-    "publishedAt": "2026-07-10",
-    "image": "https://cdn.csgoskins.gg/public/uih/updates/aHR0cHM6Ly9jc2dvc2tpbnMuZ2cvYnVpbGQvYXNzZXRzL2hlYWRlci1DcWg5cnFYeC5wbmc-/auto/auto/85/notrim/bca6b622711c5404b8114a3cad5f23cc.png",
-    "tags": [
-      "Update",
-      "Stickers"
-    ],
-    "titleZh": "科隆 2026 贴纸",
-    "summaryZh": "科隆 2026 贴纸",
-    "sourceZh": "CSGOSKINS.GG",
-    "tagsZh": [
-      "版本更新",
-      "贴纸"
-    ],
-    "bulletsZh": [
-      "关注点：科隆 2026 贴纸",
-      "适合从收藏池、贴纸、皮肤搭配或价格情绪角度继续观察。",
-      "来源配图和原文链接已保留，详情页可直接跳转核对。"
-    ]
-  },
-  {
-    "id": "csgoskins-gg-2026-07-10-nightmode-2-music-kits",
-    "category": "official",
-    "source": "CSGOSKINS.GG",
-    "title": "NIGHTMODE 2 Music Kits",
-    "summary": "The latest CS2 update introduces the NIGHTMODE 2 Music Kits, featuring six new music kits from various artists. Available in StatTrak too!",
-    "url": "https://csgoskins.gg/updates/nightmode-2-music-kits",
-    "publishedAt": "2026-07-10",
-    "image": "https://cdn.csgoskins.gg/public/uih/updates/aHR0cHM6Ly9jc2dvc2tpbnMuZ2cvYnVpbGQvYXNzZXRzL2hlYWRlci1DUnkzWkkzRi5wbmc-/auto/auto/85/notrim/835734657cef1d4650fae7d76da0b87d.png",
-    "tags": [
-      "Update"
-    ],
-    "titleZh": "NIGHTMODE 2 音乐盒",
-    "summaryZh": "NIGHTMODE 2 音乐盒",
-    "sourceZh": "CSGOSKINS.GG",
-    "tagsZh": [
-      "版本更新"
-    ],
-    "bulletsZh": [
-      "关注点：NIGHTMODE 2 音乐盒",
-      "优先关注玩法、地图池、军械库和版本节奏变化。",
-      "来源配图和原文链接已保留，详情页可直接跳转核对。"
-    ]
-  },
-  {
-    "id": "csgoskins-gg-2026-07-10-dead-hand-skins",
-    "category": "market",
-    "source": "CSGOSKINS.GG",
-    "title": "Dead Hand Skins",
-    "summary": "The latest CS2 update introduces the Dead Hand Terminal, containing 17 new skins and 22 brand new glove finishes.",
-    "url": "https://csgoskins.gg/updates/dead-hand-skins",
-    "publishedAt": "2026-07-10",
-    "image": "https://cdn.csgoskins.gg/public/uih/updates/aHR0cHM6Ly9jc2dvc2tpbnMuZ2cvYnVpbGQvYXNzZXRzL2hlYWRlci1EdE1vMTR4NC5wbmc-/auto/auto/85/notrim/d6a6ebb356278a41f845d700d0d9d3e7.png",
-    "tags": [
-      "Update"
-    ],
-    "titleZh": "Dead Hand 皮肤",
-    "summaryZh": "Dead Hand 皮肤",
-    "sourceZh": "CSGOSKINS.GG",
-    "tagsZh": [
-      "版本更新"
-    ],
-    "bulletsZh": [
-      "关注点：Dead Hand 皮肤",
-      "适合从收藏池、贴纸、皮肤搭配或价格情绪角度继续观察。",
-      "来源配图和原文链接已保留，详情页可直接跳转核对。"
-    ]
-  },
-  {
-    "id": "csgoskins-gg-2026-07-10-fourth-season-skins",
-    "category": "market",
-    "source": "CSGOSKINS.GG",
-    "title": "Fourth Season Skins",
-    "summary": "The latest CS2 update introduces the new Harlequin & Achroma weapon collections, as well as a new Limited Item, the AK-47 Aphrodite.",
-    "url": "https://csgoskins.gg/updates/fourth-season-skins",
-    "publishedAt": "2026-07-10",
-    "image": "https://cdn.csgoskins.gg/public/uih/updates/aHR0cHM6Ly9jc2dvc2tpbnMuZ2cvYnVpbGQvYXNzZXRzL2hlYWRlci1CZDl1czRSWS5wbmc-/auto/auto/85/notrim/f66a356cb7fc13ea50247b9a9a797e16.png",
-    "tags": [
-      "Update"
-    ],
-    "titleZh": "第四赛季皮肤",
-    "summaryZh": "第四赛季皮肤",
-    "sourceZh": "CSGOSKINS.GG",
-    "tagsZh": [
-      "版本更新"
-    ],
-    "bulletsZh": [
-      "关注点：第四赛季皮肤",
-      "适合从收藏池、贴纸、皮肤搭配或价格情绪角度继续观察。",
-      "来源配图和原文链接已保留，详情页可直接跳转核对。"
-    ]
-  },
-  {
-    "id": "csgoskins-gg-2026-07-10-budapest-2025-champion-stickers",
-    "category": "market",
-    "source": "CSGOSKINS.GG",
-    "title": "Budapest 2025 Champion Stickers",
-    "summary": "The latest CS2 update introduces the new Budapest 2025 Champions Autograph Capsule, containing stickers from Team Vitality, who won the tournament.",
-    "url": "https://csgoskins.gg/updates/budapest-2025-champion-stickers",
-    "publishedAt": "2026-07-10",
-    "image": "https://cdn.csgoskins.gg/public/uih/updates/aHR0cHM6Ly9jc2dvc2tpbnMuZ2cvYnVpbGQvYXNzZXRzL2hlYWRlci1EckNnWWc1Vy5wbmc-/auto/auto/85/notrim/f2fd8a94283b8b506b7949d318ce531d.png",
-    "tags": [
-      "Update",
-      "Stickers"
-    ],
-    "titleZh": "布达佩斯 2025 冠军贴纸",
-    "summaryZh": "布达佩斯 2025 冠军贴纸",
-    "sourceZh": "CSGOSKINS.GG",
-    "tagsZh": [
-      "版本更新",
-      "贴纸"
-    ],
-    "bulletsZh": [
-      "关注点：布达佩斯 2025 冠军贴纸",
-      "适合从收藏池、贴纸、皮肤搭配或价格情绪角度继续观察。",
-      "来源配图和原文链接已保留，详情页可直接跳转核对。"
-    ]
-  },
-  {
-    "id": "steam-news-2026-07-09-counter-strike-2-update",
-    "category": "official",
-    "source": "Steam News",
-    "title": "Counter-Strike 2 Update",
-    "summary": "[ GAMEPLAY ] Removed map-wide minimum one point of damage from new C4 explosions. Fixed a case where new C4 damage was calculated incorrectly near boundaries to other map areas. N...",
-    "url": "https://store.steampowered.com/news/app/730/view/701021228894259656",
-    "publishedAt": "2026-07-09",
-    "image": "",
-    "tags": [
-      "Update"
-    ],
-    "titleZh": "《反恐精英 2》更新日志",
-    "summaryZh": "《反恐精英 2》更新日志",
-    "sourceZh": "Steam 新闻",
-    "tagsZh": [
-      "版本更新"
-    ],
-    "bulletsZh": [
-      "关注点：《反恐精英 2》更新日志",
-      "优先关注玩法、地图池、军械库和版本节奏变化。",
-      "来源配图和原文链接已保留，详情页可直接跳转核对。"
-    ]
-  },
-  {
     "id": "dust2-us-2026-07-09-wildcard-set-to-embark-on-month-long-trip-to-europe",
     "category": "esports",
     "source": "Dust2.us",
@@ -595,166 +739,6 @@ window.RELATED_NEWS = [
     "tagsZh": [],
     "bulletsZh": [
       "关注点：媒体：BC.Game 有意让 mzinho 与 Senzu 重聚",
-      "适合补充战队动态、赛事规则、选手流动或赛程热点。",
-      "来源配图和原文链接已保留，详情页可直接跳转核对。"
-    ]
-  },
-  {
-    "id": "dust2-us-2026-07-09-m80-voca-claim-invites-to-blast-open-porto-na-closed-qualifier",
-    "category": "esports",
-    "source": "Dust2.us",
-    "title": "M80, Voca claim invites to BLAST Open Porto NA Closed Qualifier",
-    "summary": "jasonR",
-    "url": "https://www.dust2.us/news/75787/m80-voca-claim-invites-to-blast-open-porto-na-closed-qualifier",
-    "publishedAt": "2026-07-09",
-    "image": "https://img-cdn.hltv.org/gallerypicture/myx7J1NQWzV5L0n8Cdoelt.jpg?ixlib=java-2.1.0&w=1200&s=47958101f430befe59c2613cad840723",
-    "tags": [],
-    "titleZh": "M80 与 Voca 获得 BLAST Open Porto 北美封闭预选邀请",
-    "summaryZh": "M80 与 Voca 获得 BLAST Open Porto 北美封闭预选邀请",
-    "sourceZh": "Dust2.us",
-    "tagsZh": [],
-    "bulletsZh": [
-      "关注点：M80 与 Voca 获得 BLAST Open Porto 北美封闭预选邀请",
-      "适合补充战队动态、赛事规则、选手流动或赛程热点。",
-      "来源配图和原文链接已保留，详情页可直接跳转核对。"
-    ]
-  },
-  {
-    "id": "dust2-us-2026-07-09-media-nrg-targeting-hallzerk-and-jeorge",
-    "category": "esports",
-    "source": "Dust2.us",
-    "title": "Media: NRG targeting Hallzerk and Jeorge",
-    "summary": "Reunions aplenty.",
-    "url": "https://www.dust2.us/news/75779/media-nrg-targeting-hallzerk-and-jeorge",
-    "publishedAt": "2026-07-09",
-    "image": "https://img-cdn.hltv.org/gallerypicture/r_zqsIAIigqp3uFw8XUQnu.jpg?ixlib=java-2.1.0&w=1200&s=4f42234369b6b249b597d7d3b43c76cf",
-    "tags": [],
-    "titleZh": "媒体：NRG 正在追逐 hallzerk 和 Jeorge",
-    "summaryZh": "媒体：NRG 正在追逐 hallzerk 和 Jeorge",
-    "sourceZh": "Dust2.us",
-    "tagsZh": [],
-    "bulletsZh": [
-      "关注点：媒体：NRG 正在追逐 hallzerk 和 Jeorge",
-      "适合补充战队动态、赛事规则、选手流动或赛程热点。",
-      "来源配图和原文链接已保留，详情页可直接跳转核对。"
-    ]
-  },
-  {
-    "id": "skinport-blog-2026-07-09-new-cs2-update-is-out",
-    "category": "official",
-    "source": "Skinport Blog",
-    "title": "New CS2 Update is out!",
-    "summary": "Valve just dropped a massive 10 GB update, officially kicking off the fifth competitive season of Counter-Strike 2! Here's all you need to know about it.",
-    "url": "https://skinport.com/blog/new-cs2-update-is-out",
-    "publishedAt": "2026-07-09",
-    "image": "https://cdn.skinport.com/nua5jmq7o9f6/5WQVw1soztw1UmYMCPnW1S/ea8a57974d5c3f8e8c2238b38061e541/Thumbnail__96_.png?w=3840&q=75&fm=webp",
-    "tags": [
-      "Update"
-    ],
-    "titleZh": "CS2 新更新已上线",
-    "summaryZh": "CS2 新更新已上线",
-    "sourceZh": "Skinport 博客",
-    "tagsZh": [
-      "版本更新"
-    ],
-    "bulletsZh": [
-      "关注点：CS2 新更新已上线",
-      "优先关注玩法、地图池、军械库和版本节奏变化。",
-      "来源配图和原文链接已保留，详情页可直接跳转核对。"
-    ]
-  },
-  {
-    "id": "esportfire-2026-07-09-new-armory-collections-and-premier-season-5-update",
-    "category": "market",
-    "source": "EsportFire",
-    "title": "New Armory Collections and Premier Season 5 Update",
-    "summary": "Premier Season 5 is out now! Take a look at the new Spy Tech and Arabesque Armory skins and the Premier Season 5 changes!",
-    "url": "https://esportfire.com/article/new-armory-collections-and-premier-season-5-update",
-    "publishedAt": "2026-07-09",
-    "image": "https://cdn.esportfire-services.com/web/assets/images/allgemeines_thumbnails/T_09072026_Premier_Season_5_release_CS2_out_and_new_Armory_collections_Spy_Tech_Arabesque_Premier_Season_5_Update_Map_changes_EsportFire.jpg",
-    "tags": [
-      "Update",
-      "Cases"
-    ],
-    "titleZh": "新军械库收藏与 Premier 第五赛季更新",
-    "summaryZh": "新军械库收藏与 Premier 第五赛季更新",
-    "sourceZh": "EsportFire",
-    "tagsZh": [
-      "版本更新",
-      "收藏池"
-    ],
-    "bulletsZh": [
-      "关注点：新军械库收藏与 Premier 第五赛季更新",
-      "适合从收藏池、贴纸、皮肤搭配或价格情绪角度继续观察。",
-      "来源配图和原文链接已保留，详情页可直接跳转核对。"
-    ]
-  },
-  {
-    "id": "steam-news-2026-07-08-season-5-armory-and-more",
-    "category": "official",
-    "source": "Steam News",
-    "title": "Season 5, Armory, and More",
-    "summary": "Reporting for Active Duty Cache has officially arrived, and replaces Overpass in the active duty map pool. Put your hard-earned strats to the test and rise through the Premier ran...",
-    "url": "https://store.steampowered.com/news/app/730/view/701021228894257508",
-    "publishedAt": "2026-07-08",
-    "image": "",
-    "tags": [
-      "Update",
-      "Cases"
-    ],
-    "titleZh": "第五赛季、军械库与更多内容",
-    "summaryZh": "第五赛季、军械库与更多内容",
-    "sourceZh": "Steam 新闻",
-    "tagsZh": [
-      "版本更新",
-      "收藏池"
-    ],
-    "bulletsZh": [
-      "关注点：第五赛季、军械库与更多内容",
-      "优先关注玩法、地图池、军械库和版本节奏变化。",
-      "来源配图和原文链接已保留，详情页可直接跳转核对。"
-    ]
-  },
-  {
-    "id": "dust2-us-2026-07-08-detonate-sign-arush-and-orangez",
-    "category": "esports",
-    "source": "Dust2.us",
-    "title": "DETONATE sign arush and OrangeZ",
-    "summary": "DETONATE are back up to full strength ahead of Season 58.",
-    "url": "https://www.dust2.us/news/75764/detonate-sign-arush-and-orangez",
-    "publishedAt": "2026-07-08",
-    "image": "https://img-cdn.hltv.org/gallerypicture/fDiylASMxA0zQlqB-c33VY.png?ixlib=java-2.1.0&w=1200&s=4d98938a38ed476c9eaeadc96a94b65a",
-    "tags": [],
-    "titleZh": "DETONATE 签下 arush 和 OrangeZ",
-    "summaryZh": "DETONATE 签下 arush 和 OrangeZ",
-    "sourceZh": "Dust2.us",
-    "tagsZh": [],
-    "bulletsZh": [
-      "关注点：DETONATE 签下 arush 和 OrangeZ",
-      "适合补充战队动态、赛事规则、选手流动或赛程热点。",
-      "来源配图和原文链接已保留，详情页可直接跳转核对。"
-    ]
-  },
-  {
-    "id": "dust2-us-2026-07-08-johnny-speeds-announce-benching-of-friberg-nawwk-lekr0-in-major-roster-shakeup",
-    "category": "esports",
-    "source": "Dust2.us",
-    "title": "Johnny Speeds announce benching of friberg, nawwk, Lekr0 in major roster shakeup",
-    "summary": "The Swedish side is left with just two players on the roster.",
-    "url": "https://www.dust2.us/news/75765/johnny-speeds-announce-benching-of-friberg-nawwk-lekr0-in-major-roster-shakeup",
-    "publishedAt": "2026-07-08",
-    "image": "https://img-cdn.hltv.org/gallerypicture/s7DHcgg_xz-1Malq-XVGuJ.jpg?ixlib=java-2.1.0&w=1200&s=a387a21a1be4d36a5fb83672e01c56c9",
-    "tags": [
-      "Esports"
-    ],
-    "titleZh": "Johnny Speeds 大幅调整阵容，friberg、nawwk、Lekr0 被下放替补",
-    "summaryZh": "Johnny Speeds 大幅调整阵容，friberg、nawwk、Lekr0 被下放替补",
-    "sourceZh": "Dust2.us",
-    "tagsZh": [
-      "赛事"
-    ],
-    "bulletsZh": [
-      "关注点：Johnny Speeds 大幅调整阵容，friberg、nawwk、Lekr0 被下放替补",
       "适合补充战队动态、赛事规则、选手流动或赛程热点。",
       "来源配图和原文链接已保留，详情页可直接跳转核对。"
     ]

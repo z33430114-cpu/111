@@ -7,7 +7,7 @@ import { DatabaseSync } from "node:sqlite";
 import { extname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
 import { runInNewContext } from "node:vm";
-import { createBrotliCompress, createGzip } from "node:zlib";
+import { constants as zlibConstants, createBrotliCompress, createGzip } from "node:zlib";
 import { generateLoadoutCandidates } from "../server/recommendation-engine.mjs";
 import { rerankLoadoutsWithAI } from "../server/openai-recommender.mjs";
 import { handleLoadoutChat } from "../server/loadout-chat.mjs";
@@ -616,7 +616,11 @@ function staticCompressionHeaders(request, extension, info) {
 function pipeStaticFile(filePath, response, encoding) {
   const stream = createReadStream(filePath);
   if (encoding === "br") {
-    stream.pipe(createBrotliCompress()).pipe(response);
+    stream.pipe(createBrotliCompress({
+      params: {
+        [zlibConstants.BROTLI_PARAM_QUALITY]: 4
+      }
+    })).pipe(response);
     return;
   }
   if (encoding === "gzip") {
@@ -2132,7 +2136,7 @@ async function handleAssetProxy(request, response) {
     json(response, 400, { ok: false, error: "Invalid target url." }, corsHeaders());
     return;
   }
-  if (!/^https?:$/i.test(parsedTarget.protocol) || !/(\.|^)img-cdn\.hltv\.org$/i.test(parsedTarget.hostname)) {
+  if (!/^https?:$/i.test(parsedTarget.protocol) || !/(\.|^)(?:img-cdn\.hltv\.org|steamstatic\.com)$/i.test(parsedTarget.hostname)) {
     json(response, 403, { ok: false, error: "Unsupported asset host." }, corsHeaders());
     return;
   }

@@ -40,7 +40,16 @@ for (const marker of [
   "tradeUpCalculatorMarkup",
   "calculatePurchaseCost",
   "calculateWishlistBudget",
-  "calculateTradeBudget"
+  "calculateTradeBudget",
+  "function purchaseDecision",
+  "function wishlistDecision",
+  "function tradeDecision",
+  "toolsDecisionSummaryMarkup",
+  "tool-decision",
+  "data-tools-example",
+  "toolsPurchaseExample",
+  "toolsWishlistExample",
+  "toolsTradeExample"
 ]) {
   if (!appJs.includes(marker)) failures.push(`app.js: missing ${marker}`);
 }
@@ -69,7 +78,12 @@ for (const marker of [
   ".tools-hero",
   ".tool-panel",
   ".tool-breakdown-grid",
-  ".wishlist-table"
+  ".wishlist-table",
+  ".tools-decision-summary",
+  ".tools-summary-grid",
+  ".tool-decision",
+  ".tool-decision--ready",
+  ".tool-panel-actions"
 ]) {
   if (!stylesCss.includes(marker)) failures.push(`styles.css: missing ${marker}`);
 }

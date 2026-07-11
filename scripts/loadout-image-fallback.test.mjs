@@ -64,6 +64,7 @@ function buildAppFunction(name, overrides = {}, dependencies = []) {
     categoryLabel: (value) => String(value || ""),
     wearLabel: (value) => String(value || ""),
     lazyImageMarkup: ({ src = "", alt = "" } = {}) => `<img src="${src}" alt="${alt}" />`,
+    loadoutImageUrl: (value) => String(value || ""),
     resolveDisplayItemById: () => null,
     resolveDisplayItemByName: () => null,
     LOADOUT_ZH: {

@@ -76,6 +76,15 @@ function nearestWearCandidates(selectedWearId = "", availableWearIds = []) {
   return [...new Set(neighbors)].slice(0, 2);
 }
 
+function marketHashNameForWear(marketHashName = "", wearId = "") {
+  const name = String(marketHashName || "").trim();
+  const label = wearLabel(wearId);
+  if (!name || !label) return "";
+  const wearPattern = /\(\s*(?:Factory New|Minimal Wear|Field-Tested|Well-Worn|Battle-Scarred)\s*\)\s*$/iu;
+  if (wearPattern.test(name)) return name.replace(wearPattern, `(${label})`);
+  return `${name} (${label})`;
+}
+
 export function buildYoupinWearSearchJobs({
   itemId = "",
   wearId = "",
@@ -94,13 +103,25 @@ export function buildYoupinWearSearchJobs({
       marketHashName: String(priceRecord?.marketHashName || "").trim()
     }))
     .filter((entry) => entry.itemId && entry.marketHashName);
-  if (!entries.length && normalizedItemId && marketHashName) {
+    if (!entries.length && normalizedItemId && marketHashName) {
     entries.push({
       itemId: normalizedItemId,
       variantId: normalizedVariantId,
       wearId: selectedWearId,
       marketHashName: String(marketHashName || "").trim()
     });
+  }
+  if (entries.length && selectedWearId && !entries.some((entry) => entry.wearId === selectedWearId)) {
+    const seedMarketHashName = String(marketHashName || entries[0]?.marketHashName || "").trim();
+    const selectedMarketHashName = marketHashNameForWear(seedMarketHashName, selectedWearId);
+    if (selectedMarketHashName) {
+      entries.push({
+        itemId: normalizedItemId,
+        variantId: normalizedVariantId,
+        wearId: selectedWearId,
+        marketHashName: selectedMarketHashName
+      });
+    }
   }
   const availableWearIds = entries.map((entry) => entry.wearId).filter(Boolean);
   const orderedWearIds = [
